@@ -106,14 +106,18 @@ static RasterDirection choose_raster_direction(int x_num_points,
 }
 
 /**
- * @brief Transform and append a zeroed point to a path.
+ * @brief Transform and then append a local point to a path.
  *
- * This function transforms a point in the zero-based coordinate system in which
- * the raster is generated to the coordinate system defined by the grid. Working
- * in the zero-based coordinate system allows for both horizontal and vertical
- * rasters to utilise the same algorithm.
+ * The points on the path are initially generated in a local space to form a
+ * horizontal raster in a coordinate system where each axis is indexed from zero
+ * upward. This function transforms such a point to the actual grid, which may
+ * involve translating along each axis and transposing (changing the orientation
+ * of the raster).
+ *
+ * Working in the initial local space allows for both horizontal and vertical
+ * rasters to utilize the same algorithm.
  */
-static bool append_zeroed(Position *path, int capacity, int *count,
+static bool append_local(Position *path, int capacity, int *count,
                           const Axis *x, const Axis *y, int row, int col,
                           bool transposed) {
   if (transposed) {
@@ -136,38 +140,38 @@ static bool append_line(Position *path, int capacity, int *count, const Axis *x,
 
   // Single point
   if (num_points == 1) {
-    return append_zeroed(path, capacity, count, x, y, 0, 0, transposed);
+    return append_local(path, capacity, count, x, y, 0, 0, transposed);
   }
 
   // Traverse the line by going to the nearest end first, minimizing the amount
   // of time spent skipping over points before the profile is completed
   if (anchor <= (num_points - 1 - anchor)) {
     for (col = anchor; col >= 0; col--) {
-      if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+      if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
         return false;
       }
     }
 
     for (col = anchor + 1; col < num_points; col++) {
-      if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+      if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
         return false;
       }
     }
   } else {
     for (col = anchor; col < num_points; col++) {
-      if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+      if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
         return false;
       }
     }
 
     for (col = anchor - 1; col >= 0; col--) {
-      if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+      if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
         return false;
       }
     }
   }
 
-  return append_zeroed(path, capacity, count, x, y, 0, anchor, transposed);
+  return append_local(path, capacity, count, x, y, 0, anchor, transposed);
 }
 
 /**
@@ -188,7 +192,7 @@ static bool append_even_cycle(Position *path, int capacity, int *count,
 
   // Move to the top of the grid
   for (row = 0; row < rows; row++) {
-    if (!append_zeroed(path, capacity, count, x, y, row, 0, transposed)) {
+    if (!append_local(path, capacity, count, x, y, row, 0, transposed)) {
       return false;
     }
   }
@@ -197,13 +201,13 @@ static bool append_even_cycle(Position *path, int capacity, int *count,
   for (row = rows - 1; row >= 1; row--) {
     if (((rows - 1 - row) & 1) == 0) {
       for (col = 1; col < cols; col++) {
-        if (!append_zeroed(path, capacity, count, x, y, row, col, transposed)) {
+        if (!append_local(path, capacity, count, x, y, row, col, transposed)) {
           return false;
         }
       }
     } else {
       for (col = cols - 1; col >= 1; col--) {
-        if (!append_zeroed(path, capacity, count, x, y, row, col, transposed)) {
+        if (!append_local(path, capacity, count, x, y, row, col, transposed)) {
           return false;
         }
       }
@@ -211,7 +215,7 @@ static bool append_even_cycle(Position *path, int capacity, int *count,
   }
 
   for (col = cols - 1; col >= 1; col--) {
-    if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+    if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
       return false;
     }
   }
@@ -220,7 +224,7 @@ static bool append_even_cycle(Position *path, int capacity, int *count,
 }
 
 /**
- * @brief Generate a zeroed horizontal raster for an odd grid.
+ * @brief Generate a horizontal raster for an odd grid.
  *
  * @p rows and @p cols must both be odd.
  */
@@ -237,14 +241,14 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
 
   // Move to the top of the grid
   for (row = 0; row < rows; row++) {
-    if (!append_zeroed(path, capacity, count, x, y, row, 0, transposed)) {
+    if (!append_local(path, capacity, count, x, y, row, 0, transposed)) {
       return false;
     }
   }
 
   // Raster horizontally until at the right with two rows left
   for (col = 1; col < cols; col++) {
-    if (!append_zeroed(path, capacity, count, x, y, rows - 1, col,
+    if (!append_local(path, capacity, count, x, y, rows - 1, col,
                        transposed)) {
       return false;
     }
@@ -253,13 +257,13 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
   for (row = rows - 2; row > 1; row--) {
     if (((rows - 2 - row) & 1) == 0) {
       for (col = cols - 1; col >= 1; col--) {
-        if (!append_zeroed(path, capacity, count, x, y, row, col, transposed)) {
+        if (!append_local(path, capacity, count, x, y, row, col, transposed)) {
           return false;
         }
       }
     } else {
       for (col = 1; col < cols; col++) {
-        if (!append_zeroed(path, capacity, count, x, y, row, col, transposed)) {
+        if (!append_local(path, capacity, count, x, y, row, col, transposed)) {
           return false;
         }
       }
@@ -267,15 +271,15 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
   }
 
   // Move diagonally at the bottom-right corner to ensure a cyclic path
-  if (!append_zeroed(path, capacity, count, x, y, 1, cols - 1, transposed)) {
+  if (!append_local(path, capacity, count, x, y, 1, cols - 1, transposed)) {
     return false;
   }
 
-  if (!append_zeroed(path, capacity, count, x, y, 1, cols - 2, transposed)) {
+  if (!append_local(path, capacity, count, x, y, 1, cols - 2, transposed)) {
     return false;
   }
 
-  if (!append_zeroed(path, capacity, count, x, y, 0, cols - 1, transposed)) {
+  if (!append_local(path, capacity, count, x, y, 0, cols - 1, transposed)) {
     return false;
   }
 
@@ -283,26 +287,26 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
 
   // Squiggle toward the left until adjacent to the origin
   while (col >= 2) {
-    if (!append_zeroed(path, capacity, count, x, y, 0, col, transposed)) {
+    if (!append_local(path, capacity, count, x, y, 0, col, transposed)) {
       return false;
     }
 
-    if (!append_zeroed(path, capacity, count, x, y, 0, col - 1, transposed)) {
+    if (!append_local(path, capacity, count, x, y, 0, col - 1, transposed)) {
       return false;
     }
 
-    if (!append_zeroed(path, capacity, count, x, y, 1, col - 1, transposed)) {
+    if (!append_local(path, capacity, count, x, y, 1, col - 1, transposed)) {
       return false;
     }
 
-    if (!append_zeroed(path, capacity, count, x, y, 1, col - 2, transposed)) {
+    if (!append_local(path, capacity, count, x, y, 1, col - 2, transposed)) {
       return false;
     }
 
     col -= 2;
   }
 
-  return append_zeroed(path, capacity, count, x, y, 0, 1, transposed);
+  return append_local(path, capacity, count, x, y, 0, 1, transposed);
 }
 
 Position *modified_raster(Axis *x, Axis *y, RasterDirection prev,
