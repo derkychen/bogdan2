@@ -17,12 +17,7 @@
 
 #define PULSE_TRIGGER_GPIO 22
 
-/**
- * @brief Initialize hardware configurations (i.e. pins, pull up/down, etc.).
- *
- * This function will only work as expected if the pins as defined above support
- * the functionality they are supposed to provide.
- */
-void config_init();
+/** @brief Initialize hardware configuration (i.e. pins, pull up/down, etc.). */
+void config_init(void);
 
 #endif
