@@ -1,0 +1,12 @@
+{
+	"x_min": -5,
+	"x_max": 5,
+	"x_unit_nm": 250000,
+	"y_min": -5,
+	"y_max": 5,
+	"y_unit_nm": 250000,
+	"num_pulses": 3,
+	"pretrigger_time_us": 0,
+	"posttrigger_time_us": 0,
+	"sample_interval_ns": 4
+}

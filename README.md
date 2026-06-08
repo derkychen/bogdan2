@@ -2,7 +2,7 @@
 
 ## Dependencies:
 
-You must have these installed in order to set up Bogdan 2.
+You must have the following installed in order to set up Bogdan 2.
 
 * `uv`
 * `git`
@@ -39,7 +39,7 @@ to run Bogdan 2's calibration script.
 In the project directory, run
 
 ```bash
-./bogdan.sh profile path/to/your/grid.json
+./bogdan.sh profile path/to/your/instruction.json
 ```
 
 to profile the beam.
