@@ -23,10 +23,10 @@ typedef struct Position {
 typedef enum RasterDirection {
 
   /** Raster direction parallel to the x-axis (like the letter Z). */
-  RASTER_HORIZONTAL = 0,
+  RASTER_DIRECTION_HORIZONTAL = 0,
 
   /** Raster direction parallel to the y-axis (like the letter N). */
-  RASTER_VERTICAL = 1,
+  RASTER_DIRECTION_VERTICAL = 1,
 
 } RasterDirection;
 
@@ -44,7 +44,8 @@ typedef enum RasterDirection {
  * movement of the stages for each grid and balance consecutive travel between
  * the stages.
  */
-Position *modified_raster(Axis *x, Axis *y, RasterDirection *prev,
+Position *modified_raster(Axis *x, Axis *y,
+                          RasterDirection *prev_raster_direction,
                           int *path_size);
 
 #endif

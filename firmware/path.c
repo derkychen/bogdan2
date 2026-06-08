@@ -95,14 +95,17 @@ static bool rotate_to_anchor(Position *path, int count, int anchor_x,
  * that was last used. Otherwise, the raster direction must be parallel to the
  * odd side.
  */
-static RasterDirection choose_raster_direction(int x_num_points,
-                                               int y_num_points,
-                                               RasterDirection prev) {
+static RasterDirection
+choose_raster_direction(int x_num_points, int y_num_points,
+                        RasterDirection prev_raster_direction) {
   if ((x_num_points & 1) == (y_num_points & 1)) {
-    return (prev == RASTER_HORIZONTAL) ? RASTER_VERTICAL : RASTER_HORIZONTAL;
+    return (prev_raster_direction == RASTER_DIRECTION_HORIZONTAL)
+               ? RASTER_DIRECTION_VERTICAL
+               : RASTER_DIRECTION_HORIZONTAL;
   }
 
-  return ((y_num_points & 1) == 0) ? RASTER_VERTICAL : RASTER_HORIZONTAL;
+  return ((y_num_points & 1) == 0) ? RASTER_DIRECTION_VERTICAL
+                                   : RASTER_DIRECTION_HORIZONTAL;
 }
 
 /**
@@ -308,7 +311,8 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
   return append_local(path, capacity, count, x, y, 0, 1, transposed);
 }
 
-Position *modified_raster(Axis *x, Axis *y, RasterDirection *prev,
+Position *modified_raster(Axis *x, Axis *y,
+                          RasterDirection *prev_raster_direction,
                           int *path_size) {
   int x_num_points;
   int y_num_points;
@@ -387,10 +391,11 @@ Position *modified_raster(Axis *x, Axis *y, RasterDirection *prev,
   }
 
   // Handle two dimensional grid
-  direction = choose_raster_direction(x_num_points, y_num_points, *prev);
-  *prev = direction;
+  direction = choose_raster_direction(x_num_points, y_num_points,
+                                      *prev_raster_direction);
+  *prev_raster_direction = direction;
 
-  if (direction == RASTER_VERTICAL) {
+  if (direction == RASTER_DIRECTION_VERTICAL) {
     rows = y_num_points;
     cols = x_num_points;
     transposed = false;
