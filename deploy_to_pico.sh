@@ -10,7 +10,7 @@ export PICO_SDK_PATH="${PICO_SDK_PATH:-$HOME/.pico/pico-sdk}"
 
 cd firmware
 
-if [[ "$FLAG" == "--clear" ]]; then
+if [[ "$FLAG" == "--clear-build" ]]; then
   rm -rf build
 fi
 
