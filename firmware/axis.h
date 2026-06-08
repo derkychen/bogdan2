@@ -1,8 +1,7 @@
 #ifndef AXIS_H
 #define AXIS_H
 
-#define ANALOG_MIN_VAL 0
-#define ANALOG_MAX_VAL 65536
+#include <stdbool.h>
 
 /**
  * @brief Interface between coordinate system and stage.
@@ -41,15 +40,23 @@ typedef struct Axis {
 
 } Axis;
 
-/**
- * @brief Initialize an axis.
- */
-void *axis_init(Axis *axis, int min_unit, int max_unit, int unit_nm,
-                int trigger_in, int analog_in, int trigger_out);
+/** @brief Status codes for initialization. */
+typedef enum AxisInitStatusCode {
+  AXIS_INIT_OK = 0,
+  AXIS_INIT_ERR_NULL,
+  AXIS_INIT_ERR_INVALID_GPIO,
+  AXIS_INIT_ERR_UNSUPPORTED_GPIO,
+  AXIS_INIT_ERR_DUPLICATE_TRIGGER_OUT,
+} AxisInitStatusCode;
 
-/**
- * @brief Number of points on the axis.
- */
+/** @brief Initialize an axis. */
+AxisInitStatusCode axis_init(Axis *axis, int min, int max, int unit_nm,
+                             int trigger_in, int analog_in, int trigger_out);
+
+/** @brief Initialize IRQ configurations for both axes */
+void axis_irq_init(void);
+
+/** @brief Number of points on the axis. */
 int axis_num_points(Axis *axis);
 
 /**
@@ -59,16 +66,17 @@ int axis_num_points(Axis *axis);
  * mode. It sets the next target of the stage to the point corresponding to
  * a given coordinate, set through the controller Analog IN.
  */
-void axis_set_target(Axis *axis, int coord);
+void axis_set_target(Axis *axis, int target);
 
 /**
- * @brief Move the stage to its destination.
+ * @brief Start the stage's movement to its target.
  *
  * This function will only work as expected if the controller is in closed loop
- * mode. It moves the stage to its next destination by sending a pulse to the
- * controller Trigger IN. A delay can be added to account for the time taken to
- * acquire post-trigger samples.
+ * mode. It sends a pulse to the controller Trigger IN.
  */
 void axis_start_move(Axis *axis);
+
+/** @brief Update state variables when the stage is at its destination. */
+void axis_move_end(Axis *axis);
 
 #endif
