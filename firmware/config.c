@@ -4,7 +4,8 @@
 #include <pico/types.h>
 #include <stdbool.h>
 
-void config_init() {
+void config_init(void) {
+
   // Controller I/O for x-axis
   gpio_init(X_TRIGGER_IN_GPIO);
   gpio_set_dir(X_TRIGGER_IN_GPIO, GPIO_OUT);
@@ -32,4 +33,9 @@ void config_init() {
   gpio_init(Y_TRIGGER_OUT_GPIO);
   gpio_set_dir(Y_TRIGGER_OUT_GPIO, GPIO_IN);
   gpio_pull_down(Y_TRIGGER_OUT_GPIO);
+
+  // Pulse counting input
+  gpio_init(PULSE_TRIGGER_GPIO);
+  gpio_set_dir(PULSE_TRIGGER_GPIO, GPIO_IN);
+  gpio_pull_down(PULSE_TRIGGER_GPIO);
 }
