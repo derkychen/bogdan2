@@ -9,8 +9,8 @@ import csv
 from pathlib import Path
 import numpy as np
 
-X_COLUMN = "x_target_nm"
-Y_COLUMN = "y_target_nm"
+X_COLUMN = "x_nm_avg"
+Y_COLUMN = "y_nm_avg"
 INTENSITY_COLUMN = "peak_intensity_mV_avg"
 
 def get_summary_csv():

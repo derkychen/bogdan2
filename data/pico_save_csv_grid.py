@@ -114,14 +114,17 @@ def make_summary_row(pico, data_mV, grid_point, pulse_index):
         np.mean(data_mV[Y_POSITION_CHANNEL][start:])
     )
 
+
+    #convert from mV to nm (6mm per 10V)
+    x_position_nm = x_position_mV * 600
+    y_position_nm = y_position_mV * 600
+
     return {
         "point_index": grid_point["point_index"],
-        "x_target_nm": grid_point["x_target_nm"],
-        "y_target_nm": grid_point["y_target_nm"],
         "pulse": pulse_index + 1,
-        "x_position_mV": x_position_mV,
-        "y_position_mV": y_position_mV,
-        "peak_intensity_mV": peak_intensity_mV,
+        "x_position_nm": x_position_nm,
+        "y_position_nm": y_position_nm,
+        "peak_intensity_mV": peak_intensity_mV
     }
 
 def average_point_rows(rows_for_one_point):
@@ -133,14 +136,9 @@ def average_point_rows(rows_for_one_point):
 
     return{
         "point_index": first["point_index"],
-        "x_unit": first["x_unit"],
-        "y_unit": first["y_unit"],
-        "point_index": first["point_index"],
-        "x_target_nm": first["x_target_nm"],
-        "y_target_nm": first["y_target_nm"],
+        "x_nm_avg": float(np.mean([row["x_nm"] for row in rows_for_one_point])),
+        "y_nm_avg": float(np.mean([row["y_nm"] for row in rows_for_one_point])),
         "num_pulses": len(rows_for_one_point),
-        "x_position_mV": float(np.mean([r["x_position_mV"] for r in rows_for_one_point])),
-        "y_position_mV": float(np.mean([r["y_position_mV"] for r in rows_for_one_point])),
         "peak_intensity_mV": float(np.max([r["peak_intensity_mV"] for r in rows_for_one_point])),
     }
 
@@ -205,7 +203,7 @@ def main():
 
             summary_row["global_capture"] = global_capture_index + 1
 
-            all_pulse_rows.appen(summary_row)
+            all_pulse_rows.append(summary_row)
         
         #all pulses are processed, now group every num_pulses rows into one averaged point
         for point_list_index in range(total_points):
@@ -226,11 +224,9 @@ def main():
             fieldnames=[
                 "global_capture",
                 "point_index",
-                "x_target_nm",
-                "y_target_nm",
                 "pulse",
-                "x_position-mV",
-                "y_position_mV",
+                "x_nm",
+                "y_nm",
                 "peak_intensity_mV"
             ]
         )
@@ -242,11 +238,9 @@ def main():
             averaged_point_rows,
             fieldnames = [
                 "point_index",
-                "x_target_nm",
-                "y_target_nm",
                 "num_pulses",
-                "x_position_mV_avg",
-                "y_position_mV_avg",
+                "x_nm_avg",
+                "y_nm_avg",
                 "peak_intensity_mV_max"
             ]
         )
