@@ -51,7 +51,8 @@ typedef enum AxisInitStatusCode {
 
 /** @brief Initialize an axis. */
 AxisInitStatusCode axis_init(Axis *axis, int min, int max, int unit_nm,
-                             int trigger_in, int analog_in, int trigger_out);
+                             int trigger_in, int analog_in, int trigger_out,
+                             int cur);
 
 /** @brief Initialize IRQ configurations for both axes */
 void axis_irq_init(void);

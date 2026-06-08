@@ -5,17 +5,16 @@
 #include "hardware/pwm.h"
 #include "pico/time.h"
 #include <pico/types.h>
-#include <stdbool.h>
 
 #define AXIS_IRQ_GPIO_MASK                                                     \
   ((1u << X_TRIGGER_OUT_GPIO) | (1u << Y_TRIGGER_OUT_GPIO))
-
-#define AXIS_ANALOG_MIN_VAL 0
-#define AXIS_ANALOG_MAX_VAL 65535
+#define ANALOG_MIN_VAL 0
+#define ANALOG_MAX_VAL 65535
+#define START_MOVE_PULSE_WIDTH_US 10
 
 static Axis *axis_from_trigger_out[NUM_GPIO] = {0};
 
-static void axis_trigger_out_irq_handler(void) {
+static void axes_trigger_out_irq_handler(void) {
   uint32_t mask = AXIS_IRQ_GPIO_MASK;
 
   while (mask != 0) {
@@ -38,8 +37,8 @@ static void axis_trigger_out_irq_handler(void) {
 }
 
 AxisInitStatusCode axis_init(Axis *axis, int min, int max, int unit_nm,
-                             int trigger_in, int analog_in, int trigger_out) {
-
+                             int trigger_in, int analog_in, int trigger_out,
+                             int cur) {
   if (axis == NULL) {
     return AXIS_INIT_ERR_NULL;
   }
@@ -65,18 +64,18 @@ AxisInitStatusCode axis_init(Axis *axis, int min, int max, int unit_nm,
   axis->analog_in = analog_in;
   axis->trigger_out = trigger_out;
 
-  axis->cur = 0;
-  axis->target = 0;
+  axis->cur = cur;
+  axis->target = axis->cur;
   axis->moving = false;
 
   axis_from_trigger_out[trigger_out] = axis;
 
-  return axis;
+  return AXIS_INIT_OK;
 }
 
 void axis_irq_init(void) {
   gpio_add_raw_irq_handler_with_order_priority_masked(
-      AXIS_IRQ_GPIO_MASK, axis_trigger_out_irq_handler,
+      AXIS_IRQ_GPIO_MASK, axes_trigger_out_irq_handler,
       PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 
   gpio_set_irq_enabled(X_TRIGGER_OUT_GPIO, GPIO_IRQ_EDGE_RISE, true);
@@ -122,7 +121,7 @@ void axis_start_move(Axis *axis) {
 
   // Send a voltage pulse to the controller Trigger IN
   gpio_put(axis->trigger_in, 1);
-  sleep_us(10);
+  sleep_us(START_MOVE_PULSE_WIDTH_US);
   gpio_put(axis->trigger_in, 0);
 }
 
