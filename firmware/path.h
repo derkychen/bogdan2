@@ -43,17 +43,8 @@ typedef enum RasterDirection {
  * that do not contain the origin, etc.). This function helps minimize the
  * movement of the stages for each grid and balance consecutive travel between
  * the stages.
- *
- * @param x Pointer to the x-axis structure.
- * @param y Pointer to the y-axis structure.
- * @param positions_size The pointer to the integer that stores the length of
- *                       the array of Position structures.
- *
- * @return Pointer to an allocated array of Position structures. The caller is
- *         responsible for freeing the returned memory. Returns NULL if there is
- *         an error.
  */
-Position *modified_raster(Axis *x, Axis *y, RasterDirection prev,
+Position *modified_raster(Axis *x, Axis *y, RasterDirection *prev,
                           int *path_size);
 
 #endif

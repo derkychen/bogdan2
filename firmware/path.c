@@ -118,8 +118,8 @@ static RasterDirection choose_raster_direction(int x_num_points,
  * rasters to utilize the same algorithm.
  */
 static bool append_local(Position *path, int capacity, int *count,
-                          const Axis *x, const Axis *y, int row, int col,
-                          bool transposed) {
+                         const Axis *x, const Axis *y, int row, int col,
+                         bool transposed) {
   if (transposed) {
     return append(path, capacity, count, x->min + row, y->min + col);
   }
@@ -248,8 +248,7 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
 
   // Raster horizontally until at the right with two rows left
   for (col = 1; col < cols; col++) {
-    if (!append_local(path, capacity, count, x, y, rows - 1, col,
-                       transposed)) {
+    if (!append_local(path, capacity, count, x, y, rows - 1, col, transposed)) {
       return false;
     }
   }
@@ -309,7 +308,7 @@ static bool append_odd_cycle(Position *path, int capacity, int *count,
   return append_local(path, capacity, count, x, y, 0, 1, transposed);
 }
 
-Position *modified_raster(Axis *x, Axis *y, RasterDirection prev,
+Position *modified_raster(Axis *x, Axis *y, RasterDirection *prev,
                           int *path_size) {
   int x_num_points;
   int y_num_points;
@@ -388,7 +387,8 @@ Position *modified_raster(Axis *x, Axis *y, RasterDirection prev,
   }
 
   // Handle two dimensional grid
-  direction = choose_raster_direction(x_num_points, y_num_points, prev);
+  direction = choose_raster_direction(x_num_points, y_num_points, *prev);
+  *prev = direction;
 
   if (direction == RASTER_VERTICAL) {
     rows = y_num_points;
