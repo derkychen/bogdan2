@@ -9,8 +9,8 @@ import csv
 from pathlib import Path
 import numpy as np
 
-X_COLUMN = "x_nm_avg"
-Y_COLUMN = "y_nm_avg"
+X_COLUMN = "x_target_nm"
+Y_COLUMN = "y_target_nm"
 INTENSITY_COLUMN = "peak_intensity_mV_avg"
 
 def get_summary_csv():
@@ -41,7 +41,6 @@ def get_summary_csv():
         )
 
         summary_csv = (selected_folder / "beam_profile_summary.csv")
-
 
         return summary_csv
 
@@ -134,6 +133,8 @@ def make_regular_grid(x, y, intensity):
         x_index = np.where(unique_x == x_value)[0][0]
         y_index = np.where(unique_y == y_value)[0][0]
         Z_grid[y_index, x_index] = z_value
+    
+    
     
     #if any location in grid is empty, grid is incomplete
     if np.isnan(Z_grid).any():

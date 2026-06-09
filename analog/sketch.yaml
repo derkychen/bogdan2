@@ -1,0 +1,13 @@
+profiles:
+  bogdan2:
+    fqbn: arduino:renesas_uno:minima
+
+    platforms:
+      - platform: arduino:renesas_uno
+    libraries:
+      - ArduinoJson (7.4.2)
+    port: COM3
+    port_config:
+      baudrate: 9600
+
+default_profile: bogdan2

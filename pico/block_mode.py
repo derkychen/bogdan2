@@ -50,8 +50,20 @@ class PicoBlockMode:
             self.settings["sample_interval_ns"]
         )
         
+        print("pre_trigger_time_ns:", self.settings["pre_trigger_time_ns"])
+        print("post_trigger_time_ns:", self.settings["post_trigger_time_ns"])
+        print("sample_interval_ns:", self.settings["sample_interval_ns"])
+
         print("Number of pre-trigger samples:", self.pre_trigger_samples)
         print("Number of post-trigger samples:", self.post_trigger_samples)
+        print(self.num_pulses, "pulses per position")
+
+        if self.total_samples <= 0:
+            raise ValueError(
+                "total_samples is 0. Check pre_trigger_time_ns, "
+                "post_trigger_time_ns, and sample_interval_ns in your JSON file."
+        )
+
         print(self.num_pulses, "pulses per position")
 
         self.timebase = find_timebase(self.chandle, self.total_samples, self.settings["sample_interval_ns"])
@@ -101,7 +113,7 @@ class PicoBlockMode:
         status = ps.ps2000aMemorySegments(self.chandle, self.num_pulses, ctypes.byref(max_samples))     #create one memory segment per pulse
         assert_pico_ok(status)
 
-        print("Max samples per segment:", max_samples.value)
+        #print("Max samples per segment:", max_samples.value)
         if self.total_samples > max_samples.value:
             raise ValueError(
                 f"total_samples={self.total_samples} is larger than"
@@ -174,8 +186,16 @@ class PicoBlockMode:
         print("PicoScope triggered.")
         print("Captures stored in PicoScope memory.")
 
-        samples_returned = ctypes.c_int32(self.total_samples)
+        samples_returned = ctypes.c_uint32(self.total_samples)
         overflow = (ctypes.c_int16 * self.num_pulses)()
+
+        '''
+        #DEBUG
+        print("num_pulses:", self.num_pulses)
+        print("from segment:", 0)
+        print("to segment:", self.num_pulses - 1)
+        print("samples requested:", samples_returned.value)
+        '''
 
         #transfer captures from pico memory to PC
         status = ps.ps2000aGetValuesBulk(                               #transfer captures to python buffer
@@ -183,9 +203,9 @@ class PicoBlockMode:
             ctypes.byref(samples_returned),
             0,
             self.num_pulses - 1,
-            1,
+            0,
             ps.PS2000A_RATIO_MODE["PS2000A_RATIO_MODE_NONE"],
-            ctypes.byref(overflow)
+            overflow
         )
         assert_pico_ok(status)
 

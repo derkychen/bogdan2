@@ -1,13 +1,13 @@
 from picosdk.ps2000a import ps2000a as ps
 
 PICO_CONFIG = {
-    "settings_json_path": "grids/example.json",
+    "settings_json_path": "instructions/example.json",
 
     #Set to "auto" if you want the threshold voltage to be calculated
     #Set a number if you want a manual threshold
     
     "trigger_threshold_mode": "manual",
-    "manual_trigger_threshold_mV": 2500,
+    "manual_trigger_threshold_mV": 1000,
     "sigma_multiplier": 7,
 
     "trigger_channel_name": "trigger",

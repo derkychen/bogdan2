@@ -65,7 +65,7 @@ def generate_grid_points(instruction):
     """
     
     x_values = list(range(instruction["x_min"], instruction["x_max"]+1))
-    y_values = list(range[instruction["y_min"], instruction["y_max"]+1])
+    y_values = list(range(instruction["y_min"], instruction["y_max"]+1))
 
     point_index = 0
 
@@ -74,7 +74,7 @@ def generate_grid_points(instruction):
             point_index +=1
 
             yield {
-                "point index": point_index,
+                "point_index": point_index,
                 "x_unit": x_unit,
                 "y_unit": y_unit,
                 "x_target_nm": x_unit * instruction["x_unit_nm"],
@@ -115,15 +115,17 @@ def make_summary_row(pico, data_mV, grid_point, pulse_index):
     )
 
 
-    #convert from mV to nm (6mm per 10V)
+    #convert from mV to nm (6mm per 10V = 600nm per 1mV)
     x_position_nm = x_position_mV * 600
     y_position_nm = y_position_mV * 600
 
     return {
         "point_index": grid_point["point_index"],
         "pulse": pulse_index + 1,
-        "x_position_nm": x_position_nm,
-        "y_position_nm": y_position_nm,
+        "x_target_nm": grid_point["x_target_nm"],
+        "y_target_nm": grid_point["y_target_nm"],
+        "x_nm": x_position_nm,
+        "y_nm": y_position_nm,
         "peak_intensity_mV": peak_intensity_mV
     }
 
@@ -136,13 +138,17 @@ def average_point_rows(rows_for_one_point):
 
     return{
         "point_index": first["point_index"],
+        "num_pulses": len(rows_for_one_point),
+        "x_target_nm": first["x_target_nm"],
+        "y_target_nm": first["y_target_nm"],
         "x_nm_avg": float(np.mean([row["x_nm"] for row in rows_for_one_point])),
         "y_nm_avg": float(np.mean([row["y_nm"] for row in rows_for_one_point])),
         "num_pulses": len(rows_for_one_point),
-        "peak_intensity_mV": float(np.max([r["peak_intensity_mV"] for r in rows_for_one_point])),
+        "peak_intensity_mV_avg": float(np.max([row["peak_intensity_mV"] for row in rows_for_one_point])),
     }
 
 def write_dict_csv(filename, rows, fieldnames):
+
     with open(filename, "w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
@@ -173,6 +179,38 @@ def main():
     try:
         pico.setup()
 
+        for grid_point in grid_points:
+            point_index = grid_point["point_index"]
+
+            pico.num_pulses = pulses_per_point
+
+            buffers = pico.create_rapid_block_buffers()
+            pico.run_rapid_block_capture()
+
+            point_folder = output_path / (
+                f"point_{point_index:04d}"
+                f"_x_{grid_point['x_unit']}"
+                f"_y_{grid_point['y_unit']}"
+            )
+            point_folder.mkdir(parents=True, exist_ok=True)
+            rows_for_this_point = []
+
+            for pulse_index in range(pulses_per_point):
+                data_mV = pico.convert_capture_to_mV(buffers, capture_index=pulse_index)
+
+                pulse_filename = (point_folder / f"pulse_{pulse_index + 1:03d}.csv")
+                save_pulse_csv(pico, data_mV, pulse_filename)
+
+                summary_row = make_summary_row(pico, data_mV, grid_point, pulse_index)
+
+                all_pulse_rows.append(summary_row)
+                rows_for_this_point.append(summary_row)
+
+            averaged_point_rows.append(
+                average_point_rows(rows_for_this_point)
+            )
+                
+        '''
         pico.num_pulses = total_captures
         print("Starting one full-grid rapid-block capture.")
 
@@ -211,10 +249,9 @@ def main():
             end_index = start_index + pulses_per_point
 
             rows_for_this_point = all_pulse_rows[start_index:end_index]
-
-            averaged_point_rows.append(
-                average_point_rows(rows_for_this_point)
-            )
+        
+        '''
+            
 
         #save every pulse result
         pulse_summary_filename = output_path / "pulse_summary.csv"
@@ -225,6 +262,8 @@ def main():
                 "global_capture",
                 "point_index",
                 "pulse",
+                "x_target_nm",
+                "y_target_nm",
                 "x_nm",
                 "y_nm",
                 "peak_intensity_mV"
@@ -239,9 +278,11 @@ def main():
             fieldnames = [
                 "point_index",
                 "num_pulses",
+                "x_target_nm",
+                "y_target_nm",
                 "x_nm_avg",
                 "y_nm_avg",
-                "peak_intensity_mV_max"
+                "peak_intensity_mV_avg"
             ]
         )
 

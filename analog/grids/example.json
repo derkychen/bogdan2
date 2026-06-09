@@ -1,0 +1,16 @@
+{
+  "x": {
+    "min": -5,
+    "max": 5,
+    "unit": 5000
+  },
+  "y": {
+    "min": -5,
+    "max": 5,
+    "unit": 5000
+  },
+  "pulses": 3,
+  "sample_interval_ns": 10,
+  "pre_trigger_time_ns": 500,
+  "post_trigger_time_ns": 1000
+}
