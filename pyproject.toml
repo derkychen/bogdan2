@@ -1,0 +1,31 @@
+[project]
+name = "bogdan2"
+version = "0.1.0"
+description = "Bogdan the beam profiler but with spinning rims."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Derek Chen", email = "derek.chen@mpsd.mpg.de" },
+  { name = "Jadyn Zeng", email = "jadyn.zeng@mpsd.mpg.de" },
+]
+dependencies = [
+  "matplotlib",
+  "numpy",
+  "picosdk",
+]
+
+[tool.ruff]
+line-length = 79
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.setuptools]
+py-modules = [
+  "profile",
+  "calibrate",
+]
