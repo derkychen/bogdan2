@@ -4,9 +4,10 @@
 
 You must have the following installed in order to set up Bogdan 2.
 
-* `uv`
+* `cmake`
 * `git`
 * `python3`
+* `uv`
 * PicoScope [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
 
 If you are on Windows :disappointed:, you are probably sad, but also need to install [Git Bash](https://git-scm.com/install/windows).
