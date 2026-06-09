@@ -1,18 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Install relevant dependencies
 
 set -euo pipefail
 
-cd $HOME
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+mkdir -p "$HOME/.pico"
 
 # Install and configure Pico SDK
-mkdir ".pico" && cd "$_"
+if [ ! -d "$HOME/.pico/pico-sdk" ]; then
+  git clone https://github.com/raspberrypi/pico-sdk.git "$HOME/.pico/pico-sdk"
+fi
 
-git clone https://github.com/raspberrypi/pico-sdk.git
-git submodule update --init
+git -C "$HOME/.pico/pico-sdk" submodule update --init
 
 # Dependencies for Python virtual environment
-cd $(dirname "${BASH_SOURCE[0]}")
+cd "$SCRIPT_DIR"
 uv venv
 uv sync
