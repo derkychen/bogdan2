@@ -7,7 +7,7 @@ PICO_CONFIG = {
     #Set a number if you want a manual threshold
     
     "trigger_threshold_mode": "manual",
-    "manual_trigger_threshold_mV": 1000,
+    "manual_trigger_threshold_mV": 2500,
     "sigma_multiplier": 7,
 
     "trigger_channel_name": "trigger",

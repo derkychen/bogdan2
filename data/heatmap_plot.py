@@ -9,6 +9,11 @@ import csv
 from pathlib import Path
 import numpy as np
 
+'''
+Change X_COLUMN and Y_COLUMN to x_nm_avg and y_nm_avg
+if want axes on heatmap to be of the picoscope's measured positions
+'''
+
 X_COLUMN = "x_target_nm"
 Y_COLUMN = "y_target_nm"
 INTENSITY_COLUMN = "peak_intensity_mV_avg"
@@ -163,8 +168,8 @@ def plot_3d_beam_heatmap(X_grid, Y_grid, Z_grid, title="3D Beam Profile Heatmap"
         cmap="inferno"
     )
 
-    ax.set_xlabel("X Position")
-    ax.set_ylabel("Y Position")
+    ax.set_xlabel("X Position (nm)")
+    ax.set_ylabel("Y Position (nm)")
     ax.set_zlabel("Intensity (mV)")
 
     ax.set_title(title)

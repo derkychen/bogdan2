@@ -1,15 +1,17 @@
 """
+Used for quick position calibration to 
+find the center (maximum intensity) of the beam
+
 Continuously prints the voltage of every enabled channel 
 (except trigger channel)
 
-Used for quick position calibration to find the center (maximum intensity) of the beam
-
-Updates every 0.25seconds
+Updates every 0.25 seconds
 """
 
 import ctypes
 import time
 import numpy as np
+import os
 
 from pico.pico_config import PICO_CONFIG
 
@@ -30,7 +32,10 @@ from pico.trigger import disable_trigger
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps2000a import ps2000a as ps
 
-REFRESH_PERIOD_S = 0.05
+REFRESH_PERIOD_S = 0.25
+
+def clear_terminal():
+    os.system("cls" if os.name == "nt" else "clear")
 
 def main():
     chandle = open_scope()
@@ -111,12 +116,18 @@ def main():
                 voltage_mV = float(np.mean(data_mV))
                 output.append(f"{name}: {voltage_mV:.2f} mV")
             
-            print(" | ".join(output))
+            clear_terminal()
+            print("Live PicoScope Readings")
+            print("-" * 30)
 
+            for line in output:
+                print(line)
+            
             time.sleep(REFRESH_PERIOD_S)
 
     except KeyboardInterrupt:
-        print("\nStopped by user.")
+        clear_terminal()
+        print("\nStopped voltage monitor.")
     
     finally:
         close_scope(chandle)
