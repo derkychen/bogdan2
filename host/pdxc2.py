@@ -109,8 +109,9 @@ class PDXC2Controller:
         """
         self._serial_num = ctypes.c_char_p(serial_num)
 
-        os.add_dll_directory(KinesisConfig.KINESIS_DIR)
-        self._lib = ctypes.cdll.LoadLibrary(KinesisConfig.DLL_FILE)
+        self._lib = ctypes.cdll.LoadLibrary(
+            os.path.join(KinesisConfig.KINESIS_DIR, KinesisConfig.DLL_FILE)
+        )
 
         self._set_function_prototypes()
 
@@ -122,7 +123,7 @@ class PDXC2Controller:
 
         print(f"PDXC2 ({self._serial_num.value}) enabled.")
 
-    def get_trigger_mode(self) -> str:
+    def get_trigger_mode(self) -> int:
         """Get the Trigger Mode."""
         _check_err_status_code(
             self._lib.PDXC2_RequestExternalTriggerConfig, self._serial_num
@@ -156,18 +157,18 @@ class PDXC2Controller:
 
     def set_analog_rising_trigger_params(
         self,
-        analog_in_gain: ctypes.c_float,
-        analog_in_offset: ctypes.c_float,
-        analog_out_gain: ctypes.c_float,
-        analog_out_offset: ctypes.c_float,
+        analog_in_gain: float,
+        analog_in_offset: float,
+        analog_out_gain: float,
+        analog_out_offset: float,
     ) -> None:
         """Set trigger parameters for the Analog Rising Trigger Mode."""
         params = self.get_trigger_params()
 
-        params.AnalogInGain = analog_in_gain
-        params.AnalogInOffset = analog_in_offset
-        params.AnalogOutGain = analog_out_gain
-        params.AnalogOutOffset = analog_out_offset
+        params.AnalogInGain = float(analog_in_gain)
+        params.AnalogInOffset = float(analog_in_offset)
+        params.AnalogOutGain = float(analog_out_gain)
+        params.AnalogOutOffset = float(analog_out_offset)
 
         _check_err_status_code(
             self._lib.PDXC2_SetExternalTriggerParams,
