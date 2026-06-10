@@ -4,6 +4,9 @@
 
 You must have the following installed in order to set up Bogdan 2.
 
+TODO: Figure out all dependencies for windows
+
+* `arm-none-eabi-gcc`
 * `cmake`
 * `git`
 * `python3`
