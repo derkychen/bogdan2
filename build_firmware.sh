@@ -28,6 +28,7 @@ done
 
 cd firmware
 
+# TODO: Fix for compatibility with Windows
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target bogdan2
 
