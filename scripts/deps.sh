@@ -4,7 +4,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "Error: must be run inside the Git repository" >&2
+  exit 1
+}
 
 mkdir -p "$HOME/.pico"
 
@@ -16,6 +19,6 @@ fi
 git -C "$HOME/.pico/pico-sdk" submodule update --init
 
 # Dependencies for Python virtual environment
-cd "$SCRIPT_DIR"
+cd "$ROOT"
 uv venv
 uv sync

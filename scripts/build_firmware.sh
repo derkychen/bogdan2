@@ -4,6 +4,13 @@
 
 set -euo pipefail
 
+readonly ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "Error: must be run inside the Git repository" >&2
+  exit 1
+}
+
+cd "$ROOT"
+
 export PICO_SDK_PATH="${PICO_SDK_PATH:-$HOME/.pico/pico-sdk}"
 
 upload=false
@@ -33,7 +40,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target bogdan2
 
 if "$upload"; then
-  cp build/bogdan2.uf2 /e/ # Windows / Git Bash / MSYS
+  cp build/bogdan2.uf2 /e/ # Git Bash in Windows
   # cp build/bogdan2.uf2 /media/$USER/RP2350 # Linux
   # cp build/bogdan2.uf2 /Volumes/RP2350   # macOS
 fi
