@@ -2,7 +2,8 @@
 
 By default, both controllers are in Manual Trigger Mode. The utilities provided
 in this module are mainly to set the Trigger Modes of both controllers to
-Analog Rising Edge.
+Analog Rising Edge. This module does not provide complete functionality, only
+what is necessary.
 """
 
 import ctypes
@@ -46,10 +47,58 @@ class PDXC2TriggerParams(ctypes.Structure):
 
 
 class PDXC2Controller:
-    """A wrapper around the Thorlabs C Library.
+    """A wrapper around the Thorlabs Kinesis C Library.
 
     Provides methods to enable and configure the PDXC2.
     """
+
+    def _set_function_prototypes(self) -> None:
+        """Set argument and return types for the library calls used."""
+        self._lib.TLI_BuildDeviceList.argtypes = []
+        self._lib.TLI_BuildDeviceList.restype = ctypes.c_short
+
+        self._lib.PDXC2_Open.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_Open.restype = ctypes.c_short
+
+        self._lib.PDXC2_Close.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_Close.restype = None
+
+        self._lib.PDXC2_Enable.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_Enable.restype = ctypes.c_short
+
+        self._lib.PDXC2_RequestExternalTriggerConfig.argtypes = [
+            ctypes.c_char_p
+        ]
+        self._lib.PDXC2_RequestExternalTriggerConfig.restype = ctypes.c_short
+
+        self._lib.PDXC2_GetExternalTriggerConfig.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_GetExternalTriggerConfig.restype = ctypes.c_uint16
+
+        self._lib.PDXC2_SetExternalTriggerConfig.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_uint16,
+        ]
+        self._lib.PDXC2_SetExternalTriggerConfig.restype = ctypes.c_short
+
+        self._lib.PDXC2_RequestExternalTriggerParams.argtypes = [
+            ctypes.c_char_p
+        ]
+        self._lib.PDXC2_RequestExternalTriggerParams.restype = ctypes.c_short
+
+        self._lib.PDXC2_GetExternalTriggerParams.argtypes = [
+            ctypes.c_char_p,
+            ctypes.POINTER(PDXC2TriggerParams),
+        ]
+        self._lib.PDXC2_GetExternalTriggerParams.restype = ctypes.c_short
+
+        self._lib.PDXC2_SetExternalTriggerParams.argtypes = [
+            ctypes.c_char_p,
+            ctypes.POINTER(PDXC2TriggerParams),
+        ]
+        self._lib.PDXC2_SetExternalTriggerParams.restype = ctypes.c_short
+
+        self._lib.PDXC2_PersistSettings.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_PersistSettings.restype = ctypes.c_bool
 
     def __init__(self, serial_num: bytes) -> None:
         """Initialize a `PDXC2` object.
@@ -61,8 +110,9 @@ class PDXC2Controller:
         self._serial_num = ctypes.c_char_p(serial_num)
 
         os.add_dll_directory(KinesisConfig.KINESIS_DIR)
-
         self._lib = ctypes.cdll.LoadLibrary(KinesisConfig.DLL_FILE)
+
+        self._set_function_prototypes()
 
     def enable(self) -> None:
         """Enable the controller."""
@@ -99,10 +149,9 @@ class PDXC2Controller:
     def set_analog_rising_trigger_mode(self) -> None:
         """Set Trigger Mode to Analog Rising Edge."""
         _check_err_status_code(
-            self._lib.PDXC2_SetExternalTriggerConfig(
-                self._serial_num,
-                KinesisConfig.PDXC2_TRIGGER_MODE_ANALOG_RISING,
-            ),
+            self._lib.PDXC2_SetExternalTriggerConfig,
+            self._serial_num,
+            KinesisConfig.PDXC2_TRIGGER_MODE_ANALOG_RISING,
         )
 
     def set_analog_rising_trigger_params(
@@ -134,7 +183,9 @@ class PDXC2Controller:
         particular, Trigger Mode will be reset to Manual) when it is switched
         off or disconnected from power.
         """
-        _check_err_bool(
-            "PDXC2_PersistSettings",
-            self._lib.PDXC2_PersistSettings(self._serial_num),
-        )
+        _check_err_bool(self._lib.PDXC2_PersistSettings, self._serial_num)
+
+    # TODO: More docstring information on exactly what this function does.
+    def close(self) -> None:
+        """Close the device."""
+        self._lib.PDXC2_Close(self._serial_num)
