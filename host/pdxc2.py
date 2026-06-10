@@ -1,0 +1,140 @@
+"""Utilities for setting up the PDXC2s.
+
+By default, both controllers are in Manual Trigger Mode. The utilities provided
+in this module are mainly to set the Trigger Modes of both controllers to
+Analog Rising Edge.
+"""
+
+import ctypes
+import os
+
+from config import KinesisConfig
+
+
+def _check_err_status_code(func, *args) -> None:
+    """For Thorlabs C library functions that return status codes."""
+    ret = func(*args)
+
+    if ret != 0:
+        raise Exception(f"{func.__name__} failed with status code {ret}.")
+
+
+def _check_err_bool(func, *args) -> None:
+    """For Thorlabs C library functions that return Booleans."""
+    ret = func(*args)
+
+    if not ret:
+        raise Exception(f"{func.__name__} failed with status code {ret}.")
+
+
+class PDXC2TriggerParams(ctypes.Structure):
+    """Corresponds the PDXC2_TriggerParams structure from the Kinesis C API."""
+
+    _pack_ = 1
+    _fields_ = [
+        ("RiseFixedStep", ctypes.c_int32),
+        ("FallFixedStep", ctypes.c_int32),
+        ("RisePosition1", ctypes.c_int32),
+        ("FallPosition1", ctypes.c_int32),
+        ("RisePosition2", ctypes.c_int32),
+        ("FallPosition2", ctypes.c_int32),
+        ("AnalogInGain", ctypes.c_float),
+        ("AnalogInOffset", ctypes.c_float),
+        ("AnalogOutGain", ctypes.c_float),
+        ("AnalogOutOffset", ctypes.c_float),
+    ]
+
+
+class PDXC2Controller:
+    """A wrapper around the Thorlabs C Library.
+
+    Provides methods to enable and configure the PDXC2.
+    """
+
+    def __init__(self, serial_num: bytes) -> None:
+        """Initialize a `PDXC2` object.
+
+        Args:
+            serial_num: The serial number in bytes form of the PDXC2, found
+                        on the back. It is prefixed with 'SN:'.
+        """
+        self._serial_num = ctypes.c_char_p(serial_num)
+
+        os.add_dll_directory(KinesisConfig.KINESIS_DIR)
+
+        self._lib = ctypes.cdll.LoadLibrary(KinesisConfig.DLL_FILE)
+
+    def enable(self) -> None:
+        """Enable the controller."""
+        _check_err_status_code(self._lib.TLI_BuildDeviceList)
+        _check_err_status_code(self._lib.PDXC2_Open, self._serial_num)
+        _check_err_status_code(self._lib.PDXC2_Enable, self._serial_num)
+
+        print(f"PDXC2 ({self._serial_num.value}) enabled.")
+
+    def get_trigger_mode(self) -> str:
+        """Get the Trigger Mode."""
+        _check_err_status_code(
+            self._lib.PDXC2_RequestExternalTriggerConfig, self._serial_num
+        )
+
+        return self._lib.PDXC2_GetExternalTriggerConfig(self._serial_num)
+
+    def get_trigger_params(self) -> PDXC2TriggerParams:
+        """Get trigger parameters."""
+        _check_err_status_code(
+            self._lib.PDXC2_RequestExternalTriggerParams, self._serial_num
+        )
+
+        params = PDXC2TriggerParams()
+
+        _check_err_status_code(
+            self._lib.PDXC2_GetExternalTriggerParams,
+            self._serial_num,
+            ctypes.byref(params),
+        )
+
+        return params
+
+    def set_analog_rising_trigger_mode(self) -> None:
+        """Set Trigger Mode to Analog Rising Edge."""
+        _check_err_status_code(
+            self._lib.PDXC2_SetExternalTriggerConfig(
+                self._serial_num,
+                KinesisConfig.PDXC2_TRIGGER_MODE_ANALOG_RISING,
+            ),
+        )
+
+    def set_analog_rising_trigger_params(
+        self,
+        analog_in_gain: ctypes.c_float,
+        analog_in_offset: ctypes.c_float,
+        analog_out_gain: ctypes.c_float,
+        analog_out_offset: ctypes.c_float,
+    ) -> None:
+        """Set trigger parameters for the Analog Rising Trigger Mode."""
+        params = self.get_trigger_params()
+
+        params.AnalogInGain = analog_in_gain
+        params.AnalogInOffset = analog_in_offset
+        params.AnalogOutGain = analog_out_gain
+        params.AnalogOutOffset = analog_out_offset
+
+        _check_err_status_code(
+            self._lib.PDXC2_SetExternalTriggerParams,
+            self._serial_num,
+            ctypes.byref(params),
+        )
+
+    def persist_settings(self) -> None:
+        """Persist settings to the controller.
+
+        This allows the settings to be used even after the controller is
+        disconnected. However, the controller's settings will reset (in
+        particular, Trigger Mode will be reset to Manual) when it is switched
+        off or disconnected from power.
+        """
+        _check_err_bool(
+            "PDXC2_PersistSettings",
+            self._lib.PDXC2_PersistSettings(self._serial_num),
+        )
