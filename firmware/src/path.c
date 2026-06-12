@@ -119,14 +119,14 @@ choose_raster_direction (size_t          x_num_points,
                          size_t          y_num_points,
                          RasterDirection prev_raster_direction)
 {
-    if ((x_num_points & 1U) == (y_num_points & 1U))
+    if ((x_num_points & 1u) == (y_num_points & 1u))
     {
         return (prev_raster_direction == RASTER_DIRECTION_HORIZONTAL)
                    ? RASTER_DIRECTION_VERTICAL
                    : RASTER_DIRECTION_HORIZONTAL;
     }
 
-    return ((x_num_points & 1U) == 0U) ? RASTER_DIRECTION_VERTICAL
+    return ((x_num_points & 1u) == 0u) ? RASTER_DIRECTION_VERTICAL
                                        : RASTER_DIRECTION_HORIZONTAL;
 }
 
@@ -300,13 +300,13 @@ append_even_cycle (Position   *path,
     int row;
     int col;
 
-    // Ensure an even number of rows and a two-dimensional grid
+    // Ensure an even number of rows and a two-dimensional grid.
     if ((rows & 1) != 0 || rows <= 1 || cols <= 1)
     {
         return false;
     }
 
-    // Move to the top of the grid
+    // Move to the top of the grid.
     for (row = 0; row < rows; row++)
     {
         if (!append_local(path,
@@ -322,7 +322,7 @@ append_even_cycle (Position   *path,
         }
     }
 
-    // Raster horizontally until the adjacent to the origin
+    // Raster horizontally until the adjacent to the origin.
     for (row = rows - 1; row >= 1; row--)
     {
         if (((rows - 1 - row) & 1) == 0)
