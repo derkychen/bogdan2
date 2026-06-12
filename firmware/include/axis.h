@@ -16,8 +16,8 @@ typedef struct Axis
     /** Length of each unit on the axis in nanometres */
     int unit_nm;
 
-    /** Analog reading from the where the stage was calibrated to initially. */
-    uint16_t origin_analog_val;
+    /** ADC reading from the where the stage was calibrated to initially. */
+    uint16_t origin_adc_val;
 
     /** State variable for current coordinate on the axis in units. */
     int current;
@@ -34,7 +34,7 @@ void axis_init(Axis       *axis,
                int         min,
                int         max,
                int         unit_nm,
-               uint16_t    origin_analog_val,
+               uint16_t    origin_adc_val,
                Controller *controller);
 
 /** @brief Number of points on the axis. */

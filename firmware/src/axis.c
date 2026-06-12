@@ -6,14 +6,14 @@ axis_init (Axis       *axis,
            int         min,
            int         max,
            int         unit_nm,
-           uint16_t    origin_analog_val,
+           uint16_t    origin_adc_val,
            Controller *controller)
 {
     axis->min     = min;
     axis->max     = max;
     axis->unit_nm = unit_nm;
 
-    axis->origin_analog_val = origin_analog_val;
+    axis->origin_adc_val = origin_adc_val;
 
     axis->current    = 0;
     axis->target     = axis->current;
@@ -39,7 +39,8 @@ axis_set_target (Axis *axis, int target)
     // Calculate the analog value of the coordinate.
     uint16_t analog_val = (target - axis->min) * (PWM_MAX_VAL - PWM_MIN_VAL)
                               / (axis->max - axis->min)
-                          + PWM_MIN_VAL + axis->origin_analog_val;
+                          + PWM_MIN_VAL
+                          + (axis->origin_adc_val << ADC_TO_PWM_LEFT_SHIFT);
 
     controller_write_analog_in(axis->controller, analog_val);
 }
