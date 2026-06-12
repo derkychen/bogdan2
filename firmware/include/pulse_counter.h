@@ -18,7 +18,7 @@ typedef struct PulseCounter
 typedef enum PulseCounterInitStatusCode
 {
     PULSE_COUNTER_INIT_OK = 0,
-    PULSE_COUNTER_ERR_UNSUPPORTED_GPIO,
+    PULSE_COUNTER_INIT_ERR_UNSUPPORTED_GPIO,
 } PulseCounterInitStatusCode;
 
 /** @brief Initialize an PulseCounter structure. */
