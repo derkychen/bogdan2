@@ -1,3 +1,4 @@
+/** @brief Pulse counting state variables and interrupt configuration. */
 #ifndef PULSE_COUNTER_H
 #define PULSE_COUNTER_H
 

@@ -1,3 +1,4 @@
+/** @brief Functionality for the generation of a modified raster. */
 #ifndef PATH_H
 #define PATH_H
 

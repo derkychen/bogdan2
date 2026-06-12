@@ -1,3 +1,4 @@
+/** @brief Hardware configuration information and initialization. */
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -23,7 +24,8 @@
 
 #define PULSE_TRIGGER_GPIO 22u
 
-/** @brief Initialize hardware configuration.
+/**
+ * @brief Initialize hardware configuration.
  *
  * NOTE: This function only accounts for strictly hardware-based initialization,
  * (e.g. of pins, pull-up/down resistors, etc.). It does not account for

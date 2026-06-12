@@ -1,3 +1,8 @@
+/**
+ * @brief Coordinate system.
+ *
+ * Axis definition, state variables, and wrappers for controller functions.
+ */
 #ifndef AXIS_H
 #define AXIS_H
 
