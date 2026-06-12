@@ -33,20 +33,12 @@ typedef struct Controller
     volatile bool stage_moving;
 } Controller;
 
-/** @brief Status codes for initialization. */
-typedef enum ControllerInitStatusCode
-{
-    CONTROLLER_INIT_OK = 0,
-    CONTROLLER_INIT_ERR_UNSUPPORTED_GPIO,
-    CONTROLLER_INIT_ERR_DUPLICATE_TRIGGER_OUT,
-} ControllerInitStatusCode;
-
 /** @brief Initialize a Controller structure. */
-ControllerInitStatusCode controller_init(Controller *controller,
-                                         uint        trigger_in,
-                                         uint        analog_in,
-                                         uint        trigger_out,
-                                         uint        analog_out_channel);
+void controller_init(Controller *controller,
+                     uint        trigger_in,
+                     uint        analog_in,
+                     uint        trigger_out,
+                     uint        analog_out_channel);
 
 /**
  * @brief Initialize IRQ configurations for both stages.

@@ -2,6 +2,7 @@
 #include "config.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
+#include "serial.h"
 
 static PulseCounter *pulse_counter_for_irq = NULL;
 
@@ -22,20 +23,19 @@ pulse_counter_irq_handler (void)
     }
 }
 
-PulseCounterInitStatusCode
+void
 pulse_counter_init (PulseCounter *pulse_counter, uint trigger)
 {
     if (trigger != PULSE_TRIGGER_GPIO)
     {
-        return PULSE_COUNTER_INIT_ERR_UNSUPPORTED_GPIO;
+        serial_print_error(
+            "Attempted to initialize pulse counter on unsupported GPIO pin.");
     }
 
     pulse_counter->trigger = trigger;
     pulse_counter->count   = 0;
 
     pulse_counter_for_irq = pulse_counter;
-
-    return PULSE_COUNTER_INIT_OK;
 }
 
 void

@@ -5,6 +5,7 @@
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
 #include "pico/time.h"
+#include "serial.h"
 
 #define CONTROLLER_IRQ_GPIO_MASK \
     ((1u << X_TRIGGER_OUT_GPIO) | (1u << Y_TRIGGER_OUT_GPIO))
@@ -43,7 +44,7 @@ controllers_trigger_out_irq_handler (void)
     }
 }
 
-ControllerInitStatusCode
+void
 controller_init (Controller *controller,
                  uint        trigger_in,
                  uint        analog_in,
@@ -53,12 +54,14 @@ controller_init (Controller *controller,
     if ((trigger_out != X_TRIGGER_OUT_GPIO)
         && (trigger_out != Y_TRIGGER_OUT_GPIO))
     {
-        return CONTROLLER_INIT_ERR_UNSUPPORTED_GPIO;
+        serial_print_error(
+            "Attempted to initialize controller on unsupported GPIO pin.");
     }
 
     if (controller_from_trigger_out[trigger_out] != NULL)
     {
-        return CONTROLLER_INIT_ERR_DUPLICATE_TRIGGER_OUT;
+        serial_print_error(
+            "Attempted to initialize controller occupied GPIO pin.");
     }
 
     controller->trigger_in         = trigger_in;
@@ -70,8 +73,6 @@ controller_init (Controller *controller,
 
     // Add this controller to the GPIO to controller map.
     controller_from_trigger_out[trigger_out] = controller;
-
-    return CONTROLLER_INIT_OK;
 }
 
 void
