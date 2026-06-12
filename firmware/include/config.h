@@ -2,10 +2,11 @@
 #define CONFIG_H
 
 // WARNING: Do not change these values.
-#define ADC_MIN_VAL 0u
-#define ADC_MAX_VAL 4095u
-#define PWM_MIN_VAL 0u
-#define PWM_MAX_VAL 65535u
+#define ADC_MIN_VAL           0u
+#define ADC_MAX_VAL           4095u
+#define ADC_TO_PWM_LEFT_SHIFT 4u
+#define PWM_MIN_VAL           0u
+#define PWM_MAX_VAL           65535u
 
 // WARNING: Changing any of these values requires changing of wiring as well.
 #define X_TRIGGER_IN_GPIO    18u
