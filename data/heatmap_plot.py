@@ -1,6 +1,8 @@
 
 """
-Generates a 3d heatmap using a summary csv with the x,y positions and corresponding intensity measurements.
+Generates a 3d heatmap using a summary csv 
+with the x,y positions and corresponding intensity measurements.
+
 Height and colour correspond to intensity
 
 """

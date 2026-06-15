@@ -1,4 +1,5 @@
-""" Imports PicoBlockMode, captures all configured picoscope channels
+""" Captures all configured picoscope channels on a trigger
+    (used for AND gate approach, and continuous scan)
 
     Will output 3 main types of CSVs:
     One waveform CSV per pulse that gives all the voltage measurements (samples) of each configured channel (gives all the raw data)
@@ -7,154 +8,24 @@
 
 """
 
-import csv
-import numpy as np
-from datetime import datetime
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from pico.pico_config import PICO_CONFIG
 from pico.block_mode import PicoBlockMode
 from pico.setup import load_settings
 
-BASE_OUTPUT_FOLDER = "experiment_data"
-
-INTENSITY_CHANNEL = "intensity"
-X_POSITION_CHANNEL = "x_position"
-Y_POSITION_CHANNEL = "y_position"
-
-def create_experiment_folder():
-    """
-    Creates unique folder for ecah experiment run.
-    """
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    experiment_folder = (
-        Path(BASE_OUTPUT_FOLDER)
-        / f"experiment_{timestamp}"
-    )
-
-    experiment_folder.mkdir(parents=True, exist_ok=True)
-
-    return experiment_folder
-
-def load_instr():
-    """
-    Loads JSON file
-    """
-
-    instruction = load_settings(PICO_CONFIG["settings_json_path"])
-    required_grid_keys = [
-        "x_min", "x_max", "x_unit_nm",
-        "y_min", "y_max", "y_unit_nm",
-        "num_pulses"
-    ]
-
-    missing = [key for key in required_grid_keys if key not in instruction]
-    if missing:
-        raise KeyError(f"Missing required grid JSON setting(s): {missing}")
-
-    return instruction
-
-def generate_grid_points(instruction):
-    """
-    Converts unit coordinates in JSON into target nanometer coordinates
-    """
-    
-    x_values = list(range(instruction["x_min"], instruction["x_max"]+1))
-    y_values = list(range(instruction["y_min"], instruction["y_max"]+1))
-
-    point_index = 0
-
-    for y_unit in y_values:
-        for x_unit in x_values:
-            point_index +=1
-
-            yield {
-                "point_index": point_index,
-                "x_unit": x_unit,
-                "y_unit": y_unit,
-                "x_target_nm": x_unit * instruction["x_unit_nm"],
-                "y_target_nm": y_unit * instruction["y_unit_nm"]
-            }
-
-def save_pulse_csv(pico, data_mV, filename):
-    with open(filename, "w", newline="") as file:
-        writer = csv.writer(file)
-
-        header = ["sample"]
-                
-        for channel_name in pico.channels.keys():
-            header.append(f"{channel_name}_mV")
-        writer.writerow(header)
-
-        for sample_index in range(pico.total_samples):
-            row = [sample_index]
-
-            for channel_name in pico.channels.keys():
-                row.append(data_mV[channel_name][sample_index])
-
-            writer.writerow(row)
-
-    print(f"Saved {filename}")
-
-def make_summary_row(pico, data_mV, grid_point, pulse_index):
-    start = pico.pre_trigger_samples
-
-    peak_intensity_mV = float(
-        np.max(data_mV[INTENSITY_CHANNEL][start:])
-    )
-    x_position_mV = float(
-        np.mean(data_mV[X_POSITION_CHANNEL][start:])
-    )
-    y_position_mV = float(
-        np.mean(data_mV[Y_POSITION_CHANNEL][start:])
-    )
-
-
-    #convert from mV to nm (6mm per 10V = 600nm per 1mV)
-    x_position_nm = x_position_mV * 600
-    y_position_nm = y_position_mV * 600
-
-    return {
-        "point_index": grid_point["point_index"],
-        "pulse": pulse_index + 1,
-        "x_target_nm": grid_point["x_target_nm"],
-        "y_target_nm": grid_point["y_target_nm"],
-        "x_nm": x_position_nm,
-        "y_nm": y_position_nm,
-        "peak_intensity_mV": peak_intensity_mV
-    }
-
-def average_point_rows(rows_for_one_point):
-    """
-    Makes an averaged beam-profile row from all pulses at the same grid point
-    """
-
-    first = rows_for_one_point[0]
-
-    return{
-        "point_index": first["point_index"],
-        "num_pulses": len(rows_for_one_point),
-        "x_target_nm": first["x_target_nm"],
-        "y_target_nm": first["y_target_nm"],
-        "x_nm_avg": float(np.mean([row["x_nm"] for row in rows_for_one_point])),
-        "y_nm_avg": float(np.mean([row["y_nm"] for row in rows_for_one_point])),
-        "num_pulses": len(rows_for_one_point),
-        "peak_intensity_mV_avg": float(np.max([row["peak_intensity_mV"] for row in rows_for_one_point])),
-    }
-
-def write_dict_csv(filename, rows, fieldnames):
-
-    with open(filename, "w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-    
-    print(f"Save {filename}")
+from pico.save.csv_helpers import(
+    load_instr,
+    create_experiment_folder,
+    generate_grid_points,
+    save_pulse_csv,
+    make_summary_row,
+    average_point_rows,
+    write_dict_csv
+)
 
 def main():
     instruction = load_instr()
@@ -201,7 +72,7 @@ def main():
                 pulse_filename = (point_folder / f"pulse_{pulse_index + 1:03d}.csv")
                 save_pulse_csv(pico, data_mV, pulse_filename)
 
-                summary_row = make_summary_row(pico, data_mV, grid_point, pulse_index)
+                summary_row = make_summary_row(pico, data_mV, pulse_index, grid_point=grid_point)
 
                 all_pulse_rows.append(summary_row)
                 rows_for_this_point.append(summary_row)
@@ -259,11 +130,8 @@ def main():
             pulse_summary_filename,
             all_pulse_rows,
             fieldnames=[
-                "global_capture",
                 "point_index",
                 "pulse",
-                "x_target_nm",
-                "y_target_nm",
                 "x_nm",
                 "y_nm",
                 "peak_intensity_mV"
@@ -278,8 +146,6 @@ def main():
             fieldnames = [
                 "point_index",
                 "num_pulses",
-                "x_target_nm",
-                "y_target_nm",
                 "x_nm_avg",
                 "y_nm_avg",
                 "peak_intensity_mV_avg"
