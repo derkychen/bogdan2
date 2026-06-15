@@ -1,7 +1,9 @@
-.cache/
-
 **/build/
 
+.venv/
 **/__pycache__/
+
+**/.cache/
+**/.ruff_cache/
 
 experiment_data/
