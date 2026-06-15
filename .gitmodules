@@ -1,0 +1,12 @@
+[submodule "firmware/external/tinyusb"]
+	path = firmware/external/tinyusb
+	url = https://github.com/hathach/tinyusb.git
+[submodule "firmware/external/cmsis"]
+	path = firmware/external/cmsis
+	url = https://github.com/ARM-software/CMSIS_6.git
+[submodule "firmware/external/jsmn"]
+	path = firmware/external/jsmn
+	url = https://github.com/zserge/jsmn.git
+[submodule "firmware/external/IndustruinoSAMD"]
+	path = firmware/external/IndustruinoSAMD
+	url = https://github.com/Industruino/IndustruinoSAMD.git
