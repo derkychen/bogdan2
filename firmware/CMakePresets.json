@@ -1,0 +1,37 @@
+{
+	"version": 6,
+	"configurePresets": [
+		{
+			"name": "samd21g18a-debug",
+			"displayName": "SAMD21G18A Debug Bootloader",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/samd21g18a-debug",
+			"toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"LINKER_SCRIPT_PATH": "${sourceDir}/platform/samd21/linker/samd21g18a_bootloader_0x4000.ld"
+			}
+		},
+		{
+			"name": "samd21g18a-release",
+			"displayName": "SAMD21G18A Release Bootloader",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/samd21g18a-release",
+			"toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"LINKER_SCRIPT_PATH": "${sourceDir}/platform/samd21/linker/samd21g18a_bootloader_0x4000.ld"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "samd21g18a-debug",
+			"configurePreset": "samd21g18a-debug"
+		},
+		{
+			"name": "samd21g18a-release",
+			"configurePreset": "samd21g18a-release"
+		}
+	]
+}
