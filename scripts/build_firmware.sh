@@ -1,46 +1,41 @@
 #!/usr/bin/env bash
 #
-# Build firmware, optionally clear the `build/` directory or copy the UF2 file to the Pico.
+# Build firmware, optionally clear the `build/` directory or flash teh 
 
 set -euo pipefail
 
-readonly ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-  echo "Error: must be run inside the Git repository" >&2
-  exit 1
-}
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup.sh"
 
-cd "$ROOT"
-
-export PICO_SDK_PATH="${PICO_SDK_PATH:-$HOME/.pico/pico-sdk}"
-
-upload=false
+flash=false
 
 # Parse options
-while getopts "xu" opt; do
+while getopts "xf" opt; do
   case "$opt" in
   x)
-    rm -rf firmware/build
+    rm -rf "$FIRMWARE_DIR/build"
     ;;
-  u)
-    upload=true
+  f)
+    flash=true
     ;;
   *)
     echo "Usage: $0 [-x] [-u]"
     echo "  -x  delete build directory before building"
-    echo "  -u  upload/copy UF2 after build"
+    echo "  -f  flash to Industruino after build"
     exit 1
     ;;
   esac
 done
 
-cd firmware
+cd "$FIRMWARE_DIR"
 
-# TODO: Fix for compatibility with Windows
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --target bogdan2
+cmake --preset samd21g18a-release
+cmake --build --preset samd21g18a-release
 
-if "$upload"; then
-  cp build/bogdan2.uf2 /e/ # Git Bash in Windows
-  # cp build/bogdan2.uf2 /media/$USER/RP2350 # Linux
-  # cp build/bogdan2.uf2 /Volumes/RP2350   # macOS
+# Symlink compile commands for `clangd`.
+ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
+
+if "$flash"; then
+  # TODO: Implement flashing with bossac.
+  :
 fi

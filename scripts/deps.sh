@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup.sh"
+
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "Error: Missing required command: $1" >&2
@@ -34,13 +37,6 @@ add_git_submodule_if_not_installed() {
     git submodule add "$url" "$path"
   fi
 }
-
-readonly PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-  echo "Error: This script must be run from inside a Git repository." >&2
-  exit 1
-}
-readonly FIRMWARE_DIR="$PROJECT_DIR/firmware"
-readonly EXTERNAL_DIR="$FIRMWARE_DIR/external"
 
 # Commands that should be installed as per the README.
 readonly REQUIRED_CMDS=(
@@ -125,22 +121,28 @@ for git_submodule in "${GIT_SUBMODULES[@]}"; do
   echo "Updating $name to $ref"
 
   cd "$PROJECT_DIR/$path"
-
   git fetch --tags origin
   git checkout "$ref"
-
   cd "$PROJECT_DIR"
 done
 
-git submodule update --init --recursive
+for git_submodule in "${GIT_SUBMODULES[@]}"; do
+  read -r name url path ref <<<"$git_submodule"
+
+  echo "Updating nested submodules for $name"
+
+  cd "$PROJECT_DIR/$path"
+  git submodule sync --recursive
+  git submodule update --init --recursive
+  cd "$PROJECT_DIR"
+done
 
 export CMSIS_PACK_ROOT
 
 echo "Installing CMSIS-Pack dependencies into: $CMSIS_PACK_ROOT"
-cpackget add "$SAMD21_DFP_PACK" || {
-  echo "Warning: cpackget add failed." >&2
-  exit 1
-}
+if ! cpackget add "$SAMD21_DFP_PACK"; then
+  echo "CMSIS-Pack may already be installed; continuing."
+fi
 
 echo "Important SAMD21_DFP files:"
 find "$CMSIS_PACK_ROOT" -name sam.h
@@ -150,5 +152,10 @@ find "$CMSIS_PACK_ROOT" -name system_samd21.c
 # Dependencies for Python virtual environment
 cd "$PROJECT_DIR"
 
-uv venv
+if [ ! -d "$PROJECT_DIR/.venv" ]; then
+  uv venv
+else
+  echo "Python virtual environment already exists: $PROJECT_DIR/.venv"
+fi
+
 uv sync
