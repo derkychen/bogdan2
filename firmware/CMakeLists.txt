@@ -61,8 +61,8 @@ message(STATUS "CMSIS Core include: ${CMSIS_INCLUDE_DIR}")
 message(STATUS "Linker script: ${LINKER_SCRIPT_PATH}")
 
 add_executable(${TARGET_NAME}
-  platform/samd21g18a/startup_samd21g18a.c
-  platform/samd21g18a/system_samd21g18a.c
+  platform/samd21g18a/src/startup_samd21g18a.c
+  platform/samd21g18a/src/system_samd21g18a.c
   app/src/main.c
 )
 
