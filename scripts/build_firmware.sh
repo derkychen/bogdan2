@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Build firmware, optionally clear the `build/` directory or flash teh 
+# Build firmware, optionally clear the `build/` directory and/or flash the
+# binary to the Industruino.
 
 set -euo pipefail
 
@@ -27,6 +28,7 @@ while getopts "xf" opt; do
   esac
 done
 
+# Build firmware and optimize for speed
 cd "$FIRMWARE_DIR"
 
 cmake --preset samd21g18a-release
@@ -35,7 +37,16 @@ cmake --build --preset samd21g18a-release
 # Symlink compile commands for `clangd`.
 ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
 
+# TODO: USB CDC flashing instead of manually pressing reset button.
 if "$flash"; then
-  # TODO: Implement flashing with bossac.
-  :
+  bossac \
+    -d \
+    --port=/dev/cu.usbmodem1101 \
+    -o 0x4000 \
+    -e \
+    -w \
+    -v \
+    -b \
+    -R \
+    build/samd21g18a-release/firmware.bin
 fi
