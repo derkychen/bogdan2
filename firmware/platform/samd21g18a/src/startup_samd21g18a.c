@@ -1,5 +1,5 @@
-#include "samd21g18a.h"
-#include "system_samd21g18a.h"
+#include "samd21/include/samd21g18a.h"
+#include <stdint.h>
 
 // Bounds of segments in memory as initialized by linker script.
 extern uint32_t _sfixed;
@@ -32,42 +32,44 @@ void Dummy_Handler(void);
 //
 // TODO: Switch to aliases if Darwin support is deemed not needed to optimize
 //       binary size. This will be likely when rapid development has ended.
-
 #if 0
-  void NMI_Handler(void) __attribute__((weak, alias("Dummy_Handler")));            
-  void HardFault_Handler(void) __attribute__((weak, alias("Dummy_Handler")));       
-  void SVC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void PendSV_Handler(void) __attribute__((weak, alias("Dummy_Handler")));          
-  void SysTick_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
+// CORTEX-M0+ handlers.
+void NMI_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void *ardFault_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SVC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void PendSV_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SysTick_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
 
-  void PM_Handler(void) __attribute__((weak, alias("Dummy_Handler")));              
-  void SYSCTRL_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void WDT_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void RTC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void EIC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void NVMCTRL_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void DMAC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));            
-  void USB_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void EVSYS_Handler(void) __attribute__((weak, alias("Dummy_Handler")));           
-  void SERCOM0_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void SERCOM1_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void SERCOM2_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void SERCOM3_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void SERCOM4_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void SERCOM5_Handler(void) __attribute__((weak, alias("Dummy_Handler")));         
-  void TCC0_Handler(void) __attribute__((weak, alias("Dummy_Handler")));            
-  void TCC1_Handler(void) __attribute__((weak, alias("Dummy_Handler")));            
-  void TCC2_Handler(void) __attribute__((weak, alias("Dummy_Handler")));            
-  void TC3_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void TC4_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void TC5_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void ADC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void AC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));              
-  void DAC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void PTC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));             
-  void I2S_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+// Peripheral handlers.
+void PM_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SYSCTRL_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void WDT_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void RTC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void EIC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void NVMCTRL_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void DMAC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void USB_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void EVSYS_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM0_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM1_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM2_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM3_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM4_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void SERCOM5_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TCC0_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TCC1_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TCC2_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TC3_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TC4_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void TC5_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void ADC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void AC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void DAC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void PTC_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
+void I2S_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
 #endif
 
+// CORTEX-M0+ handlers.
 __attribute__((weak)) void
 NMI_Handler (void)
 {
@@ -94,6 +96,7 @@ SysTick_Handler (void)
     Dummy_Handler();
 }
 
+// Peripheral handlers.
 __attribute__((weak)) void
 PM_Handler (void)
 {
@@ -225,24 +228,25 @@ I2S_Handler (void)
     Dummy_Handler();
 }
 
+// CORTEX-M0+ handlers.
 __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     // Stack pointer.
     .pvStack = (void *)(&_estack),
 
-    // CORTEX-M0PLUS handlers.
+    // CORTEX-M0+ handlers.
     .pfnReset_Handler     = (void *)Reset_Handler,
     .pfnNMI_Handler       = (void *)NMI_Handler,
     .pfnHardFault_Handler = (void *)HardFault_Handler,
-    .pvReservedC12        = (void *)(0ul),
-    .pvReservedC11        = (void *)(0ul),
-    .pvReservedC10        = (void *)(0ul),
-    .pvReservedC9         = (void *)(0ul),
-    .pvReservedC8         = (void *)(0ul),
-    .pvReservedC7         = (void *)(0ul),
-    .pvReservedC6         = (void *)(0ul),
+    .pfnReservedM12       = (void *)(0ul),
+    .pfnReservedM11       = (void *)(0ul),
+    .pfnReservedM10       = (void *)(0ul),
+    .pfnReservedM9        = (void *)(0ul),
+    .pfnReservedM8        = (void *)(0ul),
+    .pfnReservedM7        = (void *)(0ul),
+    .pfnReservedM6        = (void *)(0ul),
     .pfnSVC_Handler       = (void *)SVC_Handler,
-    .pvReservedC4         = (void *)(0ul),
-    .pvReservedC3         = (void *)(0ul),
+    .pfnReservedM4        = (void *)(0ul),
+    .pfnReservedM3        = (void *)(0ul),
     .pfnPendSV_Handler    = (void *)PendSV_Handler,
     .pfnSysTick_Handler   = (void *)SysTick_Handler,
 
@@ -268,13 +272,14 @@ __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     .pfnTC3_Handler     = (void *)TC3_Handler,
     .pfnTC4_Handler     = (void *)TC4_Handler,
     .pfnTC5_Handler     = (void *)TC5_Handler,
-    .pvReserved21       = (void *)(0ul),
-    .pvReserved22       = (void *)(0ul),
+    .pfnReserved21      = (void *)(0ul),
+    .pfnReserved22      = (void *)(0ul),
     .pfnADC_Handler     = (void *)ADC_Handler,
     .pfnAC_Handler      = (void *)AC_Handler,
     .pfnDAC_Handler     = (void *)DAC_Handler,
     .pfnPTC_Handler     = (void *)PTC_Handler,
     .pfnI2S_Handler     = (void *)I2S_Handler,
+    .pfnReserved28      = (void *)(0ul),
 };
 
 void
@@ -303,6 +308,9 @@ Reset_Handler (void)
     // Set the exception vector table base address.
     src       = (uint32_t *)&_sfixed;
     SCB->VTOR = ((uint32_t)&_sfixed & SCB_VTOR_TBLOFF_Msk);
+
+    // Performance tuning for SRAM access.
+    SBMATRIX->SFR[SBMATRIX_SLAVE_HMCRAMC0].reg = 2u;
 
     // Initialize the system.
     SystemInit();
