@@ -46,20 +46,23 @@ readonly REQUIRED_CMDS=(
   arm-none-eabi-gcc
   arm-none-eabi-objcopy
   arm-none-eabi-size
-  cpackget
   uv
 )
 
 # Each 'spec' for the required git submodules are formatted as:
 # `name URL path ref`
-readonly TINYUSB="tinyusb \
-  https://github.com/hathach/tinyusb.git \
-  firmware/external/tinyusb \
+readonly CMSIS_ATMEL="cmsis-atmel \
+  https://github.com/arduino/ArduinoModule-CMSIS-Atmel.git \
+  firmware/external/cmsis-atmel \
   master"
 readonly CMSIS="cmsis \
   https://github.com/ARM-software/CMSIS_6.git \
   firmware/external/cmsis \
   v6.1.0"
+readonly TINYUSB="tinyusb \
+  https://github.com/hathach/tinyusb.git \
+  firmware/external/tinyusb \
+  master"
 readonly JSMN="jsmn \
   https://github.com/zserge/jsmn.git \
   firmware/external/jsmn \
@@ -68,34 +71,14 @@ readonly INDUSTRUINOSAMD="IndustruinoSAMD \
   https://github.com/Industruino/IndustruinoSAMD.git \
   firmware/external/IndustruinoSAMD \
   master"
+
 readonly GIT_SUBMODULES=(
-  "$TINYUSB"
+  "$CMSIS_ATMEL"
   "$CMSIS"
+  "$TINYUSB"
   "$JSMN"
   "$INDUSTRUINOSAMD"
 )
-
-# CMSIS Pack for SAMD21
-if [ -n "${CMSIS_PACK_ROOT:-}" ]; then
-  readonly CMSIS_PACK_ROOT
-else
-  case "$(uname -s)" in
-  MINGW* | MSYS* | CYGWIN*)
-    if [ -n "${LOCALAPPDATA:-}" ] && command -v cygpath >/dev/null 2>&1; then
-      readonly CMSIS_PACK_ROOT="$(cygpath -u "$LOCALAPPDATA")/Arm/Packs"
-    elif [ -n "${LOCALAPPDATA:-}" ]; then
-      readonly CMSIS_PACK_ROOT="$LOCALAPPDATA/Arm/Packs"
-    else
-      readonly CMSIS_PACK_ROOT="$HOME/AppData/Local/Arm/Packs"
-    fi
-    ;;
-  *)
-    readonly CMSIS_PACK_ROOT="$HOME/.cache/arm/packs"
-    ;;
-  esac
-fi
-
-readonly SAMD21_DFP_PACK="Microchip::SAMD21_DFP@3.8.270"
 
 # Check that all required commands are executable
 for cmd in "${REQUIRED_CMDS[@]}"; do
@@ -103,7 +86,6 @@ for cmd in "${REQUIRED_CMDS[@]}"; do
 done
 
 mkdir -p "$EXTERNAL_DIR"
-mkdir -p "$CMSIS_PACK_ROOT"
 
 # Dependencies for firmware
 cd "$PROJECT_DIR"
@@ -136,18 +118,6 @@ for git_submodule in "${GIT_SUBMODULES[@]}"; do
   git submodule update --init --recursive
   cd "$PROJECT_DIR"
 done
-
-export CMSIS_PACK_ROOT
-
-echo "Installing CMSIS-Pack dependencies into: $CMSIS_PACK_ROOT"
-if ! cpackget add "$SAMD21_DFP_PACK"; then
-  echo "CMSIS-Pack may already be installed; continuing."
-fi
-
-echo "Important SAMD21_DFP files:"
-find "$CMSIS_PACK_ROOT" -name sam.h
-find "$CMSIS_PACK_ROOT" -name startup_samd21.c
-find "$CMSIS_PACK_ROOT" -name system_samd21.c
 
 # Dependencies for Python virtual environment
 cd "$PROJECT_DIR"
