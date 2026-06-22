@@ -12,7 +12,7 @@
 #define CAPTURE_TRIGGER_PORT_GROUP      0
 #define CAPTURE_TRIGGER_PIN             2
 #define CAPTURE_TRIGGER_EXTINT_LINE     2
-#define CAPTURE_TRIGER_EXTINT_MASK      (1u << CAPTURE_TRIGGER_EXTINT_LINE)
+#define CAPTURE_TRIGGER_EXTINT_MASK     (1u << CAPTURE_TRIGGER_EXTINT_LINE)
 
 void controller_capture_trigger_init(void);
 

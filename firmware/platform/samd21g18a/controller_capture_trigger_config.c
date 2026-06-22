@@ -12,6 +12,15 @@
 
 static volatile bool capture_trigger_received = false;
 
+bool controller_capture_trigger_received(void)
+{
+    return capture_trigger_received;
+}
+
+void controller_capture_trigger_clear(void)
+{
+    capture_trigger_received = false;
+}
 static void controller_configure_capture_trigger_pin(void)
 /* 
  * Configure capture trigger pin as EIC input
@@ -52,7 +61,7 @@ void controller_capture_trigger_init(void)
     {
     }
 
-    controller_configure_trigger_out_pin();
+    controller_configure_capture_trigger_pin();
 
     EIC->CTRL.bit.ENABLE = 0;
 
