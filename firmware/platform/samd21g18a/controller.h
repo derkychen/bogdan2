@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Placeholder stage trigger pines
+/* Placeholder stage trigger pins
  
  * Current assumption:
  * X stage Trigger OUT -> PA02 / EXTINT2

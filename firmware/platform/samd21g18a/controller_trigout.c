@@ -26,7 +26,7 @@ static void controller_configure_trigger_out_pins(void)
     
     // routes PA02 to EXTINT2 channel
     PORT->Group[X_STAGE_TRIGGER_OUT_PORT_GROUP]
-        .PINCFG[X_STAGE_TRIGGER_OUT_PIN / 2]
+        .PMUX[X_STAGE_TRIGGER_OUT_PIN / 2]
         .bit.PMUXE = MUX_PA02A_EIC_EXTINT2;
 
     /* 
@@ -42,7 +42,7 @@ static void controller_configure_trigger_out_pins(void)
         .bit.INEN = 1;
     
     PORT->Group[Y_STAGE_TRIGGER_OUT_PORT_GROUP]
-        .PINCFG[Y_STAGE_TRIGGER_OUT_PIN / 2]
+        .PMUX[Y_STAGE_TRIGGER_OUT_PIN / 2]
         .bit.PMUXE = MUX_PA03A_EIC_EXTINT3;
 }
 
@@ -53,7 +53,7 @@ void controller_init(void)
      * Configures EIC interrupts
      */
 
-    x_stage.trigger_in_port_grop = X_STAGE_TRIGGER_IN_PORT_GROUP;
+    x_stage.trigger_in_port_group = X_STAGE_TRIGGER_IN_PORT_GROUP;
     x_stage.trigger_in_pin = X_STAGE_TRIGGER_IN_PIN;
     x_stage.analog_in_port_group = X_STAGE_ANALOG_IN_PORT_GROUP;
     x_stage.analog_in_pin = X_STAGE_ANALOG_IN_PIN;
@@ -63,7 +63,7 @@ void controller_init(void)
     x_stage.analog_out_adc_channel = X_STAGE_ANALOG_OUT_ADC_CHANNEL;
     x_stage.stage_moving = false;
 
-    y_stage.trigger_in_port_grop = Y_STAGE_TRIGGER_IN_PORT_GROUP;
+    y_stage.trigger_in_port_group = Y_STAGE_TRIGGER_IN_PORT_GROUP;
     y_stage.trigger_in_pin = Y_STAGE_TRIGGER_IN_PIN;
     y_stage.analog_in_port_group = Y_STAGE_ANALOG_IN_PORT_GROUP;
     y_stage.analog_in_pin = Y_STAGE_ANALOG_IN_PIN;
@@ -84,7 +84,7 @@ void controller_init(void)
 
     GCLK->CLKCTRL.reg = 
         GCLK_CLKCTRL_ID_EIC |           // Select EIC generic clock channel
-        GLCK_CLKCTRL_GEN_GCLK0 |        // Use GCLK0 as the clock source
+        GCLK_CLKCTRL_GEN_GCLK0 |        // Use GCLK0 as the clock source
         GCLK_CLKCTRL_CLKEN;             // Enable the generic clock channel
 
     while (GCLK->STATUS.bit.SYNCBUSY)

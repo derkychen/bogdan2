@@ -30,7 +30,7 @@ void EIC_Handler(void)
 
             if (controller != NULL)
             {
-                controller->stage_moving = false
+                controller->stage_moving = false;
             }
         }
     }
