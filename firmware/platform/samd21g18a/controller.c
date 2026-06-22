@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "controller_analog.h"
 #include "controller_digital.h"
+#include "controller_capture_trigger_config.h"
 
 /*
  * Define the two physical stage controllers
@@ -35,8 +36,16 @@
 
  void controller_init(void)
  {
-    controller_configure_trigger_in(controller);
+    setup_adc_dac_clocks();
     
-    controller_configure_analog_in(controller);
-    controller_configure_analog_out(controller);
+    controller_configure_trigger_in(&x_stage);
+    controller_configure_trigger_in(&y_stage);
+
+    controller_configure_analog_in(&x_stage);
+    controller_configure_analog_in(&y_stage);
+    
+    controller_configure_analog_out(&x_stage);
+    controller_configure_analog_out(&y_stage);
+
+    controller_capture_trigger_init();
  }

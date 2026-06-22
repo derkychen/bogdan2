@@ -32,6 +32,6 @@ typedef struct Controller
 extern Controller x_stage;
 extern Controller y_stage;
 
-void controller_init(void);
+void controller_init(Controller *controller);
 
 #endif
