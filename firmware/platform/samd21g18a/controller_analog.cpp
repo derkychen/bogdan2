@@ -59,7 +59,7 @@ void controller_setup_dac(const Controller *controller)
 {
     // Enable switch from GPIO to DAC peripheral
     PORT->Group[controller->analog_in_port_group]
-    .PINCFP[controller->analog_in_pin].bit.PMUXEN = 1;
+        .PINCFP[controller->analog_in_pin].bit.PMUXEN = 1;
 
     // Config pin multiplexer
     // Connect DAC peripheral to pin PA02
