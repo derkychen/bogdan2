@@ -24,20 +24,27 @@
 #define CONTROLLER_TRIGER_EXTINT_MASK \
     ((1u << X_STAGE_EXTINT_LINE) | (1u << Y_STAGE_EXTINT_LINE))
 
-typedef struct
+typedef struct Controller
 {
+    /* Digital output to controller Trigger IN */
     uint8_t trigger_in_port_group;
     uint8_t trigger_in_pin;
 
+    /* Analog output to controller Analog IN */
     uint8_t analog_in_port_group;
     uint8_t analog_in_pin;
 
+    /* Digital input from controller Trigger OUT */
     uint8_t trigger_out_port_group;
     uint8_t trigger_out_pin;
     uint8_t trigger_out_extint_line;
 
+    /* Analog input from controller Analog OUT */
+    uint8_t analog_out_port_group;
+    uint8_t analog_out_pin;
     uint8_t analog_out_adc_channel;
 
+    /* Software state */
     volatile bool stage_moving;
 
 } Controller;
