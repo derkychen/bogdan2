@@ -6,7 +6,7 @@ Controller y_stage;
 
 Controller *controller_from_extint[NUM_EXTINT_LINES] = { 0 };
 
-static void controller_configure_trigger_out_pins(void)
+static void controller_configure_capture_trigger_pins(void)
 {
     /* 
      * Configure X Trigger OUT pin as EIC input
@@ -61,7 +61,7 @@ void controller_init(void)
     x_stage.trigger_out_pin = X_STAGE_TRIGGER_OUT_PIN;
     x_stage.trigger_out_extint_line = X_STAGE_TRIGGER_OUT_EXTINT_LINE;
     x_stage.analog_out_adc_channel = X_STAGE_ANALOG_OUT_ADC_CHANNEL;
-    x_stage.stage_moving = false;
+    x_stage.capture_requested = false;
 
     y_stage.trigger_in_port_group = Y_STAGE_TRIGGER_IN_PORT_GROUP;
     y_stage.trigger_in_pin = Y_STAGE_TRIGGER_IN_PIN;
@@ -71,7 +71,7 @@ void controller_init(void)
     y_stage.trigger_out_pin = Y_STAGE_TRIGGER_OUT_PIN;
     y_stage.trigger_out_extint_line = Y_STAGE_TRIGGER_OUT_EXTINT_LINE;
     y_stage.analog_out_adc_channel = Y_STAGE_ANALOG_OUT_ADC_CHANNEL;
-    y_stage.stage_moving = false;
+    y_stage.capture_requested = false;
 
     // Map X EXTINT line to the X controller object
     controller_from_extint[X_STAGE_TRIGGER_OUT_EXTINT_LINE] = &x_stage;
@@ -123,12 +123,12 @@ void controller_init(void)
 
 }
 
-void controller_set_stage_moving(Controller *controller)
+void controller_set_capture_request(Controller *controller)
 {
-    controller->stage_moving = true;
+    controller->capture_requested = true;
 }
 
-bool controller_is_stage_moving(const Controller *controller)
+bool controller_is_capture_requested(const Controller *controller)
 {
-    return controller->stage_moving;
+    return controller->capture_requested;
 }

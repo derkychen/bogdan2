@@ -4,12 +4,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/*
+ * Shared Controller struct
+ * Shared function declarations
+ */
+
 /* Placeholder stage trigger pins
  
  * Current assumption:
  * X stage Trigger OUT -> PA02 / EXTINT2
  * Y stage Trigger OUT -> PA03 / EXTINT3
-*/
+ */
 
 #define X_STAGE_PORT_GROUP      0   // 0 = PORTA
 #define X_STAGE_PIN             2   // PA02
@@ -50,7 +55,7 @@ typedef struct Controller
     uint8_t analog_out_adc_channel;
 
     /* Software state */
-    volatile bool stage_moving;
+    volatile bool capture_requested;
 
 } Controller;
 
@@ -58,7 +63,7 @@ extern Controller x_stage;
 extern Controller y_stage;
 
 void controller_init(void);
-void controller_stage_set_moving(Controller * controller);
-bool controller_stage_is_moving(const Controller *controller);
+void controller_set_capture_request(Controller * controller);
+bool controller_is_capture_requested(const Controller *controller);
 
 #endif

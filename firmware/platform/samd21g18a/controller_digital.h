@@ -4,6 +4,10 @@
 #include "controller.h"
 #include <stdbool.h>
 
+/*
+ * Declares digital (controller Trigger IN/OUT) functions
+ */
+
 void controller_configure_trigger_in(const Controller *controller)
 void controller_configure_capture_trigger(const Controller *controller)
 

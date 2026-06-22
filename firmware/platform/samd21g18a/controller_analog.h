@@ -4,6 +4,10 @@
 #include "controller.h"
 #include <stdint.h>
 
+/*
+ * Declares analog (controller Analog IN/OUT) functions
+ */
+
 void setup_adc_dac_clocks(void);
 
 void controller_setup_dac(const Controller *controller);

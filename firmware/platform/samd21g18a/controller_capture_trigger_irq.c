@@ -7,7 +7,7 @@ extern Controller *controller_from_extint[NUM_EXTINT_LINES];
 void EIC_Handler(void)
 {
     // Create local copy of interrupt lines 
-    uint32_t mask = CONTROLLER_TRIGER_EXTINT_MASK;
+    uint32_t mask = CONTROLLER_TRIGGER_EXTINT_MASK;
 
     // Keep running as long as there are still EXTINT lines to check
     while (mask != 0)
@@ -30,7 +30,7 @@ void EIC_Handler(void)
 
             if (controller != NULL)
             {
-                controller->stage_moving = false;
+                controller->capture_requested = false;
             }
         }
     }
