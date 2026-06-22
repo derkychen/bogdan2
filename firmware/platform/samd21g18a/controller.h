@@ -21,7 +21,7 @@
 
 #define NUM_EXTINT_LINES        16
 
-#define CONTROLLER_TRIGER_EXTINT_MASK \
+#define CONTROLLER_TRIGGER_EXTINT_MASK \
     ((1u << X_STAGE_EXTINT_LINE) | (1u << Y_STAGE_EXTINT_LINE))
 
 typedef struct Controller
@@ -34,10 +34,15 @@ typedef struct Controller
     uint8_t analog_in_port_group;
     uint8_t analog_in_pin;
 
-    /* Digital input from controller Trigger OUT */
-    uint8_t trigger_out_port_group;
-    uint8_t trigger_out_pin;
-    uint8_t trigger_out_extint_line;
+    /* Digital input from capture trigger
+     * This could be:
+        * 1. (Physical) AND gate output (from laser pulse and controllers' Trigger OUT)
+        * 2. Laser Pulse
+     */
+
+    uint8_t capture_trigger_port_group;
+    uint8_t capture_trigger_pin;
+    uint8_t capture_trigger_extint_line;
 
     /* Analog input from controller Analog OUT */
     uint8_t analog_out_port_group;
