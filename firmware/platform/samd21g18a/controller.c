@@ -1,4 +1,6 @@
 #include "controller.h"
+#include "controller_analog.h"
+#include "controller_digital.h"
 
 /*
  * Define the two physical stage controllers
@@ -33,5 +35,8 @@
 
  void controller_init(void)
  {
-
+    controller_configure_trigger_in(controller);
+    
+    controller_configure_analog_in(controller);
+    controller_configure_analog_out(controller);
  }
