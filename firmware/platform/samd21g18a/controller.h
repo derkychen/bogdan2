@@ -3,59 +3,29 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
 /*
- * Shared Controller struct
- * Shared function declarations
+ * This contains only stage-speciifc signals:
+ * - Trigger IN: digital output to tell controller to move
+ * - Analog IN: analog command send to controller
+ * - Analog OUT: analog position feedback read from controller
+ *
+ * The capture trigger is shared, not part of this struct
  */
-
-/* Placeholder stage trigger pins
- 
- * Current assumption:
- * X stage Trigger OUT -> PA02 / EXTINT2
- * Y stage Trigger OUT -> PA03 / EXTINT3
- */
-
-#define X_STAGE_PORT_GROUP      0   // 0 = PORTA
-#define X_STAGE_PIN             2   // PA02
-#define X_STAGE_EXTINT_LINE     2   // EXTINT2
-
-#define Y_STAGE_PORT_GROUP      0
-#define Y_STAGE_PIN             3
-#define Y_STAGE_EXTINT_LINE     3
-
-#define NUM_EXTINT_LINES        16
-
-#define CONTROLLER_TRIGGER_EXTINT_MASK \
-    ((1u << X_STAGE_EXTINT_LINE) | (1u << Y_STAGE_EXTINT_LINE))
 
 typedef struct Controller
 {
-    /* Digital output to controller Trigger IN */
+    // Digital output to controller Trigger IN
     uint8_t trigger_in_port_group;
     uint8_t trigger_in_pin;
 
-    /* Analog output to controller Analog IN */
+    // Analog output to controller Analog IN 
     uint8_t analog_in_port_group;
     uint8_t analog_in_pin;
 
-    /* Digital input from capture trigger
-     * This could be:
-        * 1. (Physical) AND gate output (from laser pulse and controllers' Trigger OUT)
-        * 2. Laser Pulse
-     */
-
-    uint8_t capture_trigger_port_group;
-    uint8_t capture_trigger_pin;
-    uint8_t capture_trigger_extint_line;
-
-    /* Analog input from controller Analog OUT */
+    // Analog input from controller Analog OUT 
     uint8_t analog_out_port_group;
     uint8_t analog_out_pin;
     uint8_t analog_out_adc_channel;
-
-    /* Software state */
-    volatile bool capture_requested;
 
 } Controller;
 
@@ -63,7 +33,5 @@ extern Controller x_stage;
 extern Controller y_stage;
 
 void controller_init(void);
-void controller_set_capture_request(Controller * controller);
-bool controller_is_capture_requested(const Controller *controller);
 
 #endif
