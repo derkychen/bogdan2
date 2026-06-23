@@ -1,0 +1,69 @@
+#include "platform/samd21g18a/usb.h"
+#include "platform/samd21g18a/utils.h"
+#include "samd21g18a.h"
+#include "tusb.h"
+#include <stdbool.h>
+
+bool
+platform_samd21g18a_usb_init (void)
+{
+    bool tinyusb_ok;
+
+    // Enable USB peripheral bus clock.
+    PM->APBBMASK.reg |= PM_APBBMASK_USB;
+
+    // Route GCLK0 to USB peripheral. This assumes `SystemInit` configured GCLK0
+    // to 48 MHz.
+    GCLK->CLKCTRL.reg
+        = GCLK_CLKCTRL_ID_USB | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN;
+
+    platform_samd21g18a_poll_gclk_until_synchronized();
+
+    // USB pins (DM: PA24, DP: PA25), peripheral function G.
+    PORT->Group[0].PINCFG[24].reg = PORT_PINCFG_PMUXEN;
+    PORT->Group[0].PINCFG[25].reg = PORT_PINCFG_PMUXEN;
+
+    PORT->Group[0].PMUX[12].reg = PORT_PMUX_PMUXE_G | PORT_PMUX_PMUXO_G;
+
+    // USB QoS.
+    USB->DEVICE.QOSCTRL.bit.CQOS = 2u;
+    USB->DEVICE.QOSCTRL.bit.DQOS = 2u;
+
+    NVIC_ClearPendingIRQ(USB_IRQn);
+    NVIC_SetPriority(USB_IRQn, 0u);
+    NVIC_EnableIRQ(USB_IRQn);
+
+    tinyusb_ok = tusb_init();
+
+    if (tinyusb_ok == false)
+    {
+        return false;
+    }
+
+    tud_connect();
+
+    return true;
+}
+
+void
+platform_samd21g18a_usb_task (void)
+{
+    tud_task();
+
+    return;
+}
+
+bool
+platform_samd21g18a_usb_is_mounted (void)
+{
+    return tud_mounted();
+}
+
+/** @brief Overrides the USB_Handler function in the vector table. */
+void
+USB_Handler (void)
+{
+    tud_int_handler(0u);
+
+    return;
+}
