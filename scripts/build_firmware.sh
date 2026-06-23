@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Build firmware, optionally clear the `build/` directory and/or flash the
-# binary to the Industruino.
+# binary to the Industruino. The Industruino bootloader must be active for this
+# to work.
 
 set -euo pipefail
 
@@ -9,20 +10,22 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/setup.sh"
 
 flash=false
+port=""
 
 # Parse options
-while getopts "xf" opt; do
+while getopts "xp:" opt; do
   case "$opt" in
   x)
     rm -rf "$FIRMWARE_DIR/build"
     ;;
-  f)
+  p)
+    port="$OPTARG"
     flash=true
     ;;
   *)
-    echo "Usage: $0 [-x] [-u]"
-    echo "  -x  delete build directory before building"
-    echo "  -f  flash to Industruino after build"
+    echo "Usage: $0 [-x] [-p port]"
+    echo "  -x       delete build directory before building"
+    echo "  -p port  flash to Industruino via port after build"
     exit 1
     ;;
   esac
@@ -37,16 +40,14 @@ cmake --build --preset samd21g18a-release
 # Symlink compile commands for `clangd`.
 ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
 
-# TODO: USB CDC flashing instead of manually pressing reset button.
 if "$flash"; then
   bossac \
-    -d \
-    --port=/dev/cu.usbmodem1101 \
-    -o 0x4000 \
-    -e \
-    -w \
-    -v \
-    -b \
-    -R \
+    --debug \
+    --port="$port" \
+    --offset=0x4000 \
+    --erase \
+    --write \
+    --verify \
+    --reset \
     build/samd21g18a-release/firmware.bin
 fi
