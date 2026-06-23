@@ -34,18 +34,9 @@
     .analog_out_adc_channel = 5
  };
 
- void controller_init(void)
- {
-    setup_adc_dac_clocks();
-    
-    controller_configure_trigger_in(&x_stage);
-    controller_configure_trigger_in(&y_stage);
-
-    controller_configure_analog_in(&x_stage);
-    controller_configure_analog_in(&y_stage);
-    
-    controller_configure_analog_out(&x_stage);
-    controller_configure_analog_out(&y_stage);
-
-    controller_capture_trigger_init();
+ void controller_init(const Controller *controller)
+ {    
+    controller_configure_trigger_in(controller);
+    controller_configure_analog_in(controller);
+    controller_configure_analog_out(controller);
  }

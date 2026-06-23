@@ -86,8 +86,8 @@ void controller_write_analog_in(const Controller *controller, uint16_t value)
 {
     (void)controller;               // Controller pointer not used in function
 
-    if (value > 1023){              // SAMD21 DAC is 10 bit
-        value = 1023;
+    if (value > CONTROLLER_DAC_MAX_VALUE){
+        value = CONTROLLER_DAC_MAX_VALUE;
     }
 
     // Write desired DAC value into DAC data register
@@ -131,10 +131,10 @@ void controller_setup_adc(const Controller *controller)
 
     // Config ADC operating mode
     // PRESCALER_DIV64: ADC clock = ADC source clock / 64
-    // RESSEL_12BIT: 12 bi conversion result
+    // RESSEL_12BIT: 12 bit conversion result
     ADC->CTRLB.reg = 
         ADC_CTRLB_PRESCALER_DIV64 |
-        ADC_CTRLB_RESSEL_12BIT;
+        CONTROLLER_ADC_RESSEL;
     wait_sync_adc();
 
     ADC->CTRLA.bit.ENABLE = 1;
