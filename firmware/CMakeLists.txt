@@ -13,6 +13,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Important directories.
 set(APP_DIR "${PROJECT_SOURCE_DIR}/app")
+set(CONFIG_DIR "${PROJECT_SOURCE_DIR}/config")
 set(PLATFORM_SAMD21G18A_DIR "${PROJECT_SOURCE_DIR}/platform/samd21g18a")
 set(EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/external")
 set(CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
@@ -25,6 +26,7 @@ include("${CMAKE_DIR}/external/tinyusb_device_samd.cmake")
 
 # Other directories.
 add_subdirectory("${APP_DIR}")
+add_subdirectory("${CONFIG_DIR}")
 add_subdirectory("${PLATFORM_SAMD21G18A_DIR}")
 
 # Target.
