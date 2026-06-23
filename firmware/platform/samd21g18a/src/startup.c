@@ -1,4 +1,4 @@
-#include "samd21/include/samd21g18a.h"
+#include "samd21g18a.h"
 #include <stdint.h>
 
 // Bounds of segments in memory as initialized by linker script.

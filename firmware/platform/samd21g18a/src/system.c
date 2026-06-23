@@ -6,8 +6,8 @@
  * there is no use case for this, if clock frequency is changed elsewhere,
  * `SystemCoreClockUpdate` will have to be rewritten.
  */
-#include "samd21/include/samd21g18a.h"
-#include "samd21/include/system_samd21.h"
+#include "samd21g18a.h"
+#include "system_samd21.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -36,16 +36,6 @@ poll_xosc32k_until_ready (void)
     return;
 }
 
-/** @brief Poll the GCLK register until it is synchronized. */
-static inline void
-poll_gclk_until_synchronized (void)
-{
-    while (GCLK->STATUS.bit.SYNCBUSY)
-    {
-    }
-
-    return;
-}
 
 /** @brief Poll the DFLL register until it is ready. */
 static inline void
