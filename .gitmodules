@@ -7,9 +7,6 @@
 [submodule "firmware/external/jsmn"]
 	path = firmware/external/jsmn
 	url = https://github.com/zserge/jsmn.git
-[submodule "firmware/external/IndustruinoSAMD"]
-	path = firmware/external/IndustruinoSAMD
-	url = https://github.com/Industruino/IndustruinoSAMD.git
 [submodule "firmware/external/cmsis-atmel"]
 	path = firmware/external/cmsis-atmel
 	url = https://github.com/arduino/ArduinoModule-CMSIS-Atmel.git

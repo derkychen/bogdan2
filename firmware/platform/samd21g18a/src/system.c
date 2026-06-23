@@ -6,8 +6,9 @@
  * there is no use case for this, if clock frequency is changed elsewhere,
  * `SystemCoreClockUpdate` will have to be rewritten.
  */
-#include "samd21g18a.h"
 #include "system_samd21.h"
+#include "platform/samd21g18a/utils.h"
+#include "samd21g18a.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -35,7 +36,6 @@ poll_xosc32k_until_ready (void)
 
     return;
 }
-
 
 /** @brief Poll the DFLL register until it is ready. */
 static inline void
@@ -95,7 +95,7 @@ gclk1_set_source_to_xosc32k (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1u) | GCLK_GENCTRL_SRC_XOSC32K
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    poll_gclk_until_synchronized();
+    platform_samd21g18a_poll_gclk_until_synchronized();
 
     return;
 }
@@ -107,7 +107,7 @@ dfll_set_reference_to_gclk1 (void)
     GCLK->CLKCTRL.reg
         = GCLK_CLKCTRL_ID_DFLL48 | GCLK_CLKCTRL_GEN_GCLK1 | GCLK_CLKCTRL_CLKEN;
 
-    poll_gclk_until_synchronized();
+    platform_samd21g18a_poll_gclk_until_synchronized();
 
     return;
 }
@@ -166,7 +166,7 @@ gclk0_set_source_to_dfll (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0) | GCLK_GENCTRL_SRC_DFLL48M
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    poll_gclk_until_synchronized();
+    platform_samd21g18a_poll_gclk_until_synchronized();
 
     return;
 }
