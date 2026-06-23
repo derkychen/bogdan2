@@ -51,14 +51,14 @@ readonly REQUIRED_CMDS=(
 
 # Each 'spec' for the required git submodules are formatted as:
 # `name URL path ref`
-readonly CMSIS_ATMEL="cmsis-atmel \
-  https://github.com/arduino/ArduinoModule-CMSIS-Atmel.git \
-  firmware/external/cmsis-atmel \
-  master"
 readonly CMSIS="cmsis \
   https://github.com/ARM-software/CMSIS_6.git \
   firmware/external/cmsis \
   v6.1.0"
+readonly CMSIS_ATMEL="cmsis-atmel \
+  https://github.com/arduino/ArduinoModule-CMSIS-Atmel.git \
+  firmware/external/cmsis-atmel \
+  master"
 readonly TINYUSB="tinyusb \
   https://github.com/hathach/tinyusb.git \
   firmware/external/tinyusb \
@@ -67,17 +67,12 @@ readonly JSMN="jsmn \
   https://github.com/zserge/jsmn.git \
   firmware/external/jsmn \
   master"
-readonly INDUSTRUINOSAMD="IndustruinoSAMD \
-  https://github.com/Industruino/IndustruinoSAMD.git \
-  firmware/external/IndustruinoSAMD \
-  master"
 
 readonly GIT_SUBMODULES=(
-  "$CMSIS_ATMEL"
   "$CMSIS"
+  "$CMSIS_ATMEL"
   "$TINYUSB"
   "$JSMN"
-  "$INDUSTRUINOSAMD"
 )
 
 # Check that all required commands are executable
