@@ -5,9 +5,8 @@
 
 /** @brief Poll the GCLK register until it is synchronized. */
 static inline void
-platform_samd21g18a_poll_gclk_until_synchronized (void)
+platform_samd21g18a_utils_gclk_poll_sync (void)
 {
-
     while (GCLK->STATUS.bit.SYNCBUSY)
     {
     }

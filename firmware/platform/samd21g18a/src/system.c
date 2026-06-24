@@ -95,7 +95,7 @@ gclk1_set_source_to_xosc32k (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1u) | GCLK_GENCTRL_SRC_XOSC32K
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    platform_samd21g18a_poll_gclk_until_synchronized();
+    platform_samd21g18a_utils_gclk_poll_sync();
 
     return;
 }
@@ -107,7 +107,7 @@ dfll_set_reference_to_gclk1 (void)
     GCLK->CLKCTRL.reg
         = GCLK_CLKCTRL_ID_DFLL48 | GCLK_CLKCTRL_GEN_GCLK1 | GCLK_CLKCTRL_CLKEN;
 
-    platform_samd21g18a_poll_gclk_until_synchronized();
+    platform_samd21g18a_utils_gclk_poll_sync();
 
     return;
 }
@@ -166,7 +166,7 @@ gclk0_set_source_to_dfll (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0) | GCLK_GENCTRL_SRC_DFLL48M
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    platform_samd21g18a_poll_gclk_until_synchronized();
+    platform_samd21g18a_utils_gclk_poll_sync();
 
     return;
 }

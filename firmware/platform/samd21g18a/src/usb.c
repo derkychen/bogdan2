@@ -17,7 +17,7 @@ platform_samd21g18a_usb_init (void)
     GCLK->CLKCTRL.reg
         = GCLK_CLKCTRL_ID_USB | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN;
 
-    platform_samd21g18a_poll_gclk_until_synchronized();
+    platform_samd21g18a_utils_gclk_poll_sync();
 
     // USB pins (DM: PA24, DP: PA25), peripheral function G.
     PORT->Group[0].PINCFG[24].reg = PORT_PINCFG_PMUXEN;
@@ -59,7 +59,7 @@ platform_samd21g18a_usb_is_mounted (void)
     return tud_mounted();
 }
 
-/** @brief Overrides the USB_Handler function in the vector table. */
+/** @brief Overrides the `USB_Handler` function in the vector table. */
 void
 USB_Handler (void)
 {
