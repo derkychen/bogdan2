@@ -7,9 +7,15 @@
 void platform_samd21g18a_time_init(void);
 
 /** @brief Return the number of milliseconds elapsed since initialization. */
-uint32_t platform_samd21g18a_time_ms(void);
+uint32_t platform_samd21g18a_time_msec(void);
+
+/** @brief Return the number of microseconds elapsed since initialization. */
+uint32_t platform_samd21g18a_time_usec(void);
 
 /** @brief Blocking delay for a number of milliseconds. */
-void platform_samd21g18a_time_sleep_ms(uint32_t sleep_ms);
+void platform_samd21g18a_time_sleep_msec(uint32_t sleep_msec);
+
+/** @brief Blocking delay for a number of microseconds. */
+void platform_samd21g18a_time_sleep_usec(uint32_t sleep_usec);
 
 #endif
