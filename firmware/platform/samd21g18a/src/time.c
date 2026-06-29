@@ -1,5 +1,5 @@
 #include "platform/samd21g18a/time.h"
-#include "samd21g18a.h"
+#include "sam.h" // IWYU pragma: keep
 #include <stdint.h>
 
 static volatile uint32_t time_msec = 0u;

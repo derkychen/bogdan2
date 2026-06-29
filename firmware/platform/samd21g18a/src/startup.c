@@ -1,4 +1,4 @@
-#include "samd21g18a.h"
+#include "sam.h" // IWYU pragma: keep
 #include <stdint.h>
 
 // Bounds of segments in memory as initialized by linker script.

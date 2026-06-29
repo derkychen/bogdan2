@@ -3,7 +3,7 @@
 
 #include "samd21g18a.h"
 
-/** @brief Poll the GCLK register until it is synchronized. */
+/** @brief Poll the GCLK until it is synchronized. */
 static inline void
 platform_samd21g18a_utils_gclk_poll_sync (void)
 {

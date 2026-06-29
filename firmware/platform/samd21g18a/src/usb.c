@@ -1,6 +1,6 @@
 #include "platform/samd21g18a/usb.h"
 #include "platform/samd21g18a/utils.h"
-#include "samd21g18a.h"
+#include "sam.h" // IWYU pragma: keep
 #include "tusb.h"
 #include <stdbool.h>
 
