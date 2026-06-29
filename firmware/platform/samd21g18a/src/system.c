@@ -1,6 +1,6 @@
 /** @brief System startup functionality.
  *
- * This module just configures the system clock to 48 MHz. As such,
+ * This module just configures the system clock to 48 megahertz. As such,
  * `SystemCoreClockUpdate` only sets SystemCoreClock to 48 000 000 after the
  * system is initialized, and does not calculate the clock frequency. Although
  * there is no use case for this, if clock frequency is changed elsewhere,
@@ -8,7 +8,7 @@
  */
 #include "system_samd21.h"
 #include "platform/samd21g18a/utils.h"
-#include "samd21g18a.h"
+#include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -28,7 +28,7 @@ static bool system_clock_initialized = false;
 
 /** @brief Poll the XOSC32K ready status bit until it is ready. */
 static inline void
-poll_xosc32k_until_ready (void)
+xosc32k_poll_until_ready (void)
 {
     while (!SYSCTRL->PCLKSR.bit.XOSC32KRDY)
     {
@@ -39,7 +39,7 @@ poll_xosc32k_until_ready (void)
 
 /** @brief Poll the DFLL register until it is ready. */
 static inline void
-poll_dfll_until_ready (void)
+dfll_poll_until_ready (void)
 {
     while (!SYSCTRL->PCLKSR.bit.DFLLRDY)
     {
@@ -50,7 +50,7 @@ poll_dfll_until_ready (void)
 
 /** @brief Poll the DFLL register until clock frequency has been locked. */
 static inline void
-poll_dfll_until_locked (void)
+dfll_poll_until_locked (void)
 {
     while (!SYSCTRL->PCLKSR.bit.DFLLLCKC || !SYSCTRL->PCLKSR.bit.DFLLLCKF)
     {
@@ -59,7 +59,7 @@ poll_dfll_until_locked (void)
     return;
 }
 
-/** @brief Set number of wait states for 48 MHz at 3.3V logic. */
+/** @brief Set number of wait states for 48 megahertz at 3.3 volt logic. */
 static void
 set_number_of_wait_states_48_mhz (void)
 {
@@ -81,7 +81,7 @@ xosc32k_start_and_enable (void)
     // Enable the oscillator in a separate write as per the data sheet.
     SYSCTRL->XOSC32K.bit.ENABLE = 1u;
 
-    poll_xosc32k_until_ready();
+    xosc32k_poll_until_ready();
 
     return;
 }
@@ -112,7 +112,7 @@ dfll_set_reference_to_gclk1 (void)
     return;
 }
 
-/** @brief Lock the DFLL onto the desired 48 MHz clock frequency. */
+/** @brief Lock the DFLL onto the desired 48 megahertz clock frequency. */
 static void
 dfll_lock_48_mhz (void)
 {
@@ -120,15 +120,15 @@ dfll_lock_48_mhz (void)
 
     // This is a workaround for a hardware quirk in which the `DFLLCTRL`
     // register must be reset to this value before configuration.
-    poll_dfll_until_ready();
+    dfll_poll_until_ready();
     SYSCTRL->DFLLCTRL.reg = SYSCTRL_DFLLCTRL_ENABLE;
-    poll_dfll_until_ready();
+    dfll_poll_until_ready();
 
-    // DFLL multiplies the oscillator frequency to the desired 48 MHz clock
-    // frequency. The coarse and fine step values specified here are half
-    // their maximum value. These values are used by the DFLL to lock onto
-    // the desired frequency. Higher values mean less overshoot but longer
-    // time and vice versa.
+    // DFLL multiplies the oscillator frequency to the desired 48 megahertz
+    // clock frequency. The coarse and fine step values specified here are half
+    // their maximum value. These values are used by the DFLL to lock onto the
+    // desired frequency. Higher values mean less overshoot but longer time and
+    // vice versa.
     SYSCTRL->DFLLMUL.reg
         = SYSCTRL_DFLLMUL_MUL(SAMD21G18A_DFLL48M_MULTIPLIER)
           | SYSCTRL_DFLLMUL_FSTEP(SAMD21G18A_DFLL48M_FINE_STEP)
@@ -146,15 +146,13 @@ dfll_lock_48_mhz (void)
     }
 
     SYSCTRL->DFLLVAL.bit.COARSE = coarse;
-
-    poll_dfll_until_ready();
+    dfll_poll_until_ready();
 
     // Set the DFLL to closed-loop mode. Configure the DFLL to only output
     // when the frequency is locked and enable.
     SYSCTRL->DFLLCTRL.reg |= SYSCTRL_DFLLCTRL_MODE | SYSCTRL_DFLLCTRL_WAITLOCK
                              | SYSCTRL_DFLLCTRL_ENABLE;
-
-    poll_dfll_until_locked();
+    dfll_poll_until_locked();
 
     return;
 }
