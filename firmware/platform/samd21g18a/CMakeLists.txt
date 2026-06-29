@@ -1,7 +1,10 @@
 add_library(platform_samd21g18a OBJECT)
 
 target_sources(platform_samd21g18a PRIVATE
+  "${CMAKE_CURRENT_LIST_DIR}/src/eic.c"
+  "${CMAKE_CURRENT_LIST_DIR}/src/i2c.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/system.c"
+  "${CMAKE_CURRENT_LIST_DIR}/src/time.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/usb.c"
 )
 
