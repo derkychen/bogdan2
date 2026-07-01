@@ -23,7 +23,7 @@ typedef enum
     PLATFORM_SAMD21G18A_I2C_TIMEOUT,
 } platform_samd21g18a_i2c_status_code_t;
 
-/** @brief I2C bus structure used for passing data at runtime. */
+/** @brief I2C configuration structure. */
 typedef struct
 {
     /**
@@ -34,13 +34,6 @@ typedef struct
      *       readily.
      */
     Sercom *sercom;
-} platform_samd21g18a_i2c_bus_t;
-
-/** @brief I2C configuration structure. */
-typedef struct
-{
-    /** The SERCOM wrapper. */
-    platform_samd21g18a_i2c_bus_t const *bus;
 
     /** SDA I2C pin. */
     platform_samd21g18a_pin_t const *sda;
@@ -69,17 +62,11 @@ void platform_samd21g18a_i2c_configure(
 
 /** @brief Write bytes to an address. */
 platform_samd21g18a_i2c_status_code_t platform_samd21g18a_i2c_write(
-    platform_samd21g18a_i2c_bus_t const *bus,
-    uint8_t                              address,
-    uint8_t const                       *data,
-    size_t                               data_size);
+    Sercom *sercom, uint8_t address, uint8_t const *data, size_t data_size);
 
 /** @brief Read bytes from an address. */
 platform_samd21g18a_i2c_status_code_t platform_samd21g18a_i2c_read(
-    platform_samd21g18a_i2c_bus_t const *bus,
-    uint8_t                              address,
-    uint8_t                             *data,
-    size_t                               data_size);
+    Sercom *sercom, uint8_t address, uint8_t *data, size_t data_size);
 
 /**
  * @brief Write bytes to an address and then read data.
@@ -88,11 +75,11 @@ platform_samd21g18a_i2c_status_code_t platform_samd21g18a_i2c_read(
  * in order to obtain a reading.
  */
 platform_samd21g18a_i2c_status_code_t platform_samd21g18a_i2c_write_read(
-    platform_samd21g18a_i2c_bus_t const *bus,
-    uint8_t                              address,
-    uint8_t const                       *write_data,
-    size_t                               write_size,
-    uint8_t                             *read_data,
-    size_t                               read_size);
+    Sercom        *sercom,
+    uint8_t        address,
+    uint8_t const *write_data,
+    size_t         write_size,
+    uint8_t       *read_data,
+    size_t         read_size);
 
 #endif

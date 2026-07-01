@@ -21,18 +21,11 @@
  */
 typedef void (*platform_samd21g18a_eic_callback_t)(uint8_t eic_line);
 
-/** @brief EIC line structure used for passing data at runtime. */
-typedef struct
-{
-    /** Pin external interrupt line. */
-    uint8_t extint_line;
-} platform_samd21g18a_eic_line_t;
-
 /** @brief EIC pin structure for storage of pin data. */
 typedef struct
 {
-    /** External interrupt line wrapper. */
-    platform_samd21g18a_eic_line_t const *line;
+    /** External interrupt line. */
+    uint8_t extint_line;
 
     /** Pin port group. */
     platform_samd21g18a_pin_t const *pin;
@@ -55,19 +48,15 @@ void platform_samd21g18a_eic_configure(
 
 /** @brief Register a callback for a pin that runs on every interrupt. */
 void platform_samd21g18a_eic_register_callback(
-    platform_samd21g18a_eic_line_t const *line,
-    platform_samd21g18a_eic_callback_t    callback);
+    uint8_t extint_line, platform_samd21g18a_eic_callback_t callback);
 
 /** @brief Enable interrupts on a external interrupt line. */
-void platform_samd21g18a_eic_line_enable(
-    platform_samd21g18a_eic_line_t const *line);
+void platform_samd21g18a_eic_line_enable(uint8_t extint_line);
 
 /** @brief Disable interrupts on a external interrupt line. */
-void platform_samd21g18a_eic_line_disable(
-    platform_samd21g18a_eic_line_t const *line);
+void platform_samd21g18a_eic_line_disable(uint8_t extint_line);
 
 /** @brief Clear interrupt flag on a external interrupt line. */
-void platform_samd21g18a_eic_line_clear(
-    platform_samd21g18a_eic_line_t const *line);
+void platform_samd21g18a_eic_line_clear(uint8_t extint_line);
 
 #endif

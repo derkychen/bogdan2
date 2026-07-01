@@ -67,7 +67,7 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     PLATFORM_SAMD21G18A_ASSERT(cfg->line != NULL);
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin != NULL);
 
-    PLATFORM_SAMD21G18A_ASSERT(cfg->line->extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->extint_line < EXTINT_LINE_COUNT);
 
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin->port_group <= 1u);
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin->number <= 31u);
@@ -93,8 +93,8 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     EIC->CTRL.bit.ENABLE = 0u;
     eic_poll_sync();
 
-    config_index = cfg->line->extint_line / 8u;
-    bit_position = (uint8_t)((cfg->line->extint_line % 8u) * 4u);
+    config_index = cfg->extint_line / 8u;
+    bit_position = (uint8_t)((cfg->extint_line % 8u) * 4u);
 
     mask  = 0xful << bit_position;
     value = cfg->sense << bit_position;
@@ -102,7 +102,7 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     EIC->CONFIG[config_index].reg
         = (EIC->CONFIG[config_index].reg & ~mask) | value;
 
-    EIC->INTFLAG.reg = (1ul << cfg->line->extint_line);
+    EIC->INTFLAG.reg = (1ul << cfg->extint_line);
 
     EIC->CTRL.bit.ENABLE = 1u;
     eic_poll_sync();
@@ -112,8 +112,7 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 
 void
 platform_samd21g18a_eic_register_callback (
-    platform_samd21g18a_eic_line_t const *line,
-    platform_samd21g18a_eic_callback_t    callback)
+    uint8_t extint_line, platform_samd21g18a_eic_callback_t callback)
 {
     uint32_t primask;
 
@@ -122,7 +121,7 @@ platform_samd21g18a_eic_register_callback (
     primask = __get_PRIMASK();
     __disable_irq();
 
-    eic_callbacks[line->extint_line] = callback;
+    eic_callbacks[extint_line] = callback;
 
     if (primask == 0u)
     {
@@ -133,33 +132,32 @@ platform_samd21g18a_eic_register_callback (
 }
 
 void
-platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_line_t const *line)
+platform_samd21g18a_eic_line_enable (uint8_t extint_line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line->extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg  = (1ul << line->extint_line);
-    EIC->INTENSET.reg = (1ul << line->extint_line);
+    EIC->INTFLAG.reg  = (1ul << extint_line);
+    EIC->INTENSET.reg = (1ul << extint_line);
 
     return;
 }
 
 void
-platform_samd21g18a_eic_line_disable (
-    platform_samd21g18a_eic_line_t const *line)
+platform_samd21g18a_eic_line_disable (uint8_t extint_line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line->extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
 
-    EIC->INTENCLR.reg = (1ul << line->extint_line);
+    EIC->INTENCLR.reg = (1ul << extint_line);
 
     return;
 }
 
 void
-platform_samd21g18a_eic_line_clear (platform_samd21g18a_eic_line_t const *line)
+platform_samd21g18a_eic_line_clear (uint8_t extint_line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line->extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg = (1ul << line->extint_line);
+    EIC->INTFLAG.reg = (1ul << extint_line);
 
     return;
 }
