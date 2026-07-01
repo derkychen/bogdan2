@@ -1,6 +1,7 @@
 #ifndef PLATFORM_SAMD21G18A_EIC_H
 #define PLATFORM_SAMD21G18A_EIC_H
 
+#include "platform/samd21g18a/pin.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -20,48 +21,53 @@
  */
 typedef void (*platform_samd21g18a_eic_callback_t)(uint8_t eic_line);
 
+/** @brief EIC line structure used for passing data at runtime. */
+typedef struct
+{
+    /** Pin external interrupt line. */
+    uint8_t extint_line;
+} platform_samd21g18a_eic_line_t;
+
 /** @brief EIC pin structure for storage of pin data. */
 typedef struct
 {
+    /** External interrupt line wrapper. */
+    platform_samd21g18a_eic_line_t const *line;
+
     /** Pin port group. */
-    uint8_t port_group;
-
-    /** Pin number group. */
-    uint8_t number;
-
-    /** Pin peripheral function (A for EIC). */
-    uint8_t peripheral_function;
-
-    /** Pin external interrupt line. */
-    uint8_t eic_line;
+    platform_samd21g18a_pin_t const *pin;
 
     /** Pin sense (e.g. rising, falling, etc.). */
     uint32_t sense;
-} platform_samd21g18a_eic_pin_t;
+} platform_samd21g18a_eic_cfg_t;
 
 /** @brief Initialize the EIC peripheral. */
 void platform_samd21g18a_eic_init(void);
 
-/** @brief Initialize a pin connected to the EIC. */
-void platform_samd21g18a_eic_pin_init(platform_samd21g18a_eic_pin_t *pin,
-                                      uint8_t                        port_group,
-                                      uint8_t                        number,
-                                      uint8_t  peripheral_function,
-                                      uint8_t  eic_line,
-                                      uint32_t sense);
+/**
+ * @brief Configure a pin connected to the EIC.
+ *
+ * NOTE: The structure whose pointer is passed to this function should be
+ *       initialized beforehand.
+ */
+void platform_samd21g18a_eic_configure(
+    platform_samd21g18a_eic_cfg_t const *cfg);
 
 /** @brief Register a callback for a pin that runs on every interrupt. */
 void platform_samd21g18a_eic_register_callback(
-    const platform_samd21g18a_eic_pin_t *pin,
-    platform_samd21g18a_eic_callback_t   callback);
+    platform_samd21g18a_eic_line_t const *line,
+    platform_samd21g18a_eic_callback_t    callback);
 
 /** @brief Enable interrupts on a external interrupt line. */
-void platform_samd21g18a_eic_line_enable(uint8_t eic_line);
+void platform_samd21g18a_eic_line_enable(
+    platform_samd21g18a_eic_line_t const *line);
 
 /** @brief Disable interrupts on a external interrupt line. */
-void platform_samd21g18a_eic_line_disable(uint8_t eic_line);
+void platform_samd21g18a_eic_line_disable(
+    platform_samd21g18a_eic_line_t const *line);
 
 /** @brief Clear interrupt flag on a external interrupt line. */
-void platform_samd21g18a_eic_line_clear(uint8_t eic_line);
+void platform_samd21g18a_eic_line_clear(
+    platform_samd21g18a_eic_line_t const *line);
 
 #endif
