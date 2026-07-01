@@ -1,14 +1,13 @@
 #include "platform/samd21g18a/usb.h"
+#include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/utils.h"
-#include "sam.h" // IWYU pragma: keep
-#include "tusb.h"
+#include "sam.h"  // IWYU pragma: keep
+#include "tusb.h" // IWYU pragma: keep
 #include <stdbool.h>
 
-bool
+void
 platform_samd21g18a_usb_init (void)
 {
-    bool tinyusb_ok;
-
     // Enable USB peripheral bus clock.
     PM->APBBMASK.reg |= PM_APBBMASK_USB;
 
@@ -33,16 +32,8 @@ platform_samd21g18a_usb_init (void)
     NVIC_SetPriority(USB_IRQn, 0u);
     NVIC_EnableIRQ(USB_IRQn);
 
-    tinyusb_ok = tusb_init();
-
-    if (tinyusb_ok == false)
-    {
-        return false;
-    }
-
+    PLATFORM_SAMD21G18A_ASSERT(tusb_init());
     tud_connect();
-
-    return true;
 }
 
 void

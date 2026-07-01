@@ -5,12 +5,12 @@
 #include <stdint.h>
 
 /** @brief Configure USB and initialize TinyUSB device. */
-bool platform_samd21g18a_usb_init(void);
+void platform_samd21g18a_usb_init(void);
 
 /**
  * @brief Wrapper around `tud_task`.
  *
- * This function should be called periodically within the main loop.
+ * NOTE: This function should be called periodically within the main loop.
  */
 void platform_samd21g18a_usb_task(void);
 
