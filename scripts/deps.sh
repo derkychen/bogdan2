@@ -40,12 +40,13 @@ add_git_submodule_if_not_installed() {
 
 # Commands that should be installed as per the README.
 readonly REQUIRED_CMDS=(
-  git
-  cmake
-  ninja
   arm-none-eabi-gcc
   arm-none-eabi-objcopy
   arm-none-eabi-size
+  bossac
+  cmake
+  git
+  ninja
   uv
 )
 
