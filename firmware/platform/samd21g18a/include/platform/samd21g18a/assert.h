@@ -12,11 +12,10 @@ typedef struct
 
     /** The line containing the failed assertion. */
     int line;
-} platform_samd21g18a_assert_info_t;
+} platform_samd21g18a_assert_data_t;
 
 /** @brief Variable to inspect via debugger. */
-extern volatile platform_samd21g18a_assert_info_t
-    platform_samd21g18a_last_assert;
+extern platform_samd21g18a_assert_data_t volatile platform_samd21g18a_assert_data;
 
 /**
  * @brief Record assertion data and loop infinitely.
