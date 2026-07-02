@@ -11,6 +11,21 @@ typedef enum
     DRIVERS_PCA9555_STATUS_I2C_ERR,
 } drivers_pca9555_status_t;
 
+/** @brief PCA9555 register address type. */
+typedef uint8_t drivers_pca9555_reg_t;
+
+/** @brief PCA9555 inputs type. */
+typedef uint16_t drivers_pca9555_inputs_t;
+
+/** @brief PCA9555 outputs type. */
+typedef uint16_t drivers_pca9555_outputs_t;
+
+/** @brief PCA9555 configurations type. */
+typedef uint16_t drivers_pca9555_cfgs_t;
+
+/** @brief PCA9555 polarities type. */
+typedef uint16_t drivers_pca9555_polarities_t;
+
 /** @brief PCA9555 device structure. */
 typedef struct
 {
@@ -27,7 +42,7 @@ typedef struct
  * Zero for LOW, one for HIGH.
  */
 drivers_pca9555_status_t drivers_pca9555_read_inputs(
-    drivers_pca9555_device_t const *device, uint16_t *inputs);
+    drivers_pca9555_device_t const *device, drivers_pca9555_inputs_t *inputs);
 
 /**
  * @brief Write all 16 output latch bits on the PCA9555 over I2C.
@@ -35,22 +50,23 @@ drivers_pca9555_status_t drivers_pca9555_read_inputs(
  * Zero for LOW, one for HIGH.
  */
 drivers_pca9555_status_t drivers_pca9555_write_outputs(
-    drivers_pca9555_device_t const *device, uint16_t outputs);
+    drivers_pca9555_device_t const *device, drivers_pca9555_outputs_t outputs);
 
 /**
  * @brief Write all 16 input configurations on the PCA9555 over I2C.
  *
  * Zero for output, one for input.
  */
-drivers_pca9555_status_t drivers_pca9555_write_cfg(
-    drivers_pca9555_device_t const *device, uint16_t cfg);
+drivers_pca9555_status_t drivers_pca9555_write_cfgs(
+    drivers_pca9555_device_t const *device, drivers_pca9555_cfgs_t cfgs);
 
 /**
  * @brief Write all 16 input polarities on the PCA9555 over I2C.
  *
  * Zero for normal, one for inversion.
  */
-drivers_pca9555_status_t drivers_pca9555_write_polarity(
-    drivers_pca9555_device_t const *device, uint16_t polarity);
+drivers_pca9555_status_t drivers_pca9555_write_polarities(
+    drivers_pca9555_device_t const *device,
+    drivers_pca9555_polarities_t    polarities);
 
 #endif

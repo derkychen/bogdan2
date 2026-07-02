@@ -4,10 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PCA9555_REG_INPUT_PORT_0    (0x00u)
-#define PCA9555_REG_OUTPUT_PORT_0   (0x02u)
-#define PCA9555_REG_POLARITY_PORT_0 (0x04u)
-#define PCA9555_REG_CFG_PORT_0      (0x06u)
+#define PCA9555_REG_INPUT_PORT_0    (0x00U)
+#define PCA9555_REG_OUTPUT_PORT_0   (0x02U)
+#define PCA9555_REG_POLARITY_PORT_0 (0x04U)
+#define PCA9555_REG_CFG_PORT_0      (0x06U)
 
 /** @brief Convert a I2C status code to a PCA9555 status code. */
 static drivers_pca9555_status_t
@@ -29,9 +29,9 @@ i2c_status_to_pca9555_status (platform_samd21g18a_i2c_status_t status)
  * @brief Read 16 bits (each corresponding to a pin) from the PCA9555 over I2C.
  */
 static drivers_pca9555_status_t
-pca9555_read_u16 (drivers_pca9555_device_t const *device,
-                  uint8_t                         reg,
-                  uint16_t                       *value)
+pca9555_read (drivers_pca9555_device_t const *device,
+              drivers_pca9555_reg_t           reg,
+              uint16_t                       *value)
 {
     platform_samd21g18a_i2c_status_t i2c_status;
     uint8_t                          data[2];
@@ -41,14 +41,14 @@ pca9555_read_u16 (drivers_pca9555_device_t const *device,
     PLATFORM_SAMD21G18A_ASSERT(value != NULL);
 
     i2c_status = platform_samd21g18a_i2c_write_read(
-        device->master, device->address, &reg, 1u, data, sizeof(data));
+        device->master, device->address, &reg, 1U, data, sizeof(data));
 
     if (i2c_status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
     {
         return i2c_status_to_pca9555_status(i2c_status);
     }
 
-    *value = ((uint16_t)data[1] << 8u) | data[0];
+    *value = ((uint16_t)data[1] << 8U) | data[0];
 
     return DRIVERS_PCA9555_STATUS_OK;
 }
@@ -58,9 +58,9 @@ pca9555_read_u16 (drivers_pca9555_device_t const *device,
  *        I2C.
  */
 static drivers_pca9555_status_t
-pca9555_write_u16 (drivers_pca9555_device_t const *device,
-                   uint8_t                         reg,
-                   uint16_t                        value)
+pca9555_write (drivers_pca9555_device_t const *device,
+               drivers_pca9555_reg_t           reg,
+               uint16_t                        value)
 {
     platform_samd21g18a_i2c_status_t i2c_status;
     uint8_t                          data[3];
@@ -69,8 +69,8 @@ pca9555_write_u16 (drivers_pca9555_device_t const *device,
     PLATFORM_SAMD21G18A_ASSERT(device->master != NULL);
 
     data[0] = reg;
-    data[1] = (uint8_t)(value & 0xffu);
-    data[2] = (uint8_t)((value >> 8u) & 0xffu);
+    data[1] = (uint8_t)(value & 0xFFU);
+    data[2] = (uint8_t)((value >> 8U) & 0xFFU);
 
     i2c_status = platform_samd21g18a_i2c_write(
         device->master, device->address, data, sizeof(data));
@@ -80,27 +80,28 @@ pca9555_write_u16 (drivers_pca9555_device_t const *device,
 
 drivers_pca9555_status_t
 drivers_pca9555_read_inputs (drivers_pca9555_device_t const *device,
-                             uint16_t                       *inputs)
+                             drivers_pca9555_inputs_t       *inputs)
 {
-    return pca9555_read_u16(device, PCA9555_REG_INPUT_PORT_0, inputs);
+    return pca9555_read(device, PCA9555_REG_INPUT_PORT_0, inputs);
 }
 
 drivers_pca9555_status_t
 drivers_pca9555_write_outputs (drivers_pca9555_device_t const *device,
-                               uint16_t                        outputs)
+                               drivers_pca9555_outputs_t       outputs)
 {
-    return pca9555_write_u16(device, PCA9555_REG_OUTPUT_PORT_0, outputs);
+    return pca9555_write(device, PCA9555_REG_OUTPUT_PORT_0, outputs);
 }
 
 drivers_pca9555_status_t
-drivers_pca9555_write_cfg (drivers_pca9555_device_t const *device, uint16_t cfg)
+drivers_pca9555_write_cfgs (drivers_pca9555_device_t const *device,
+                            drivers_pca9555_cfgs_t          cfgs)
 {
-    return pca9555_write_u16(device, PCA9555_REG_CFG_PORT_0, cfg);
+    return pca9555_write(device, PCA9555_REG_CFG_PORT_0, cfgs);
 }
 
 drivers_pca9555_status_t
-drivers_pca9555_write_polarity (drivers_pca9555_device_t const *device,
-                                uint16_t                        polarity)
+drivers_pca9555_write_polarities (drivers_pca9555_device_t const *device,
+                                  drivers_pca9555_polarities_t    polarities)
 {
-    return pca9555_write_u16(device, PCA9555_REG_POLARITY_PORT_0, polarity);
+    return pca9555_write(device, PCA9555_REG_POLARITY_PORT_0, polarities);
 }
