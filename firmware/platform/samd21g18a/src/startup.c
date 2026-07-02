@@ -237,16 +237,16 @@ __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     .pfnReset_Handler     = (void *)Reset_Handler,
     .pfnNMI_Handler       = (void *)NMI_Handler,
     .pfnHardFault_Handler = (void *)HardFault_Handler,
-    .pfnReservedM12       = (void *)(0ul),
-    .pfnReservedM11       = (void *)(0ul),
-    .pfnReservedM10       = (void *)(0ul),
-    .pfnReservedM9        = (void *)(0ul),
-    .pfnReservedM8        = (void *)(0ul),
-    .pfnReservedM7        = (void *)(0ul),
-    .pfnReservedM6        = (void *)(0ul),
+    .pfnReservedM12       = (void *)(0UL),
+    .pfnReservedM11       = (void *)(0UL),
+    .pfnReservedM10       = (void *)(0UL),
+    .pfnReservedM9        = (void *)(0UL),
+    .pfnReservedM8        = (void *)(0UL),
+    .pfnReservedM7        = (void *)(0UL),
+    .pfnReservedM6        = (void *)(0UL),
     .pfnSVC_Handler       = (void *)SVC_Handler,
-    .pfnReservedM4        = (void *)(0ul),
-    .pfnReservedM3        = (void *)(0ul),
+    .pfnReservedM4        = (void *)(0UL),
+    .pfnReservedM3        = (void *)(0UL),
     .pfnPendSV_Handler    = (void *)PendSV_Handler,
     .pfnSysTick_Handler   = (void *)SysTick_Handler,
 
@@ -272,14 +272,14 @@ __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     .pfnTC3_Handler     = (void *)TC3_Handler,
     .pfnTC4_Handler     = (void *)TC4_Handler,
     .pfnTC5_Handler     = (void *)TC5_Handler,
-    .pfnReserved21      = (void *)(0ul),
-    .pfnReserved22      = (void *)(0ul),
+    .pfnReserved21      = (void *)(0UL),
+    .pfnReserved22      = (void *)(0UL),
     .pfnADC_Handler     = (void *)ADC_Handler,
     .pfnAC_Handler      = (void *)AC_Handler,
     .pfnDAC_Handler     = (void *)DAC_Handler,
     .pfnPTC_Handler     = (void *)PTC_Handler,
     .pfnI2S_Handler     = (void *)I2S_Handler,
-    .pfnReserved28      = (void *)(0ul),
+    .pfnReserved28      = (void *)(0UL),
 };
 
 void
@@ -310,7 +310,7 @@ Reset_Handler (void)
     SCB->VTOR = ((uint32_t)&_sfixed & SCB_VTOR_TBLOFF_Msk);
 
     // Performance tuning for SRAM access.
-    SBMATRIX->SFR[SBMATRIX_SLAVE_HMCRAMC0].reg = 2u;
+    SBMATRIX->SFR[SBMATRIX_SLAVE_HMCRAMC0].reg = 2U;
 
     // Initialize the system.
     SystemInit();

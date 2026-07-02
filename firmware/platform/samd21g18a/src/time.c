@@ -2,12 +2,12 @@
 #include "sam.h" // IWYU pragma: keep
 #include <stdint.h>
 
-static volatile uint32_t time_msec = 0u;
+static uint32_t volatile time_msec = 0U;
 
 void
 platform_samd21g18a_time_init (void)
 {
-    (void)SysTick_Config(SystemCoreClock / 1000u);
+    (void)SysTick_Config(SystemCoreClock / 1000U);
 
     return;
 }
@@ -41,13 +41,13 @@ platform_samd21g18a_time_usec (void)
         msec_2      = time_msec;
     } while (msec_1 != msec_2);
 
-    systick_load = SysTick->LOAD + 1u;
+    systick_load = SysTick->LOAD + 1U;
 
     elapsed_cycles = systick_load - systick_val;
 
-    elapsed_usec = (elapsed_cycles * 1000u) / systick_load;
+    elapsed_usec = (elapsed_cycles * 1000U) / systick_load;
 
-    return (msec_1 * 1000u) + elapsed_usec;
+    return (msec_1 * 1000U) + elapsed_usec;
 }
 
 void

@@ -6,16 +6,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SCL_LATENCY_CYCLES (10u)
+#define SCL_LATENCY_CYCLES (10U)
 #define SCL_FREQUENCY_HZ   (PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ)
 #define SCL_RISE_NSEC      (PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC)
 
-#define COMMAND_CONTINUE (2u)
-#define COMMAND_STOP     (3u)
+#define COMMAND_CONTINUE (2U)
+#define COMMAND_STOP     (3U)
 
-#define TIMEOUT_COUNT (100000u)
+#define TIMEOUT_COUNT (100000U)
 
-#define MAX_ADDRESS (0x7Fu)
+#define MAX_ADDRESS (0x7FU)
 
 /** @brief Baud values structure. */
 typedef struct
@@ -31,7 +31,7 @@ typedef struct
 static inline uint32_t
 ceiling_divide (uint64_t numerator, uint32_t denominator)
 {
-    return (uint32_t)((numerator + (uint64_t)denominator - 1u)
+    return (uint32_t)((numerator + (uint64_t)denominator - 1U)
                       / (uint64_t)denominator);
 }
 
@@ -47,12 +47,12 @@ baud_calculate (baud_t  *baud,
     uint32_t programmable_cycles;
 
     PLATFORM_SAMD21G18A_ASSERT(baud != NULL);
-    PLATFORM_SAMD21G18A_ASSERT((clock_frequency_hz != 0u)
-                               && (scl_frequency_hz != 0u));
+    PLATFORM_SAMD21G18A_ASSERT((clock_frequency_hz != 0U)
+                               && (scl_frequency_hz != 0U));
 
     scl_period_cycles = ceiling_divide(clock_frequency_hz, scl_frequency_hz);
     scl_rise_cycles   = ceiling_divide(
-        (uint64_t)clock_frequency_hz * (uint64_t)scl_rise_ns, 1000000000u);
+        (uint64_t)clock_frequency_hz * (uint64_t)scl_rise_ns, 1000000000U);
 
     PLATFORM_SAMD21G18A_ASSERT(scl_period_cycles
                                > (scl_rise_cycles + SCL_LATENCY_CYCLES));
@@ -60,9 +60,9 @@ baud_calculate (baud_t  *baud,
     programmable_cycles
         = scl_period_cycles - scl_rise_cycles - SCL_LATENCY_CYCLES;
 
-    PLATFORM_SAMD21G18A_ASSERT(programmable_cycles <= 510u);
+    PLATFORM_SAMD21G18A_ASSERT(programmable_cycles <= 510U);
 
-    baud->baud    = (uint8_t)(programmable_cycles / 2u);
+    baud->baud    = (uint8_t)(programmable_cycles / 2U);
     baud->baudlow = (uint8_t)(programmable_cycles - baud->baud);
 
     return;
@@ -72,7 +72,7 @@ baud_calculate (baud_t  *baud,
 static inline void
 master_poll_sync_mask (platform_samd21g18a_i2c_master_t *master, uint32_t mask)
 {
-    while ((master->I2CM.SYNCBUSY.reg & mask) != 0u)
+    while ((master->I2CM.SYNCBUSY.reg & mask) != 0U)
     {
     }
 
@@ -115,14 +115,14 @@ master_poll_until_ready (platform_samd21g18a_i2c_master_t *master)
 {
     uint32_t timeout = TIMEOUT_COUNT;
 
-    while ((master->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_MB) == 0u)
+    while ((master->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_MB) == 0U)
     {
-        if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
+        if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0U)
         {
             return PLATFORM_SAMD21G18A_I2C_STATUS_ERR;
         }
 
-        if (timeout == 0u)
+        if (timeout == 0U)
         {
             return PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT;
         }
@@ -130,7 +130,7 @@ master_poll_until_ready (platform_samd21g18a_i2c_master_t *master)
         timeout--;
     }
 
-    if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_RXNACK) != 0u)
+    if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_RXNACK) != 0U)
     {
         return PLATFORM_SAMD21G18A_I2C_STATUS_NACK;
     }
@@ -144,14 +144,14 @@ master_poll_until_slave_ready (platform_samd21g18a_i2c_master_t *master)
 {
     uint32_t timeout = TIMEOUT_COUNT;
 
-    while ((master->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_SB) == 0u)
+    while ((master->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_SB) == 0U)
     {
-        if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
+        if ((master->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0U)
         {
             return PLATFORM_SAMD21G18A_I2C_STATUS_ERR;
         }
 
-        if (timeout == 0u)
+        if (timeout == 0U)
         {
             return PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT;
         }
@@ -181,7 +181,7 @@ master_read_bytes (platform_samd21g18a_i2c_master_t *master,
     platform_samd21g18a_i2c_status_t status;
     size_t                           index;
 
-    if (data_size == 0u)
+    if (data_size == 0U)
     {
         return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
     }
@@ -189,7 +189,7 @@ master_read_bytes (platform_samd21g18a_i2c_master_t *master,
     master->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
     master_poll_sync_mask(master, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
-    for (index = 0u; index < data_size; index++)
+    for (index = 0U; index < data_size; index++)
     {
         status = master_poll_until_slave_ready(master);
 
@@ -199,7 +199,7 @@ master_read_bytes (platform_samd21g18a_i2c_master_t *master,
             return status;
         }
 
-        if (index == (data_size - 1u))
+        if (index == (data_size - 1U))
         {
             master->I2CM.CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
         }
@@ -210,7 +210,7 @@ master_read_bytes (platform_samd21g18a_i2c_master_t *master,
 
         data[index] = (uint8_t)master->I2CM.DATA.reg;
 
-        if (index == (data_size - 1u))
+        if (index == (data_size - 1U))
         {
             master_set_command(master, COMMAND_STOP);
         }
@@ -232,18 +232,18 @@ pin_configure (platform_samd21g18a_pin_t const *pin)
     uint8_t pmux_index;
 
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group <= 1u);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number <= 31u);
-    PLATFORM_SAMD21G18A_ASSERT(pin->peripheral_function <= 7u);
+    PLATFORM_SAMD21G18A_ASSERT(pin->port_group <= 1U);
+    PLATFORM_SAMD21G18A_ASSERT(pin->number <= 31U);
+    PLATFORM_SAMD21G18A_ASSERT(pin->peripheral_function <= 7U);
 
-    pmux_index = pin->number / 2u;
+    pmux_index = pin->number / 2U;
 
     // NOTE: No pull-up resistor is used because the IND.I/O board has them
     //       built in.
     PORT->Group[pin->port_group].PINCFG[pin->number].reg
         = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    if ((pin->number & 1u) == 0u)
+    if ((pin->number & 1U) == 0U)
     {
         PORT->Group[pin->port_group].PMUX[pmux_index].bit.PMUXE
             = pin->peripheral_function;
@@ -279,16 +279,16 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
     pin_configure(cfg->sda);
     pin_configure(cfg->scl);
 
-    cfg->master->I2CM.CTRLA.bit.SWRST = 1u;
+    cfg->master->I2CM.CTRLA.bit.SWRST = 1U;
 
     master_poll_sync_mask(cfg->master, SERCOM_I2CM_SYNCBUSY_SWRST);
 
-    cfg->master->I2CM.CTRLA.bit.ENABLE = 0u;
+    cfg->master->I2CM.CTRLA.bit.ENABLE = 0U;
 
     master_poll_sync_mask(cfg->master, SERCOM_I2CM_SYNCBUSY_ENABLE);
 
     cfg->master->I2CM.CTRLA.reg
-        = SERCOM_I2CM_CTRLA_MODE_I2C_MASTER | SERCOM_I2CM_CTRLA_SDAHOLD(2u);
+        = SERCOM_I2CM_CTRLA_MODE_I2C_MASTER | SERCOM_I2CM_CTRLA_SDAHOLD(2U);
 
     // Enable smart mode for handling ACK behaviour after DATA reads.
     cfg->master->I2CM.CTRLB.reg = SERCOM_I2CM_CTRLB_SMEN;
@@ -298,11 +298,11 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
     cfg->master->I2CM.BAUD.bit.BAUD    = baud.baud;
     cfg->master->I2CM.BAUD.bit.BAUDLOW = baud.baudlow;
 
-    cfg->master->I2CM.CTRLA.bit.ENABLE = 1u;
+    cfg->master->I2CM.CTRLA.bit.ENABLE = 1U;
 
     master_poll_sync_mask(cfg->master, SERCOM_I2CM_SYNCBUSY_ENABLE);
 
-    cfg->master->I2CM.STATUS.bit.BUSSTATE = 1u;
+    cfg->master->I2CM.STATUS.bit.BUSSTATE = 1U;
 
     master_poll_sync_mask(cfg->master, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
@@ -316,12 +316,11 @@ platform_samd21g18a_i2c_write (platform_samd21g18a_i2c_master_t *master,
                                size_t                            data_size)
 {
     platform_samd21g18a_i2c_status_t status;
-    size_t                           index;
 
     PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0u));
+    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0U));
 
-    master->I2CM.ADDR.reg = (uint32_t)((address) << 1u);
+    master->I2CM.ADDR.reg = (uint32_t)((address) << 1U);
 
     status = master_poll_until_ready(master);
 
@@ -331,7 +330,7 @@ platform_samd21g18a_i2c_write (platform_samd21g18a_i2c_master_t *master,
         return status;
     }
 
-    for (index = 0u; index < data_size; index++)
+    for (size_t index = 0U; index < data_size; index++)
     {
         master->I2CM.DATA.reg = data[index];
 
@@ -340,6 +339,7 @@ platform_samd21g18a_i2c_write (platform_samd21g18a_i2c_master_t *master,
         if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
         {
             master_send_stop(master);
+
             return status;
         }
     }
@@ -356,14 +356,14 @@ platform_samd21g18a_i2c_read (platform_samd21g18a_i2c_master_t *master,
                               size_t                            data_size)
 {
     PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0u));
+    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0U));
 
-    if (data_size == 0u)
+    if (data_size == 0U)
     {
         return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
     }
 
-    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1u) | 1u));
+    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1U) | 1U));
 
     return master_read_bytes(master, data, data_size);
 }
@@ -377,20 +377,19 @@ platform_samd21g18a_i2c_write_read (platform_samd21g18a_i2c_master_t *master,
                                     size_t         read_data_size)
 {
     platform_samd21g18a_i2c_status_t status;
-    size_t                           index;
 
     PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((write_data != NULL) || (write_data_size == 0u));
-    PLATFORM_SAMD21G18A_ASSERT((read_data != NULL) || (read_data_size == 0u));
+    PLATFORM_SAMD21G18A_ASSERT((write_data != NULL) || (write_data_size == 0U));
+    PLATFORM_SAMD21G18A_ASSERT((read_data != NULL) || (read_data_size == 0U));
 
-    if (read_data_size == 0u)
+    if (read_data_size == 0U)
     {
         return platform_samd21g18a_i2c_write(
             master, address, write_data, write_data_size);
     }
 
     // First phase: START and REPEATED START.
-    master->I2CM.ADDR.reg = (uint32_t)((address) << 1u);
+    master->I2CM.ADDR.reg = (uint32_t)((address) << 1U);
 
     status = master_poll_until_ready(master);
 
@@ -400,7 +399,7 @@ platform_samd21g18a_i2c_write_read (platform_samd21g18a_i2c_master_t *master,
         return status;
     }
 
-    for (index = 0u; index < write_data_size; index++)
+    for (size_t index = 0U; index < write_data_size; index++)
     {
         master->I2CM.DATA.reg = write_data[index];
 
@@ -414,7 +413,7 @@ platform_samd21g18a_i2c_write_read (platform_samd21g18a_i2c_master_t *master,
     }
 
     // Second phase: REPEATED START and STOP.
-    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1u) | 1u));
+    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1U) | 1U));
 
     return master_read_bytes(master, read_data, read_data_size);
 }

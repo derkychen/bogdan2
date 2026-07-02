@@ -25,11 +25,11 @@ platform_samd21g18a_usb_init (void)
     PORT->Group[0].PMUX[12].reg = PORT_PMUX_PMUXE_G | PORT_PMUX_PMUXO_G;
 
     // USB QoS.
-    USB->DEVICE.QOSCTRL.bit.CQOS = 2u;
-    USB->DEVICE.QOSCTRL.bit.DQOS = 2u;
+    USB->DEVICE.QOSCTRL.bit.CQOS = 2U;
+    USB->DEVICE.QOSCTRL.bit.DQOS = 2U;
 
     NVIC_ClearPendingIRQ(USB_IRQn);
-    NVIC_SetPriority(USB_IRQn, 0u);
+    NVIC_SetPriority(USB_IRQn, 0U);
     NVIC_EnableIRQ(USB_IRQn);
 
     PLATFORM_SAMD21G18A_ASSERT(tusb_init());
@@ -54,7 +54,7 @@ platform_samd21g18a_usb_is_mounted (void)
 void
 USB_Handler (void)
 {
-    tud_int_handler(0u);
+    tud_int_handler(0U);
 
     return;
 }

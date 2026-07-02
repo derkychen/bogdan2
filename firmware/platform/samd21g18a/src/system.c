@@ -1,4 +1,5 @@
-/** @brief System startup functionality.
+/**
+ * @brief System startup functionality.
  *
  * This module just configures the system clock to 48 megahertz. As such,
  * `SystemCoreClockUpdate` only sets SystemCoreClock to 48 000 000 after the
@@ -12,16 +13,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ (1000000u)
-#define SYSTEM_CORE_CLOCK_FREQUENCY_INIT_HZ  (48000000u)
+#define SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ (1000000U)
+#define SYSTEM_CORE_CLOCK_FREQUENCY_INIT_HZ  (48000000U)
 
-#define SAMD21G18A_XOSC32K_FREQUENCY_HZ        (32768u)
-#define SYSCTRL_XOSC32K_STARTUP_CYCLE131072    (0x7u)
-#define SAMD21G18A_DFLL48M_MULTIPLIER          (1465u)
-#define SAMD21G18A_DFLL48M_FINE_STEP           (511u)
-#define SAMD21G18A_DFLL48M_COARSE_STEP         (31u)
-#define SAMD21G18A_DFLL48M_COARSE_CAL_INVALID  (0x3fu)
-#define SAMD21G18A_DFLL48M_COARSE_CAL_FALLBACK (0x1fu)
+#define XOSC32K_FREQUENCY_HZ        (32768U)
+#define XOSC32K_STARTUP_CYCLE131072 (0x7U)
+
+#define DFLL48M_MULTIPLIER          (1465U)
+#define DFLL48M_FINE_STEP           (511U)
+#define DFLL48M_COARSE_STEP         (31U)
+#define DFLL48M_COARSE_CAL_INVALID  (0x3FU)
+#define DFLL48M_COARSE_CAL_FALLBACK (0x1FU)
 
 uint32_t    SystemCoreClock          = SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ;
 static bool system_clock_initialized = false;
@@ -63,7 +65,7 @@ dfll_poll_until_locked (void)
 static void
 set_number_of_wait_states_48_mhz (void)
 {
-    NVMCTRL->CTRLB.bit.RWS = 1u;
+    NVMCTRL->CTRLB.bit.RWS = 1U;
 
     return;
 }
@@ -74,12 +76,11 @@ xosc32k_start_and_enable (void)
 {
     // TODO: Currently using the longest start-up time option (~4 s). Switch to
     // a shorter one once tested.
-    SYSCTRL->XOSC32K.reg
-        = SYSCTRL_XOSC32K_STARTUP(SYSCTRL_XOSC32K_STARTUP_CYCLE131072)
-          | SYSCTRL_XOSC32K_EN32K | SYSCTRL_XOSC32K_XTALEN;
+    SYSCTRL->XOSC32K.reg = SYSCTRL_XOSC32K_STARTUP(XOSC32K_STARTUP_CYCLE131072)
+                           | SYSCTRL_XOSC32K_EN32K | SYSCTRL_XOSC32K_XTALEN;
 
     // Enable the oscillator in a separate write as per the data sheet.
-    SYSCTRL->XOSC32K.bit.ENABLE = 1u;
+    SYSCTRL->XOSC32K.bit.ENABLE = 1U;
 
     xosc32k_poll_until_ready();
 
@@ -90,9 +91,9 @@ xosc32k_start_and_enable (void)
 static void
 gclk1_set_source_to_xosc32k (void)
 {
-    GCLK->GENDIV.reg = GCLK_GENDIV_ID(1u) | GCLK_GENDIV_DIV(1u);
+    GCLK->GENDIV.reg = GCLK_GENDIV_ID(1U) | GCLK_GENDIV_DIV(1U);
 
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1u) | GCLK_GENCTRL_SRC_XOSC32K
+    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1U) | GCLK_GENCTRL_SRC_XOSC32K
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
     platform_samd21g18a_utils_gclk_poll_sync();
@@ -129,20 +130,19 @@ dfll_lock_48_mhz (void)
     // their maximum value. These values are used by the DFLL to lock onto the
     // desired frequency. Higher values mean less overshoot but longer time and
     // vice versa.
-    SYSCTRL->DFLLMUL.reg
-        = SYSCTRL_DFLLMUL_MUL(SAMD21G18A_DFLL48M_MULTIPLIER)
-          | SYSCTRL_DFLLMUL_FSTEP(SAMD21G18A_DFLL48M_FINE_STEP)
-          | SYSCTRL_DFLLMUL_CSTEP(SAMD21G18A_DFLL48M_COARSE_STEP);
+    SYSCTRL->DFLLMUL.reg = SYSCTRL_DFLLMUL_MUL(DFLL48M_MULTIPLIER)
+                           | SYSCTRL_DFLLMUL_FSTEP(DFLL48M_FINE_STEP)
+                           | SYSCTRL_DFLLMUL_CSTEP(DFLL48M_COARSE_STEP);
 
     // Load factory-programmed coarse calibration value or fallback into
     // `DFLLVAL.COARSE` for faster locking.
-    coarse = (*((volatile const uint32_t *)FUSES_DFLL48M_COARSE_CAL_ADDR)
+    coarse = (*((uint32_t volatile const *)FUSES_DFLL48M_COARSE_CAL_ADDR)
               & FUSES_DFLL48M_COARSE_CAL_Msk)
              >> FUSES_DFLL48M_COARSE_CAL_Pos;
 
-    if (coarse == SAMD21G18A_DFLL48M_COARSE_CAL_INVALID)
+    if (coarse == DFLL48M_COARSE_CAL_INVALID)
     {
-        coarse = SAMD21G18A_DFLL48M_COARSE_CAL_FALLBACK;
+        coarse = DFLL48M_COARSE_CAL_FALLBACK;
     }
 
     SYSCTRL->DFLLVAL.bit.COARSE = coarse;
@@ -161,7 +161,7 @@ dfll_lock_48_mhz (void)
 static void
 gclk0_set_source_to_dfll (void)
 {
-    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0) | GCLK_GENCTRL_SRC_DFLL48M
+    GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0U) | GCLK_GENCTRL_SRC_DFLL48M
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
     platform_samd21g18a_utils_gclk_poll_sync();

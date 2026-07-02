@@ -2,6 +2,7 @@
 #define PLATFORM_SAMD21G18A_EIC_H
 
 #include "platform/samd21g18a/pin.h"
+#include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
 #include <stdint.h>
 

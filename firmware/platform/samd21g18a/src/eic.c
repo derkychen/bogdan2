@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define EXTINT_LINE_COUNT (16u)
+#define EXTINT_LINE_COUNT (16U)
 
 static platform_samd21g18a_eic_callback_t callbacks[EXTINT_LINE_COUNT];
 
@@ -14,7 +14,7 @@ static platform_samd21g18a_eic_callback_t callbacks[EXTINT_LINE_COUNT];
 static inline void
 eic_poll_sync (void)
 {
-    while ((EIC->STATUS.reg & EIC_STATUS_SYNCBUSY) != 0u)
+    while ((EIC->STATUS.reg & EIC_STATUS_SYNCBUSY) != 0U)
     {
     }
 
@@ -33,11 +33,11 @@ platform_samd21g18a_eic_init (void)
     platform_samd21g18a_utils_gclk_poll_sync();
 
     // Reset EIC.
-    EIC->CTRL.bit.SWRST = 1u;
+    EIC->CTRL.bit.SWRST = 1U;
     eic_poll_sync();
 
     // Clear callback table.
-    for (platform_samd21g18a_eic_extint_line_t line = 0u;
+    for (platform_samd21g18a_eic_extint_line_t line = 0U;
          line < EXTINT_LINE_COUNT;
          line++)
     {
@@ -45,11 +45,11 @@ platform_samd21g18a_eic_init (void)
     }
 
     // Enable EIC and allow CPU to receive interrupts.
-    EIC->CTRL.bit.ENABLE = 1u;
+    EIC->CTRL.bit.ENABLE = 1U;
     eic_poll_sync();
 
     NVIC_ClearPendingIRQ(EIC_IRQn);
-    NVIC_SetPriority(EIC_IRQn, 1u);
+    NVIC_SetPriority(EIC_IRQn, 1U);
     NVIC_EnableIRQ(EIC_IRQn);
 
     return;
@@ -67,16 +67,16 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
     PLATFORM_SAMD21G18A_ASSERT(cfg->line < EXTINT_LINE_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->port_group <= 1u);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->number <= 31u);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->port_group <= 1U);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->number <= 31U);
 
     // Configure pin to act as EIC input.
     PORT->Group[cfg->pin->port_group].PINCFG[cfg->pin->number].reg
         = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    pmux_index = cfg->pin->number / 2u;
+    pmux_index = cfg->pin->number / 2U;
 
-    if ((cfg->pin->number & 1u) == 0u)
+    if ((cfg->pin->number & 1U) == 0U)
     {
         PORT->Group[cfg->pin->port_group].PMUX[pmux_index].bit.PMUXE
             = cfg->pin->peripheral_function;
@@ -88,22 +88,22 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     }
 
     // Configure pin sense.
-    EIC->CTRL.bit.ENABLE = 0u;
+    EIC->CTRL.bit.ENABLE = 0U;
 
     eic_poll_sync();
 
-    config_index = cfg->line / 8u;
-    bit_position = (uint8_t)((cfg->line % 8u) * 4u);
+    config_index = cfg->line / 8U;
+    bit_position = (uint8_t)((cfg->line % 8U) * 4U);
 
-    mask  = 0xFul << bit_position;
+    mask  = 0xFUL << bit_position;
     value = cfg->sense << bit_position;
 
     EIC->CONFIG[config_index].reg
         = (EIC->CONFIG[config_index].reg & ~mask) | value;
 
-    EIC->INTFLAG.reg = (1ul << cfg->line);
+    EIC->INTFLAG.reg = (1UL << cfg->line);
 
-    EIC->CTRL.bit.ENABLE = 1u;
+    EIC->CTRL.bit.ENABLE = 1U;
 
     eic_poll_sync();
 
@@ -116,14 +116,14 @@ platform_samd21g18a_eic_register_callback (
 {
     uint32_t primask;
 
-    PLATFORM_SAMD21G18A_ASSERT(eic_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
     primask = __get_PRIMASK();
     __disable_irq();
 
     callbacks[line] = callback;
 
-    if (primask == 0u)
+    if (primask == 0U)
     {
         __enable_irq();
     }
@@ -136,8 +136,8 @@ platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
 {
     PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg  = (1ul << line);
-    EIC->INTENSET.reg = (1ul << line);
+    EIC->INTFLAG.reg  = (1UL << line);
+    EIC->INTENSET.reg = (1UL << line);
 
     return;
 }
@@ -148,7 +148,7 @@ platform_samd21g18a_eic_line_disable (
 {
     PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTENCLR.reg = (1ul << line);
+    EIC->INTENCLR.reg = (1UL << line);
 
     return;
 }
@@ -158,7 +158,7 @@ platform_samd21g18a_eic_line_clear (platform_samd21g18a_eic_extint_line_t line)
 {
     PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg = (1ul << line);
+    EIC->INTFLAG.reg = (1UL << line);
 
     return;
 }
@@ -172,13 +172,13 @@ EIC_Handler (void)
 
     flags = EIC->INTFLAG.reg & EIC->INTENSET.reg;
 
-    for (platform_samd21g18a_eic_extint_line_t line = 0u;
+    for (platform_samd21g18a_eic_extint_line_t line = 0U;
          line < EXTINT_LINE_COUNT;
          line++)
     {
-        if ((flags & (1ul << line)) != 0u)
+        if ((flags & (1UL << line)) != 0U)
         {
-            EIC->INTFLAG.reg = (1ul << line);
+            EIC->INTFLAG.reg = (1UL << line);
             callback         = callbacks[line];
 
             if (callback != NULL)

@@ -8,10 +8,10 @@
 #include <stdint.h>
 
 // TODO: Test fast frequency if standard works.
-#define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ (100000u)
-#define PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC    (1000u)
-#define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_FAST_HZ     (400000u)
-#define PLATFORM_SAMD21G18A_I2C_SCL_RISE_FAST_NSEC        (300u)
+#define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ (100000U)
+#define PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC    (1000U)
+#define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_FAST_HZ     (400000U)
+#define PLATFORM_SAMD21G18A_I2C_SCL_RISE_FAST_NSEC        (300U)
 
 /** @brief Status codes for I2C. */
 typedef enum
@@ -22,7 +22,8 @@ typedef enum
     PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT,
 } platform_samd21g18a_i2c_status_t;
 
-/** @brief Type for I2C master that wraps a SERCOM peripheral.
+/**
+ * @brief Type for I2C master that wraps a SERCOM peripheral.
  *
  * NOTE: The only supported SERCOM peripheral is SERCOM1. The API is general
  *       so that if support for other SERCOM peripherals can be implemented
