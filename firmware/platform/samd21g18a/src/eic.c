@@ -8,7 +8,7 @@
 
 #define EXTINT_LINE_COUNT (16u)
 
-static platform_samd21g18a_eic_callback_t eic_callbacks[EXTINT_LINE_COUNT];
+static platform_samd21g18a_eic_callback_t callbacks[EXTINT_LINE_COUNT];
 
 /** @brief Poll the EIC until it is ready. */
 static inline void
@@ -37,9 +37,11 @@ platform_samd21g18a_eic_init (void)
     eic_poll_sync();
 
     // Clear callback table.
-    for (uint8_t index = 0u; index < EXTINT_LINE_COUNT; index++)
+    for (platform_samd21g18a_eic_extint_line_t line = 0u;
+         line < EXTINT_LINE_COUNT;
+         line++)
     {
-        eic_callbacks[index] = NULL;
+        callbacks[line] = NULL;
     }
 
     // Enable EIC and allow CPU to receive interrupts.
@@ -63,12 +65,8 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     uint8_t  pmux_index;
 
     PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
-
-    PLATFORM_SAMD21G18A_ASSERT(cfg->line != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->line < EXTINT_LINE_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin != NULL);
-
-    PLATFORM_SAMD21G18A_ASSERT(cfg->extint_line < EXTINT_LINE_COUNT);
-
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin->port_group <= 1u);
     PLATFORM_SAMD21G18A_ASSERT(cfg->pin->number <= 31u);
 
@@ -91,20 +89,22 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 
     // Configure pin sense.
     EIC->CTRL.bit.ENABLE = 0u;
+
     eic_poll_sync();
 
-    config_index = cfg->extint_line / 8u;
-    bit_position = (uint8_t)((cfg->extint_line % 8u) * 4u);
+    config_index = cfg->line / 8u;
+    bit_position = (uint8_t)((cfg->line % 8u) * 4u);
 
-    mask  = 0xful << bit_position;
+    mask  = 0xFul << bit_position;
     value = cfg->sense << bit_position;
 
     EIC->CONFIG[config_index].reg
         = (EIC->CONFIG[config_index].reg & ~mask) | value;
 
-    EIC->INTFLAG.reg = (1ul << cfg->extint_line);
+    EIC->INTFLAG.reg = (1ul << cfg->line);
 
     EIC->CTRL.bit.ENABLE = 1u;
+
     eic_poll_sync();
 
     return;
@@ -112,7 +112,7 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 
 void
 platform_samd21g18a_eic_register_callback (
-    uint8_t extint_line, platform_samd21g18a_eic_callback_t callback)
+    uint8_t line, platform_samd21g18a_eic_callback_t callback)
 {
     uint32_t primask;
 
@@ -121,7 +121,7 @@ platform_samd21g18a_eic_register_callback (
     primask = __get_PRIMASK();
     __disable_irq();
 
-    eic_callbacks[extint_line] = callback;
+    callbacks[line] = callback;
 
     if (primask == 0u)
     {
@@ -132,32 +132,33 @@ platform_samd21g18a_eic_register_callback (
 }
 
 void
-platform_samd21g18a_eic_line_enable (uint8_t extint_line)
+platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg  = (1ul << extint_line);
-    EIC->INTENSET.reg = (1ul << extint_line);
+    EIC->INTFLAG.reg  = (1ul << line);
+    EIC->INTENSET.reg = (1ul << line);
 
     return;
 }
 
 void
-platform_samd21g18a_eic_line_disable (uint8_t extint_line)
+platform_samd21g18a_eic_line_disable (
+    platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTENCLR.reg = (1ul << extint_line);
+    EIC->INTENCLR.reg = (1ul << line);
 
     return;
 }
 
 void
-platform_samd21g18a_eic_line_clear (uint8_t extint_line)
+platform_samd21g18a_eic_line_clear (platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(extint_line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg = (1ul << extint_line);
+    EIC->INTFLAG.reg = (1ul << line);
 
     return;
 }
@@ -171,16 +172,18 @@ EIC_Handler (void)
 
     flags = EIC->INTFLAG.reg & EIC->INTENSET.reg;
 
-    for (uint8_t eic_line = 0u; eic_line < EXTINT_LINE_COUNT; eic_line++)
+    for (platform_samd21g18a_eic_extint_line_t line = 0u;
+         line < EXTINT_LINE_COUNT;
+         line++)
     {
-        if ((flags & (1ul << eic_line)) != 0u)
+        if ((flags & (1ul << line)) != 0u)
         {
-            EIC->INTFLAG.reg = (1ul << eic_line);
-            callback         = eic_callbacks[eic_line];
+            EIC->INTFLAG.reg = (1ul << line);
+            callback         = callbacks[line];
 
             if (callback != NULL)
             {
-                callback(eic_line);
+                callback(line);
             }
         }
     }
