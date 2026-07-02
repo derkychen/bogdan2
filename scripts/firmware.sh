@@ -10,10 +10,10 @@ source "$SCRIPT_DIR/setup.sh"
 
 usage() {
   cat <<EOF
-Usage: $0 [-x] [-b] [-p port]
-  -x       delete build directory
-  -b       build the firmware
-  -p PORT  flash to Industruino via port after build
+Usage: $0 [-x] [-b PRESET] [-p PORT]
+  -x         Delete build directory.
+  -b PRESET  Build the firmware (PRESET can be "debug" or "release").
+  -p PORT    Flash the firmware to Industruino via a port.
 EOF
 }
 
@@ -22,7 +22,7 @@ if (($# == 0)); then
   exit 1
 fi
 
-while getopts "bxp:" opt; do
+while getopts "xb:p:" opt; do
   case "$opt" in
   x)
     rm -rf "$FIRMWARE_DIR/build"
@@ -31,8 +31,20 @@ while getopts "bxp:" opt; do
     # Build firmware and optimize for speed
     cd "$FIRMWARE_DIR"
 
-    cmake --preset samd21g18a-release
-    cmake --build --preset samd21g18a-release
+    case "$OPTARG" in
+    debug)
+      cmake --preset samd21g18a-debug
+      cmake --build --preset samd21g18a-debug
+      ;;
+    release)
+      cmake --preset samd21g18a-release
+      cmake --build --preset samd21g18a-release
+      ;;
+    *)
+      usage
+      exit1
+      ;;
+    esac
 
     # Symlink compile commands for `clangd`.
     ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
