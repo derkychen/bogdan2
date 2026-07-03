@@ -22,32 +22,37 @@ if (($# == 0)); then
   exit 1
 fi
 
+PRESET=""
+
 while getopts "xb:p:" opt; do
   case "$opt" in
   x)
     rm -rf "$FIRMWARE_DIR/build"
     ;;
   b)
-    # Build firmware and optimize for speed
+    # Build firmware and optimize for speed, symlink compile commands for `clangd`.
     cd "$FIRMWARE_DIR"
 
-    case "$OPTARG" in
+    PRESET="$OPTARG"
+    case "$PRESET" in
     debug)
       cmake --preset samd21g18a-debug
       cmake --build --preset samd21g18a-debug
+
+      ln -sfn build/samd21g18a-debug/compile_commands.json compile_commands.json
       ;;
     release)
       cmake --preset samd21g18a-release
       cmake --build --preset samd21g18a-release
+
+      ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
       ;;
     *)
       usage
-      exit1
+      exit 1
       ;;
     esac
 
-    # Symlink compile commands for `clangd`.
-    ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
     ;;
   p)
     bossac \
@@ -58,7 +63,7 @@ while getopts "xb:p:" opt; do
       --write \
       --verify \
       --reset \
-      "$FIRMWARE_DIR/build/samd21g18a-release/firmware.bin"
+      "$FIRMWARE_DIR/build/samd21g18a-$PRESET/firmware.bin"
     ;;
   *)
     usage
