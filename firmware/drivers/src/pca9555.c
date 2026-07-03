@@ -4,10 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PCA9555_REG_INPUT_PORT_0    (0x00U)
-#define PCA9555_REG_OUTPUT_PORT_0   (0x02U)
-#define PCA9555_REG_POLARITY_PORT_0 (0x04U)
-#define PCA9555_REG_CFG_PORT_0      (0x06U)
+#define REG_INPUT_PORT_0    (0x00U)
+#define REG_OUTPUT_PORT_0   (0x02U)
+#define REG_POLARITY_PORT_0 (0x04U)
+#define REG_CFG_PORT_0      (0x06U)
 
 /** @brief Convert a I2C status code to a PCA9555 status code. */
 static drivers_pca9555_status_t
@@ -82,26 +82,26 @@ drivers_pca9555_status_t
 drivers_pca9555_read_inputs (drivers_pca9555_device_t const *device,
                              drivers_pca9555_inputs_t       *inputs)
 {
-    return pca9555_read(device, PCA9555_REG_INPUT_PORT_0, inputs);
+    return pca9555_read(device, REG_INPUT_PORT_0, inputs);
 }
 
 drivers_pca9555_status_t
 drivers_pca9555_write_outputs (drivers_pca9555_device_t const *device,
                                drivers_pca9555_outputs_t       outputs)
 {
-    return pca9555_write(device, PCA9555_REG_OUTPUT_PORT_0, outputs);
+    return pca9555_write(device, REG_OUTPUT_PORT_0, outputs);
 }
 
 drivers_pca9555_status_t
 drivers_pca9555_write_cfgs (drivers_pca9555_device_t const *device,
                             drivers_pca9555_cfgs_t          cfgs)
 {
-    return pca9555_write(device, PCA9555_REG_CFG_PORT_0, cfgs);
+    return pca9555_write(device, REG_CFG_PORT_0, cfgs);
 }
 
 drivers_pca9555_status_t
 drivers_pca9555_write_polarities (drivers_pca9555_device_t const *device,
                                   drivers_pca9555_polarities_t    polarities)
 {
-    return pca9555_write(device, PCA9555_REG_POLARITY_PORT_0, polarities);
+    return pca9555_write(device, REG_POLARITY_PORT_0, polarities);
 }

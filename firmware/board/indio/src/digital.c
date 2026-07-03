@@ -6,6 +6,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// PCA9555 address.
+#define INDIO_PCA9555_ADDRESS (0x21U)
+
 // Digital expander interrupt registers specific to the IND.I/O.
 #define INDIO_DIGITAL_EXPANDER_REG_LATCH            (0x44U)
 #define INDIO_DIGITAL_EXPANDER_REG_MASK             (0x4AU)
@@ -37,17 +40,17 @@ static uint32_t volatile interrupt_pending_count;
 /** @brief The PCA9555 instance used by the IND.I/O for digital I/O. */
 static drivers_pca9555_device_t const board_indio_digital_expander = {
     .master  = SERCOM1,
-    .address = 0x21U,
+    .address = INDIO_PCA9555_ADDRESS,
 };
 
-// Shadow pin states.
+// Shadow and last recorded pin states.
 static drivers_pca9555_outputs_t    outputs_shadow;
-static drivers_pca9555_inputs_t     inputs_shadow;
+static drivers_pca9555_inputs_t     inputs_last_recorded;
 static drivers_pca9555_cfgs_t       cfgs_shadow;
 static drivers_pca9555_polarities_t polarities_shadow;
 
-// Shadow IND.I/O interrupt configuration.
-static board_indio_digital_interrupt_cfg_t interrupt_cfg_shadow;
+// Current IND.I/O interrupt configuration.
+static board_indio_digital_interrupt_cfg_t interrupt_cfg_current;
 
 // Callback entries.
 static board_indio_digital_interrupt_callback_entry_t
@@ -71,23 +74,23 @@ input_bit (board_indio_digital_pin_t pin)
     return (uint8_t)((uint8_t)pin * 2U);
 }
 
-/** @brief Output pin mask from pin. */
+/** @brief PCA9555 pin mask from a digital output pin. */
 static inline uint16_t
-output_mask_raw (board_indio_digital_pin_t pin)
+digital_output_pin_pca9555_mask (board_indio_digital_pin_t pin)
 {
     return (uint16_t)(1U << output_bit(pin));
 }
 
-/** @brief Input pin mask from pin. */
+/** @brief PCA9555 pin mask from a digital input pin. */
 static inline uint16_t
-input_mask_raw (board_indio_digital_pin_t pin)
+digital_input_pin_pca9555_mask (board_indio_digital_pin_t pin)
 {
     return (uint16_t)(1U << input_bit(pin));
 }
 
 /** @brief Call callbacks for a corresponding digital pin mask. */
 static void
-dispatch_callback_entries (board_indio_digital_mask_t fired_mask)
+dispatch_callback_entries (board_indio_digital_mask_t mask)
 {
     for (size_t index = 0u; index < CALLBACK_ENTRIES_COUNT; index++)
     {
@@ -98,7 +101,7 @@ dispatch_callback_entries (board_indio_digital_mask_t fired_mask)
             continue;
         }
 
-        callback_fired_mask = fired_mask & callback_entries[index].mask;
+        callback_fired_mask = mask & callback_entries[index].mask;
 
         if (callback_fired_mask == 0u)
         {
@@ -108,30 +111,6 @@ dispatch_callback_entries (board_indio_digital_mask_t fired_mask)
         callback_entries[index].callback(callback_fired_mask,
                                          callback_entries[index].context);
     }
-}
-
-/** @brief Get the raw input mask from the digital pin mask. */
-static uint16_t
-logical_mask_to_raw_input_mask (board_indio_digital_mask_t logical_mask)
-{
-    uint16_t raw_mask;
-
-    PLATFORM_SAMD21G18A_ASSERT(
-        (logical_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0U);
-
-    raw_mask = 0U;
-
-    for (board_indio_digital_pin_t pin = BOARD_INDIO_DIGITAL_PIN_CH1;
-         pin < BOARD_INDIO_DIGITAL_PIN_COUNT;
-         pin++)
-    {
-        if ((logical_mask & (board_indio_digital_mask_t)(1U << pin)) != 0U)
-        {
-            raw_mask |= input_mask_raw(pin);
-        }
-    }
-
-    return raw_mask;
 }
 
 /** @brief Convert a PCA9555 status code to a digital status code. */
@@ -148,25 +127,49 @@ pca9555_status_to_digital_status (drivers_pca9555_status_t status)
     }
 }
 
-/** @brief Convert the raw input mask to a digital pin mask. */
-static board_indio_digital_mask_t
-raw_input_mask_to_logical_mask (uint16_t raw_mask)
+/** @brief Get the PCA9555 mask from a digital pin mask. */
+static uint16_t
+digital_pin_to_pca9555_mask (board_indio_digital_mask_t digital_pin_mask)
 {
-    board_indio_digital_mask_t logical_mask;
+    uint16_t pca9555_mask;
 
-    logical_mask = 0U;
+    PLATFORM_SAMD21G18A_ASSERT(
+        (logical_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0U);
+
+    pca9555_mask = 0U;
 
     for (board_indio_digital_pin_t pin = BOARD_INDIO_DIGITAL_PIN_CH1;
          pin < BOARD_INDIO_DIGITAL_PIN_COUNT;
          pin++)
     {
-        if ((raw_mask & input_mask_raw(pin)) != 0U)
+        if ((digital_pin_mask & (board_indio_digital_mask_t)(1U << pin)) != 0U)
         {
-            logical_mask |= (board_indio_digital_mask_t)(1U << pin);
+            pca9555_mask |= digital_input_pin_pca9555_mask(pin);
         }
     }
 
-    return logical_mask;
+    return pca9555_mask;
+}
+
+/** @brief Convert a PCA9555 mask to a digital pin mask. */
+static board_indio_digital_mask_t
+pca9555_to_digital_pin_mask (uint16_t pca9555_mask)
+{
+    board_indio_digital_mask_t digital_pin_mask;
+
+    digital_pin_mask = 0U;
+
+    for (board_indio_digital_pin_t pin = BOARD_INDIO_DIGITAL_PIN_CH1;
+         pin < BOARD_INDIO_DIGITAL_PIN_COUNT;
+         pin++)
+    {
+        if ((pca9555_mask & digital_input_pin_pca9555_mask(pin)) != 0U)
+        {
+            digital_pin_mask |= (board_indio_digital_mask_t)(1U << pin);
+        }
+    }
+
+    return digital_pin_mask;
 }
 
 /** @brief Write to an IND.I/O expander register. */
@@ -264,17 +267,17 @@ board_indio_digital_eic_callback (platform_samd21g18a_eic_extint_line_t line)
 board_indio_digital_status_t
 board_indio_digital_init (void)
 {
-    drivers_pca9555_status_t pca_status;
+    drivers_pca9555_status_t pca9555_status;
 
     // Default pin states.
-    inputs_shadow     = 0u;
-    outputs_shadow    = BOARD_INDIO_DIGITAL_DEFAULT_OUTPUTS;
-    cfgs_shadow       = BOARD_INDIO_DIGITAL_DEFAULT_CFG;
-    polarities_shadow = BOARD_INDIO_DIGITAL_DEFAULT_POLARITY;
+    inputs_last_recorded = 0u;
+    outputs_shadow       = BOARD_INDIO_DIGITAL_DEFAULT_OUTPUTS;
+    cfgs_shadow          = BOARD_INDIO_DIGITAL_DEFAULT_CFG;
+    polarities_shadow    = BOARD_INDIO_DIGITAL_DEFAULT_POLARITY;
 
     // Default interrupt configuration.
-    interrupt_cfg_shadow.allowed_mask = 0u;
-    interrupt_cfg_shadow.latched_mask = 0u;
+    interrupt_cfg_current.allowed_mask = 0u;
+    interrupt_cfg_current.latched_mask = 0u;
 
     // No pending interrupts.
     interrupt_pending_count = 0u;
@@ -291,39 +294,39 @@ board_indio_digital_init (void)
     //
     // NOTE: The output latches must be written before configuring any pins as
     // outputs to prevent glitches.
-    pca_status = drivers_pca9555_write_outputs(&board_indio_digital_expander,
-                                               outputs_shadow);
+    pca9555_status = drivers_pca9555_write_outputs(
+        &board_indio_digital_expander, outputs_shadow);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     // Write default polarities.
-    pca_status = drivers_pca9555_write_polarities(&board_indio_digital_expander,
-                                                  polarities_shadow);
+    pca9555_status = drivers_pca9555_write_polarities(
+        &board_indio_digital_expander, polarities_shadow);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     // Write default configurations.
-    pca_status = drivers_pca9555_write_cfgs(&board_indio_digital_expander,
-                                            cfgs_shadow);
+    pca9555_status = drivers_pca9555_write_cfgs(&board_indio_digital_expander,
+                                                cfgs_shadow);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     // Read in initial inputs.
-    pca_status = drivers_pca9555_read_inputs(&board_indio_digital_expander,
-                                             &inputs_shadow);
+    pca9555_status = drivers_pca9555_read_inputs(&board_indio_digital_expander,
+                                                 &inputs_last_recorded);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     // Disable and unlatch all interrupt sources.
@@ -414,15 +417,15 @@ board_indio_digital_task (void)
 
     (void)pending_count;
 
-    return interrupt_source_service(interrupt_cfg_shadow.allowed_mask);
+    return interrupt_source_service(interrupt_cfg_current.allowed_mask);
 }
 
 board_indio_digital_status_t
 board_indio_digital_interrupt_configure (
     board_indio_digital_interrupt_cfg_t const *cfg)
 {
-    uint16_t raw_allowed_mask;
-    uint16_t raw_latched_mask;
+    uint16_t allowed_mask;
+    uint16_t latched_mask;
 
     PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
     PLATFORM_SAMD21G18A_ASSERT(
@@ -430,59 +433,59 @@ board_indio_digital_interrupt_configure (
     PLATFORM_SAMD21G18A_ASSERT(
         (cfg->latched_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0u);
 
-    raw_allowed_mask = logical_mask_to_raw_input_mask(cfg->allowed_mask);
-    raw_latched_mask = logical_mask_to_raw_input_mask(cfg->latched_mask);
+    allowed_mask = digital_pin_to_pca9555_mask(cfg->allowed_mask);
+    latched_mask = digital_pin_to_pca9555_mask(cfg->latched_mask);
 
     /*
      * Configure latch before enabling the mask so short events are captured
      * according to the new phase behavior.
      */
-    if (indio_expander_reg_write(INDIO_DIGITAL_EXPANDER_REG_LATCH,
-                                 raw_latched_mask)
+    if (indio_expander_reg_write(INDIO_DIGITAL_EXPANDER_REG_LATCH, latched_mask)
         != BOARD_INDIO_DIGITAL_STATUS_OK)
     {
         return BOARD_INDIO_DIGITAL_STATUS_ERR;
     }
 
-    if (indio_expander_reg_write(INDIO_DIGITAL_EXPANDER_REG_MASK,
-                                 raw_allowed_mask)
+    if (indio_expander_reg_write(INDIO_DIGITAL_EXPANDER_REG_MASK, allowed_mask)
         != BOARD_INDIO_DIGITAL_STATUS_OK)
     {
         return BOARD_INDIO_DIGITAL_STATUS_ERR;
     }
 
-    interrupt_cfg_shadow = *cfg;
+    interrupt_cfg_current = *cfg;
 
     return BOARD_INDIO_DIGITAL_STATUS_OK;
 }
 
 board_indio_digital_status_t
-board_indio_digital_interrupt_source_read (board_indio_digital_mask_t *mask)
+board_indio_digital_interrupt_source_read (
+    board_indio_digital_mask_t *digital_pin_mask)
 {
-    uint16_t raw_source;
+    uint16_t pca9555_source_mask;
 
     PLATFORM_SAMD21G18A_ASSERT(mask != NULL);
 
     if (indio_expander_reg_read(INDIO_DIGITAL_EXPANDER_REG_INTERRUPT_SOURCE,
-                                &raw_source)
+                                &pca9555_source_mask)
         != BOARD_INDIO_DIGITAL_STATUS_OK)
     {
         return BOARD_INDIO_DIGITAL_STATUS_ERR;
     }
 
-    *mask = raw_input_mask_to_logical_mask(raw_source);
+    *digital_pin_mask = pca9555_to_digital_pin_mask(pca9555_source_mask);
 
     return BOARD_INDIO_DIGITAL_STATUS_OK;
 }
 
 board_indio_digital_status_t
-board_indio_digital_interrupt_source_drain (board_indio_digital_mask_t mask)
+board_indio_digital_interrupt_source_drain (
+    board_indio_digital_mask_t drain_mask)
 {
     board_indio_digital_mask_t source_mask;
     board_indio_digital_mask_t unexpected_mask;
 
-    PLATFORM_SAMD21G18A_ASSERT((mask & (board_indio_digital_mask_t)~MASK_ALL)
-                               == 0u);
+    PLATFORM_SAMD21G18A_ASSERT(
+        (drain_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0u);
 
     if (board_indio_digital_interrupt_source_read(&source_mask)
         != BOARD_INDIO_DIGITAL_STATUS_OK)
@@ -492,7 +495,7 @@ board_indio_digital_interrupt_source_drain (board_indio_digital_mask_t mask)
 
     // Dispatches anything outside of the requested drain mask in case of
     // hardware automatically clearing all source bits on a read.
-    unexpected_mask = source_mask & (board_indio_digital_mask_t)~mask;
+    unexpected_mask = source_mask & (board_indio_digital_mask_t)~drain_mask;
 
     if (unexpected_mask != 0u)
     {
@@ -506,36 +509,36 @@ board_indio_digital_status_t
 board_indio_digital_pin_set_cfg (board_indio_digital_pin_t     pin,
                                  board_indio_digital_pin_cfg_t cfg)
 {
-    drivers_pca9555_status_t pca_status;
-    uint16_t                 next_cfgs;
-    uint16_t                 raw_input_mask;
-    uint16_t                 raw_output_mask;
+    drivers_pca9555_status_t pca9555_status;
+    drivers_pca9555_cfgs_t   next_cfgs;
+    uint16_t                 input_mask;
+    uint16_t                 output_mask;
 
     PLATFORM_SAMD21G18A_ASSERT(pin < BOARD_INDIO_DIGITAL_PIN_COUNT);
     PLATFORM_SAMD21G18A_ASSERT((cfg == BOARD_INDIO_DIGITAL_CFG_INPUT)
                                || (cfg == BOARD_INDIO_DIGITAL_CFG_OUTPUT));
 
-    raw_input_mask  = input_mask_raw(pin);
-    raw_output_mask = output_mask_raw(pin);
-    next_cfgs       = cfgs_shadow;
+    input_mask  = digital_input_pin_pca9555_mask(pin);
+    output_mask = digital_output_pin_pca9555_mask(pin);
+    next_cfgs   = cfgs_shadow;
 
     if (cfg == BOARD_INDIO_DIGITAL_CFG_INPUT)
     {
-        next_cfgs |= raw_input_mask;
-        next_cfgs |= raw_output_mask;
+        next_cfgs |= input_mask;
+        next_cfgs |= output_mask;
     }
     else
     {
-        next_cfgs |= raw_input_mask;
-        next_cfgs &= (drivers_pca9555_cfgs_t)~raw_output_mask;
+        next_cfgs |= input_mask;
+        next_cfgs &= (drivers_pca9555_cfgs_t)~output_mask;
     }
 
-    pca_status
+    pca9555_status
         = drivers_pca9555_write_cfgs(&board_indio_digital_expander, next_cfgs);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     cfgs_shadow = next_cfgs;
@@ -547,33 +550,33 @@ board_indio_digital_status_t
 board_indio_digital_pin_set_polarity (
     board_indio_digital_pin_t pin, board_indio_digital_pin_polarity_t polarity)
 {
-    drivers_pca9555_status_t pca_status;
-    uint16_t                 next_polarities;
-    uint16_t                 raw_mask;
+    drivers_pca9555_status_t     pca9555_status;
+    drivers_pca9555_polarities_t next_polarities;
+    uint16_t                     mask;
 
     PLATFORM_SAMD21G18A_ASSERT(pin < BOARD_INDIO_DIGITAL_PIN_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(
         (polarity == BOARD_INDIO_DIGITAL_POLARITY_NORMAL)
         || (polarity == BOARD_INDIO_DIGITAL_POLARITY_INVERTED));
 
-    raw_mask        = input_mask_raw(pin);
+    mask            = digital_input_pin_pca9555_mask(pin);
     next_polarities = polarities_shadow;
 
     if (polarity == BOARD_INDIO_DIGITAL_POLARITY_INVERTED)
     {
-        next_polarities |= raw_mask;
+        next_polarities |= mask;
     }
     else
     {
-        next_polarities &= (drivers_pca9555_polarities_t)~raw_mask;
+        next_polarities &= (drivers_pca9555_polarities_t)~mask;
     }
 
-    pca_status = drivers_pca9555_write_polarities(&board_indio_digital_expander,
-                                                  next_polarities);
+    pca9555_status = drivers_pca9555_write_polarities(
+        &board_indio_digital_expander, next_polarities);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     polarities_shadow = next_polarities;
@@ -585,32 +588,32 @@ board_indio_digital_status_t
 board_indio_digital_pin_write (board_indio_digital_pin_t       pin,
                                board_indio_digital_pin_level_t level)
 {
-    drivers_pca9555_status_t pca_status;
-    uint16_t                 next_outputs;
-    uint16_t                 raw_mask;
+    drivers_pca9555_status_t  pca9555_status;
+    drivers_pca9555_outputs_t next_outputs;
+    uint16_t                  mask;
 
     PLATFORM_SAMD21G18A_ASSERT(pin < BOARD_INDIO_DIGITAL_PIN_COUNT);
     PLATFORM_SAMD21G18A_ASSERT((level == BOARD_INDIO_DIGITAL_LEVEL_LOW)
                                || (level == BOARD_INDIO_DIGITAL_LEVEL_HIGH));
 
-    raw_mask     = output_mask_raw(pin);
+    mask         = digital_output_pin_pca9555_mask(pin);
     next_outputs = outputs_shadow;
 
     if (level == BOARD_INDIO_DIGITAL_LEVEL_HIGH)
     {
-        next_outputs |= raw_mask;
+        next_outputs |= mask;
     }
     else
     {
-        next_outputs &= (uint16_t)~raw_mask;
+        next_outputs &= (uint16_t)~mask;
     }
 
-    pca_status = drivers_pca9555_write_outputs(&board_indio_digital_expander,
-                                               next_outputs);
+    pca9555_status = drivers_pca9555_write_outputs(
+        &board_indio_digital_expander, next_outputs);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
     outputs_shadow = next_outputs;
@@ -622,25 +625,25 @@ board_indio_digital_status_t
 board_indio_digital_pin_read (board_indio_digital_pin_t        pin,
                               board_indio_digital_pin_level_t *level)
 {
-    drivers_pca9555_status_t pca_status;
-    uint16_t                 inputs;
-    uint16_t                 raw_mask;
+    drivers_pca9555_status_t pca9555_status;
+    drivers_pca9555_inputs_t inputs;
+    uint16_t                 mask;
 
     PLATFORM_SAMD21G18A_ASSERT(pin < BOARD_INDIO_DIGITAL_PIN_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(level != NULL);
 
-    pca_status
+    pca9555_status
         = drivers_pca9555_read_inputs(&board_indio_digital_expander, &inputs);
 
-    if (pca_status != DRIVERS_PCA9555_STATUS_OK)
+    if (pca9555_status != DRIVERS_PCA9555_STATUS_OK)
     {
-        return pca9555_status_to_digital_status(pca_status);
+        return pca9555_status_to_digital_status(pca9555_status);
     }
 
-    inputs_shadow = inputs;
-    raw_mask      = input_mask_raw(pin);
+    inputs_last_recorded = inputs;
+    mask                 = digital_input_pin_pca9555_mask(pin);
 
-    if ((inputs & raw_mask) != 0u)
+    if ((inputs & mask) != 0u)
     {
         *level = BOARD_INDIO_DIGITAL_LEVEL_HIGH;
     }
