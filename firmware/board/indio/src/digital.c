@@ -134,7 +134,7 @@ digital_pin_to_pca9555_mask (board_indio_digital_mask_t digital_pin_mask)
     uint16_t pca9555_mask;
 
     PLATFORM_SAMD21G18A_ASSERT(
-        (logical_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0U);
+        (digital_pin_mask & (board_indio_digital_mask_t)~MASK_ALL) == 0U);
 
     pca9555_mask = 0U;
 
@@ -436,10 +436,8 @@ board_indio_digital_interrupt_configure (
     allowed_mask = digital_pin_to_pca9555_mask(cfg->allowed_mask);
     latched_mask = digital_pin_to_pca9555_mask(cfg->latched_mask);
 
-    /*
-     * Configure latch before enabling the mask so short events are captured
-     * according to the new phase behavior.
-     */
+    // Configure latch before enabling the mask so that short pulses are also
+    // detected.
     if (indio_expander_reg_write(INDIO_DIGITAL_EXPANDER_REG_LATCH, latched_mask)
         != BOARD_INDIO_DIGITAL_STATUS_OK)
     {
@@ -463,7 +461,7 @@ board_indio_digital_interrupt_source_read (
 {
     uint16_t pca9555_source_mask;
 
-    PLATFORM_SAMD21G18A_ASSERT(mask != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(digital_pin_mask != NULL);
 
     if (indio_expander_reg_read(INDIO_DIGITAL_EXPANDER_REG_INTERRUPT_SOURCE,
                                 &pca9555_source_mask)
