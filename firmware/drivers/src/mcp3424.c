@@ -76,7 +76,7 @@ drivers_mcp342x_start_conversion (drivers_mcp3424_device_t const *device,
 
 /** @brief Read the latest ADC conversion result. */
 drivers_mcp3424_status_t
-mcp342x_read (drivers_mcp3424_device_t const *device,
+drivers_mcp3424_read (drivers_mcp3424_device_t const *device,
               drivers_mcp3424_resolution_t    resolution,
               int32_t                        *result)
 {
