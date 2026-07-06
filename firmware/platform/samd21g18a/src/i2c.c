@@ -310,17 +310,18 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
 }
 
 platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_write (platform_samd21g18a_i2c_master_t *master,
-                               uint8_t                           address,
-                               uint8_t const                    *data,
-                               size_t                            data_size)
+platform_samd21g18a_i2c_write (
+    platform_samd21g18a_i2c_master_t       *master,
+    platform_samd21g18a_i2c_slave_address_t slave_address,
+    uint8_t const                          *data,
+    size_t                                  data_size)
 {
     platform_samd21g18a_i2c_status_t status;
 
-    PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
+    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
     PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0U));
 
-    master->I2CM.ADDR.reg = (uint32_t)((address) << 1U);
+    master->I2CM.ADDR.reg = (uint32_t)((slave_address) << 1U);
 
     status = master_poll_until_ready(master);
 
@@ -350,12 +351,13 @@ platform_samd21g18a_i2c_write (platform_samd21g18a_i2c_master_t *master,
 }
 
 platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_read (platform_samd21g18a_i2c_master_t *master,
-                              uint8_t                           address,
-                              uint8_t                          *data,
-                              size_t                            data_size)
+platform_samd21g18a_i2c_read (
+    platform_samd21g18a_i2c_master_t       *master,
+    platform_samd21g18a_i2c_slave_address_t slave_address,
+    uint8_t                                *data,
+    size_t                                  data_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
+    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
     PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0U));
 
     if (data_size == 0U)
@@ -363,33 +365,34 @@ platform_samd21g18a_i2c_read (platform_samd21g18a_i2c_master_t *master,
         return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
     }
 
-    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1U) | 1U));
+    master->I2CM.ADDR.reg = ((uint32_t)(((slave_address) << 1U) | 1U));
 
     return master_read_bytes(master, data, data_size);
 }
 
 platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_write_read (platform_samd21g18a_i2c_master_t *master,
-                                    uint8_t                           address,
-                                    uint8_t const *write_data,
-                                    size_t         write_data_size,
-                                    uint8_t       *read_data,
-                                    size_t         read_data_size)
+platform_samd21g18a_i2c_write_read (
+    platform_samd21g18a_i2c_master_t       *master,
+    platform_samd21g18a_i2c_slave_address_t slave_address,
+    uint8_t const                          *write_data,
+    size_t                                  write_data_size,
+    uint8_t                                *read_data,
+    size_t                                  read_data_size)
 {
     platform_samd21g18a_i2c_status_t status;
 
-    PLATFORM_SAMD21G18A_ASSERT(address <= MAX_ADDRESS);
+    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
     PLATFORM_SAMD21G18A_ASSERT((write_data != NULL) || (write_data_size == 0U));
     PLATFORM_SAMD21G18A_ASSERT((read_data != NULL) || (read_data_size == 0U));
 
     if (read_data_size == 0U)
     {
         return platform_samd21g18a_i2c_write(
-            master, address, write_data, write_data_size);
+            master, slave_address, write_data, write_data_size);
     }
 
     // First phase: START and REPEATED START.
-    master->I2CM.ADDR.reg = (uint32_t)((address) << 1U);
+    master->I2CM.ADDR.reg = (uint32_t)((slave_address) << 1U);
 
     status = master_poll_until_ready(master);
 
@@ -413,7 +416,7 @@ platform_samd21g18a_i2c_write_read (platform_samd21g18a_i2c_master_t *master,
     }
 
     // Second phase: REPEATED START and STOP.
-    master->I2CM.ADDR.reg = ((uint32_t)(((address) << 1U) | 1U));
+    master->I2CM.ADDR.reg = ((uint32_t)(((slave_address) << 1U) | 1U));
 
     return master_read_bytes(master, read_data, read_data_size);
 }

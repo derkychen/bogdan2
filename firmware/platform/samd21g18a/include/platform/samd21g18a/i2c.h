@@ -7,6 +7,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Wrap SERCOM1 macro.
+#define PLATFORM_SAMD21G18A_I2C_MASTER (SERCOM1)
+
 // TODO: Test fast frequency if standard works.
 #define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ (100000U)
 #define PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC    (1000U)
@@ -30,6 +33,9 @@ typedef enum
  *       readily.
  */
 typedef Sercom platform_samd21g18a_i2c_master_t;
+
+/** @brief I2C slave address type. */
+typedef uint8_t platform_samd21g18a_i2c_slave_address_t;
 
 /** @brief I2C configuration structure. */
 typedef struct

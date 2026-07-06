@@ -2,13 +2,23 @@
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #define EXTINT_LINE_COUNT (16U)
 
-static platform_samd21g18a_eic_callback_t callbacks[EXTINT_LINE_COUNT];
+/** @brief EIC callback entry format. */
+typedef struct
+{
+    /** The callback that runs on an interrupt. */
+    platform_samd21g18a_eic_callback_t callback;
+
+    /** Context pointer passed to the callback. */
+    void *context;
+} platform_samd21g18a_eic_callback_entry_t;
+
+static platform_samd21g18a_eic_callback_entry_t
+    callback_entries[EXTINT_LINE_COUNT];
 
 /** @brief Poll the EIC until it is ready. */
 static inline void
@@ -41,7 +51,8 @@ platform_samd21g18a_eic_init (void)
          line < EXTINT_LINE_COUNT;
          line++)
     {
-        callbacks[line] = NULL;
+        callback_entries[line].callback = NULL;
+        callback_entries[line].context  = NULL;
     }
 
     // Enable EIC and allow CPU to receive interrupts.
@@ -56,7 +67,7 @@ platform_samd21g18a_eic_init (void)
 }
 
 void
-platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
+platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 {
     uint8_t  config_index;
     uint8_t  bit_position;
@@ -111,8 +122,10 @@ platform_samd21g18a_eic_pin_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 }
 
 void
-platform_samd21g18a_eic_register_callback (
-    uint8_t line, platform_samd21g18a_eic_callback_t callback)
+platform_samd21g18a_eic_register_callback_entry (
+    platform_samd21g18a_eic_extint_line_t line,
+    platform_samd21g18a_eic_callback_t    callback,
+    void                                 *context)
 {
     uint32_t primask;
 
@@ -121,7 +134,10 @@ platform_samd21g18a_eic_register_callback (
     primask = __get_PRIMASK();
     __disable_irq();
 
-    callbacks[line] = callback;
+    callback_entries[line] = (platform_samd21g18a_eic_callback_entry_t) {
+        .callback = callback,
+        .context  = context,
+    };
 
     if (primask == 0U)
     {
@@ -158,7 +174,8 @@ platform_samd21g18a_eic_line_clear (platform_samd21g18a_eic_extint_line_t line)
 {
     PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTFLAG.reg = (1UL << line);
+    EIC->INTENCLR.reg = (1UL << line);
+    EIC->INTFLAG.reg  = (1UL << line);
 
     return;
 }
@@ -169,6 +186,7 @@ EIC_Handler (void)
 {
     uint32_t                           flags;
     platform_samd21g18a_eic_callback_t callback;
+    void                              *context;
 
     flags = EIC->INTFLAG.reg & EIC->INTENSET.reg;
 
@@ -179,11 +197,12 @@ EIC_Handler (void)
         if ((flags & (1UL << line)) != 0U)
         {
             EIC->INTFLAG.reg = (1UL << line);
-            callback         = callbacks[line];
+            callback         = callback_entries[line].callback;
+            context          = callback_entries[line].context;
 
             if (callback != NULL)
             {
-                callback(line);
+                callback(line, context);
             }
         }
     }

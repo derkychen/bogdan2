@@ -1,10 +1,16 @@
 #include "platform/samd21g18a/digital.h"
-#include "samd21g18a.h"
+#include "platform/samd21g18a/assert.h"
+#include "sam.h" // IWYU pragma: keep
+#include <stddef.h>
 
 void
 platform_samd21g18a_digital_pin_direction_set_output (
     platform_samd21g18a_pin_t const *pin)
 {
+    PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(pin->port_group <= 1U);
+    PLATFORM_SAMD21G18A_ASSERT(pin->number <= 31U);
+
     PORT->Group[pin->port_group].DIRSET.reg = (1ul << pin->number);
 }
 void
