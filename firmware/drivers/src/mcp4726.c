@@ -6,7 +6,7 @@
 #define REG_DAC        (0x40U)
 #define REG_DAC_EEPROM (0x60U)
 
-/** @brief Convert a I2C status code to a MCP4726 status code. */
+/** @brief Convert an I2C status code to a MCP4726 status code. */
 static drivers_mcp4726_status_t
 i2c_status_to_mcp4726_status (platform_samd21g18a_i2c_status_t status)
 {
@@ -42,13 +42,15 @@ mcp4726_write (drivers_mcp4726_device_t const *device,
 }
 
 drivers_mcp4726_status_t
-mcp4726_write_output (drivers_mcp4726_device_t const *device, uint16_t value)
+drivers_mcp4726_write_output (drivers_mcp4726_device_t const *device,
+                              uint16_t                        value)
 {
     return mcp4726_write(device, REG_DAC, value);
 }
 
 drivers_mcp4726_status_t
-mcp4726_write_output_ee (drivers_mcp4726_device_t const *device, uint16_t value)
+drivers_mcp4726_write_output_ee (drivers_mcp4726_device_t const *device,
+                                 uint16_t                        value)
 {
     return mcp4726_write(device, REG_DAC_EEPROM, value);
 }

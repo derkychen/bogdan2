@@ -12,7 +12,7 @@
 #define CFG_RESOLUTION_SHIFT (2U)
 #define CFG_GAIN_SHIFT       (0U)
 
-/** @brief Convert a I2C status code to MCP3424 status code. */
+/** @brief Convert an I2C status code to MCP3424 status code. */
 static drivers_mcp3424_status_t
 i2c_status_to_mcp342x_status (platform_samd21g18a_i2c_status_t status)
 {
