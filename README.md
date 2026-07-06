@@ -1,19 +1,21 @@
-# Bogdan 2: Rise of the Pico
+# Bogdan 2: Revenge of the Industruino
 
 ## Dependencies:
 
 You must have the following installed in order to set up Bogdan 2.
 
-TODO: Figure out all dependencies for windows
-
 * `arm-none-eabi-gcc`
+* `bossac`
 * `cmake`
 * `git`
-* `python3`
+* `ninja`
 * `uv`
-* PicoScope [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
+* [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
+* [Thorlabs Kinesis](https://www.thorlabs.com/software-pages/motion_control)
 
-If you are on Windows :disappointed:, you are probably sad, but also need to install [Git Bash](https://git-scm.com/install/windows).
+If you are on Windows :disappointed:, you are probably sad, but also need to install the following:
+
+* [Git Bash](https://git-scm.com/install/windows).
 
 ## Setup
 
@@ -22,28 +24,6 @@ In the directory that you want the project to reside in, open `bash` or another 
 ```bash
 git clone https://github.com/derkychen/bogdan2.git # Clone the repository
 cd bogdan2 # Change to the project directory
-chmod +x deps.sh # Permissions for a dependencies installation script
-./deps.sh
+chmod +x scripts/deps.sh # Permissions for a dependencies installation script
+scripts/deps.sh
 ```
-
-## Usage
-
-### Calibration
-
-In the project directory, run
-
-```bash
-./bogdan.sh calibrate
-```
-
-to run Bogdan 2's calibration script.
-
-### Profiling
-
-In the project directory, run
-
-```bash
-./bogdan.sh profile path/to/your/instruction.json
-```
-
-to profile the beam.
