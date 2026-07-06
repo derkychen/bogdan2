@@ -81,7 +81,7 @@ mcp342x_start_conversion (drivers_mcp342x_device_t const *device,
 
     PLATFORM_SAMD21G18A_ASSERT(device != NULL);
 
-    config = mcp342x_create_config_byte(channel, resolution, gain);
+    config_byte = mcp342x_create_config_byte(channel, resolution, gain);
     
     return i2c_status_to_mcp342x_status(platform_samd21g18a_i2c_write(
         device->master, device->address, &config_byte, sizeof(config_byte)));
@@ -108,7 +108,7 @@ mcp342x_read (drivers_mcp342x_device_t const *device,
 
     if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
     {
-        return i2c_status_to_mcp342x_status(status);;
+        return i2c_status_to_mcp342x_status(status);
     }
 
     config = data[result_size];
@@ -131,15 +131,15 @@ mcp342x_read (drivers_mcp342x_device_t const *device,
         
         if (resolution == DRIVERS_MCP342X_RESOLUTION_12_BIT)
         {
-            *value = mcp342x_sign_extend(raw, 12U);
+            *result = mcp342x_sign_extend(raw, 12U);
         }
         else if (resolution == DRIVERS_MCP342X_RESOLUTION_14_BIT)
         {
-            *value = mcp342x_sign_extend(raw, 14U);
+            *result = mcp342x_sign_extend(raw, 14U);
         }
         else
         {
-            *value = mcp342x_sign_extend(raw, 16U);
+            *result = mcp342x_sign_extend(raw, 16U);
         }
     }
 
