@@ -5,9 +5,11 @@
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/pin.h"
 
-// TODO: Test all expansion port pins.
-
-/** @brief Handle for the IND.I/O expansion port pin D0/RX. */
+/**
+ * @brief Handle for the IND.I/O expansion port pin D0/RX.
+ *
+ * WARNING: The current module for MCU digital I/O does not support this pin.
+ */
 extern platform_samd21g18a_pin_t const board_indio_expansion_d0;
 
 /**
@@ -34,6 +36,13 @@ extern platform_samd21g18a_pin_t const board_indio_expansion_d6;
 
 /** @brief Handle for the IND.I/O expansion port pin D7. */
 extern platform_samd21g18a_pin_t const board_indio_expansion_d7;
+
+/**
+ * @brief Handle for the IND.I/O expansion port pin D10/A10.
+ *
+ * WARNING: The current module for MCU digital I/O does not support this pin.
+ */
+extern platform_samd21g18a_pin_t const board_indio_expansion_d10;
 
 /** @brief Handle for the IND.I/O expansion port pin MISO/D14. */
 extern platform_samd21g18a_pin_t const board_indio_expansion_d14;

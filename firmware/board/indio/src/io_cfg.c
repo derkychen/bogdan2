@@ -7,6 +7,7 @@
 #define SAMD21G18A_PORT_GROUP_A          (0U)
 #define SAMD21G18A_PORT_GROUP_B          (1U)
 #define SAMD21G18A_PERIPHERAL_FUNCTION_A (0U)
+#define SAMD21G18A_PERIPHERAL_FUNCTION_C (2U)
 
 platform_samd21g18a_pin_t const board_indio_expansion_d0 = {
     .port_group          = SAMD21G18A_PORT_GROUP_A,
@@ -23,13 +24,13 @@ platform_samd21g18a_pin_t const board_indio_expansion_d1 = {
 platform_samd21g18a_pin_t const board_indio_expansion_d2 = {
     .port_group          = SAMD21G18A_PORT_GROUP_A,
     .number              = 16U,
-    .peripheral_function = 2U,
+    .peripheral_function = SAMD21G18A_PERIPHERAL_FUNCTION_C,
 };
 
 platform_samd21g18a_pin_t const board_indio_expansion_d3 = {
     .port_group          = SAMD21G18A_PORT_GROUP_A,
     .number              = 17U,
-    .peripheral_function = 2U,
+    .peripheral_function = SAMD21G18A_PERIPHERAL_FUNCTION_C,
 };
 
 platform_samd21g18a_pin_t const board_indio_expansion_d4 = {
@@ -53,6 +54,12 @@ platform_samd21g18a_pin_t const board_indio_expansion_d6 = {
 platform_samd21g18a_pin_t const board_indio_expansion_d7 = {
     .port_group          = SAMD21G18A_PORT_GROUP_A,
     .number              = 4U,
+    .peripheral_function = SAMD21G18A_PERIPHERAL_FUNCTION_A,
+};
+
+platform_samd21g18a_pin_t const board_indio_expansion_d10 = {
+    .port_group          = SAMD21G18A_PORT_GROUP_A,
+    .number              = 7U,
     .peripheral_function = SAMD21G18A_PERIPHERAL_FUNCTION_A,
 };
 
