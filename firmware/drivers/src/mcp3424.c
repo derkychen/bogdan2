@@ -76,9 +76,9 @@ drivers_mcp342x_start_conversion (drivers_mcp3424_device_t const *device,
 
 /** @brief Read the latest ADC conversion result. */
 drivers_mcp3424_status_t
-mcp342x_read (drivers_mcp3424_device_t const *device,
-              drivers_mcp3424_resolution_t    resolution,
-              int32_t                        *result)
+drivers_mcp3424_read (drivers_mcp3424_device_t const *device,
+                      drivers_mcp3424_resolution_t    resolution,
+                      int32_t                        *result)
 {
     uint8_t                          data[4];
     size_t                           result_size;
@@ -110,6 +110,7 @@ mcp342x_read (drivers_mcp3424_device_t const *device,
     {
         raw = ((int32_t)data[0] << 16U) | ((int32_t)data[1] << 8U)
               | (int32_t)data[2];
+        *result = sign_extend(raw, 18U);
     }
     else
     {
