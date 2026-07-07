@@ -27,14 +27,25 @@ typedef uint8_t platform_samd21g18a_eic_extint_line_t;
 typedef void (*platform_samd21g18a_eic_callback_t)(
     platform_samd21g18a_eic_extint_line_t line, void *context);
 
-/** @brief EIC pin structure for storage of pin data. */
+/** @brief EIC pin data. */
 typedef struct
 {
-    /** External interrupt line. */
-    platform_samd21g18a_eic_extint_line_t line;
-
-    /** Pin port group. */
+    /** Pin. */
     platform_samd21g18a_pin_t const *pin;
+
+    /**
+     * External interrupt line.
+     *
+     * WARNING: This is designated for each pin, it is not arbitrary.
+     */
+    platform_samd21g18a_eic_extint_line_t line;
+} platform_samd21g18a_eic_pin_t;
+
+/** @brief EIC configuration structure. */
+typedef struct
+{
+    /** EIC-specific pin. */
+    platform_samd21g18a_eic_pin_t const *eic_pin;
 
     /** Pin sense (e.g. rising, falling, etc.). */
     platform_samd21g18a_eic_sense_t sense;

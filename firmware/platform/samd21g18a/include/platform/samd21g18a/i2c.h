@@ -37,6 +37,9 @@ typedef Sercom platform_samd21g18a_i2c_master_t;
 /** @brief I2C slave address type. */
 typedef uint8_t platform_samd21g18a_i2c_slave_address_t;
 
+/** @brief Type for I2C pins. */
+typedef platform_samd21g18a_pin_t platform_samd21g18a_i2c_pin_t;
+
 /** @brief I2C configuration structure. */
 typedef struct
 {
@@ -44,10 +47,10 @@ typedef struct
     platform_samd21g18a_i2c_master_t *master;
 
     /** SDA I2C pin. */
-    platform_samd21g18a_pin_t const *sda;
+    platform_samd21g18a_i2c_pin_t const *sda;
 
     /** SCL I2C pin. */
-    platform_samd21g18a_pin_t const *scl;
+    platform_samd21g18a_i2c_pin_t const *scl;
 
     /** SCL frequency in hertz. */
     uint32_t scl_frequency_hz;
@@ -59,8 +62,8 @@ typedef struct
 /**
  * @brief Configure one bus connected to the I2C.
  *
- * There is no I2C initialization function because each bus is tied to a SERCOM
- * instance, whose initialization occurs in this function.
+ * There is no I2C initialization function because each bus is tied to a
+ * SERCOM instance, whose initialization occurs in this function.
  *
  * NOTE: The structure whose pointer is passed to this function should be
  *       initialized beforehand.
@@ -85,8 +88,8 @@ platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_read(
 /**
  * @brief Write bytes to an address and then read data.
  *
- * This is useful for ADC, where a channel must be selected via an initial write
- * in order to obtain a reading.
+ * This is useful for ADC, where a channel must be selected via an initial
+ * write in order to obtain a reading.
  */
 platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_write_read(
     platform_samd21g18a_i2c_master_t *master,

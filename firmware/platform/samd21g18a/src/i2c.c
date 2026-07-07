@@ -1,6 +1,7 @@
 #include "platform/samd21g18a/i2c.h"
-#include "platform/samd21g18a/utils.h"
 #include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/pin.h"
+#include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
 #include <stddef.h>
@@ -227,14 +228,15 @@ master_read_bytes (platform_samd21g18a_i2c_master_t *master,
 
 /** @brief Configure an I2C pin. */
 static void
-pin_configure (platform_samd21g18a_pin_t const *pin)
+pin_configure (platform_samd21g18a_i2c_pin_t const *pin, platform_samd21g18a_pin_peripheral_function_t peripheral_function)
 {
     uint8_t pmux_index;
 
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group <= 1U);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number <= 31U);
-    PLATFORM_SAMD21G18A_ASSERT(pin->peripheral_function <= 7U);
+    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
+                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(pin->number
+                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
     pmux_index = pin->number / 2U;
 
@@ -246,12 +248,12 @@ pin_configure (platform_samd21g18a_pin_t const *pin)
     if ((pin->number & 1U) == 0U)
     {
         PORT->Group[pin->port_group].PMUX[pmux_index].bit.PMUXE
-            = pin->peripheral_function;
+            = peripheral_function;
     }
     else
     {
         PORT->Group[pin->port_group].PMUX[pmux_index].bit.PMUXO
-            = pin->peripheral_function;
+            =peripheral_function;
     }
 
     return;
@@ -276,8 +278,8 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
 
     master_enable_clock(cfg->master);
 
-    pin_configure(cfg->sda);
-    pin_configure(cfg->scl);
+    pin_configure(cfg->sda, peripheral_function);
+    pin_configure(cfg->scl, peripheral_function;
 
     cfg->master->I2CM.CTRLA.bit.SWRST = 1U;
 

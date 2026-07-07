@@ -1,5 +1,6 @@
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/pin.h"
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stddef.h>
@@ -76,26 +77,28 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     uint8_t  pmux_index;
 
     PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->line < EXTINT_LINE_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->port_group <= 1U);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->pin->number <= 31U);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->port_group
+                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->number
+                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
     // Configure pin to act as EIC input.
-    PORT->Group[cfg->pin->port_group].PINCFG[cfg->pin->number].reg
-        = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
+    PORT->Group[cfg->eic_pin->pin->port_group]
+        .PINCFG[cfg->eic_pin->pin->number]
+        .reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    pmux_index = cfg->pin->number / 2U;
+    pmux_index = cfg->eic_pin->pin->number / 2U;
 
-    if ((cfg->pin->number & 1U) == 0U)
+    if ((cfg->eic_pin->pin->number & 1U) == 0U)
     {
-        PORT->Group[cfg->pin->port_group].PMUX[pmux_index].bit.PMUXE
-            = cfg->pin->peripheral_function;
+        PORT->Group[cfg->eic_pin->pin->port_group].PMUX[pmux_index].bit.PMUXE
+            = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
     }
     else
     {
-        PORT->Group[cfg->pin->port_group].PMUX[pmux_index].bit.PMUXO
-            = cfg->pin->peripheral_function;
+        PORT->Group[cfg->eic_pin->pin->port_group].PMUX[pmux_index].bit.PMUXO
+            = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
     }
 
     // Configure pin sense.
@@ -103,8 +106,8 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 
     eic_poll_sync();
 
-    config_index = cfg->line / 8U;
-    bit_position = (uint8_t)((cfg->line % 8U) * 4U);
+    config_index = cfg->eic_pin->line / 8U;
+    bit_position = (uint8_t)((cfg->eic_pin->line % 8U) * 4U);
 
     mask  = 0xFUL << bit_position;
     value = cfg->sense << bit_position;
@@ -112,7 +115,7 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     EIC->CONFIG[config_index].reg
         = (EIC->CONFIG[config_index].reg & ~mask) | value;
 
-    EIC->INTFLAG.reg = (1UL << cfg->line);
+    EIC->INTFLAG.reg = (1UL << cfg->eic_pin->line);
 
     EIC->CTRL.bit.ENABLE = 1U;
 
