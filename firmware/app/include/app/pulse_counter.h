@@ -7,8 +7,8 @@
 /** @brief Laser pulse counter. */
 typedef struct
 {
-    /** EIC configuration for the comparator or laser trigger input pin. */
-    platform_samd21g18a_eic_cfg_t const *trigger_cfg;
+    /** EIC pin connected to the comparator or laser trigger. */
+    platform_samd21g18a_eic_pin_t const *trigger;
 
     /** The number of pulses detected after the last reset. */
     volatile uint32_t count;
@@ -16,7 +16,7 @@ typedef struct
 
 /** @brief Initialize pulse counter and register interrupt callback. */
 void app_pulse_counter_init(app_pulse_counter_t                 *pulse_counter,
-                            platform_samd21g18a_eic_cfg_t const *trigger_cfg);
+                            platform_samd21g18a_eic_pin_t const *trigger);
 
 /** @brief Reset pulse count. */
 void app_pulse_counter_reset(app_pulse_counter_t *pulse_counter);

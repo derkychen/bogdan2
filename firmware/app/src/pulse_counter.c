@@ -18,15 +18,22 @@ app_pulse_counter_irq_handler (platform_samd21g18a_eic_extint_line_t line,
 
 void
 app_pulse_counter_init (app_pulse_counter_t                 *pulse_counter,
-                        platform_samd21g18a_eic_cfg_t const *trigger_cfg)
+                        platform_samd21g18a_eic_pin_t const *trigger)
 {
-    pulse_counter->trigger_cfg = trigger_cfg;
-    pulse_counter->count       = 0;
+    platform_samd21g18a_eic_cfg_t trigger_cfg;
 
-    platform_samd21g18a_eic_configure(trigger_cfg);
+    pulse_counter->trigger = trigger;
+    pulse_counter->count   = 0;
+
+    trigger_cfg = (platform_samd21g18a_eic_cfg_t) {
+        .eic_pin = trigger,
+        .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
+    };
+
+    platform_samd21g18a_eic_configure(&trigger_cfg);
 
     platform_samd21g18a_eic_register_callback_entry(
-        trigger_cfg->eic_pin->line,
+        trigger_cfg.eic_pin->line,
         app_pulse_counter_irq_handler,
         pulse_counter);
 

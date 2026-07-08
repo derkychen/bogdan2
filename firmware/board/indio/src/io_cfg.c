@@ -37,13 +37,11 @@ static platform_samd21g18a_pin_t const expansion_d1 = {
 };
 #endif
 
-#if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D2/SDA. */
 static platform_samd21g18a_pin_t const expansion_d2 = {
     .port_group = SAMD21G18A_PORT_GROUP_A,
     .number     = 16U,
 };
-#endif
 
 #if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D3/SCL. */
@@ -148,6 +146,11 @@ platform_samd21g18a_digital_pin_t const board_indio_expansion_d4_digital
 
 platform_samd21g18a_digital_pin_t const board_indio_expansion_d5_digital
     = expansion_d5;
+
+platform_samd21g18a_eic_pin_t const board_indio_expansion_d2_eic = {
+    .pin  = &expansion_d2,
+    .line = 0U,
+};
 
 platform_samd21g18a_eic_pin_t const board_indio_expansion_d7_eic = {
     .pin  = &expansion_d7,
