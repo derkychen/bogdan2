@@ -21,7 +21,7 @@ typedef uint8_t drivers_mcp4726_reg_t;
 typedef struct
 {
     /** I2C master who controls the MCP4726. */
-    platform_samd21g18a_i2c_master_t *master;
+    platform_samd21g18a_i2c_master_t master;
 
     /** Address of the MCP4726. */
     platform_samd21g18a_i2c_slave_address_t address;

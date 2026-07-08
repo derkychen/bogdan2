@@ -2,19 +2,37 @@
 #define PLATFORM_SAMD21G18A_I2C_H
 
 #include "platform/samd21g18a/pin.h"
-#include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-// Wrap SERCOM1 macro.
-#define PLATFORM_SAMD21G18A_I2C_MASTER (SERCOM1)
-
-// TODO: Test fast frequency if standard works.
+// TODO: Test fast frequency.
 #define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ (100000U)
 #define PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC    (1000U)
 #define PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_FAST_HZ     (400000U)
 #define PLATFORM_SAMD21G18A_I2C_SCL_RISE_FAST_NSEC        (300U)
+
+/** @brief Enumerate I2C masters, which correspond to SERCOM instances. */
+typedef enum
+{
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM0 = 0U,
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1 = 1U,
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM2 = 2U,
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM3 = 3U,
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM4 = 4U,
+    PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM5 = 5U,
+
+    PLATFORM_SAMD21G18A_I2C_SERCOM_COUNT,
+} platform_samd21g18a_i2c_master_t;
+
+/** @brief Enumerate SERCOM pads. */
+typedef enum
+{
+    PLATFORM_SAMD21G18A_I2C_SERCOM_PAD0 = 0U,
+    PLATFORM_SAMD21G18A_I2C_SERCOM_PAD1 = 1U,
+    PLATFORM_SAMD21G18A_I2C_SERCOM_PAD2 = 2U,
+    PLATFORM_SAMD21G18A_I2C_SERCOM_PAD3 = 3U,
+} platform_samd21g18a_i2c_sercom_pad_t;
 
 /** @brief Status codes for I2C. */
 typedef enum
@@ -25,26 +43,24 @@ typedef enum
     PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT,
 } platform_samd21g18a_i2c_status_t;
 
-/**
- * @brief Type for I2C master that wraps a SERCOM peripheral.
- *
- * NOTE: The only supported SERCOM peripheral is SERCOM1. The API is general
- *       so that if support for other SERCOM peripherals can be implemented
- *       readily.
- */
-typedef Sercom platform_samd21g18a_i2c_master_t;
-
 /** @brief I2C slave address type. */
 typedef uint8_t platform_samd21g18a_i2c_slave_address_t;
 
 /** @brief Type for I2C pins. */
-typedef platform_samd21g18a_pin_t platform_samd21g18a_i2c_pin_t;
+typedef struct
+{
+    /** Pin. */
+    platform_samd21g18a_pin_t const *pin;
+
+    /** SERCOM pad. */
+    platform_samd21g18a_i2c_sercom_pad_t pad;
+} platform_samd21g18a_i2c_pin_t;
 
 /** @brief I2C configuration structure. */
 typedef struct
 {
     /** The I2C master. */
-    platform_samd21g18a_i2c_master_t *master;
+    platform_samd21g18a_i2c_master_t master;
 
     /** SDA I2C pin. */
     platform_samd21g18a_i2c_pin_t const *sda;
@@ -73,17 +89,17 @@ void platform_samd21g18a_i2c_configure(
 
 /** @brief Write bytes to an address. */
 platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_write(
-    platform_samd21g18a_i2c_master_t *master,
-    uint8_t                           address,
-    uint8_t const                    *data,
-    size_t                            data_size);
+    platform_samd21g18a_i2c_master_t master,
+    uint8_t                          address,
+    uint8_t const                   *data,
+    size_t                           data_size);
 
 /** @brief Read bytes from an address. */
 platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_read(
-    platform_samd21g18a_i2c_master_t *master,
-    uint8_t                           address,
-    uint8_t                          *data,
-    size_t                            data_size);
+    platform_samd21g18a_i2c_master_t master,
+    uint8_t                          address,
+    uint8_t                         *data,
+    size_t                           data_size);
 
 /**
  * @brief Write bytes to an address and then read data.
@@ -92,11 +108,11 @@ platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_read(
  * write in order to obtain a reading.
  */
 platform_samd21g18a_i2c_status_t platform_samd21g18a_i2c_write_read(
-    platform_samd21g18a_i2c_master_t *master,
-    uint8_t                           address,
-    uint8_t const                    *write_data,
-    size_t                            write_size,
-    uint8_t                          *read_data,
-    size_t                            read_size);
+    platform_samd21g18a_i2c_master_t master,
+    uint8_t                          address,
+    uint8_t const                   *write_data,
+    size_t                           write_size,
+    uint8_t                         *read_data,
+    size_t                           read_size);
 
 #endif

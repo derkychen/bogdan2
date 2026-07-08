@@ -15,7 +15,7 @@ typedef enum
 typedef struct
 {
     /** I2C master used to control the MCP342x. */
-    platform_samd21g18a_i2c_master_t *master;
+    platform_samd21g18a_i2c_master_t master;
 
     /** Address of the MCP3424. */
     platform_samd21g18a_i2c_slave_address_t address;
