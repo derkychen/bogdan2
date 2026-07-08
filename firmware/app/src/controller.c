@@ -38,7 +38,7 @@ app_controller_init (app_controller_t                          *controller,
     platform_samd21g18a_eic_configure(trigger_out_cfg);
 
     platform_samd21g18a_eic_register_callback_entry(
-        trigger_out_cfg->line,
+        trigger_out_cfg->eic_pin->line,
         app_controllers_trigger_out_irq_handler,
         controller);
 }
