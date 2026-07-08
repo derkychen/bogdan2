@@ -1,36 +1,27 @@
 #ifndef PULSE_COUNTER_H
 #define PULSE_COUNTER_H
 
-#include "pico/types.h"
+#include "platform/samd21g18a/eic.h"
+#include <stdint.h>
 
 /** @brief Laser pulse counter. */
-typedef struct PulseCounter
+typedef struct
 {
-    /** The digital pin that the comparator or laser trigger is connected to. */
-    uint trigger;
+    /** EIC configuration for the comparator or laser trigger input pin. */
+    platform_samd21g18a_eic_cfg_t const *trigger_cfg;
 
     /** The number of pulses detected after the last reset. */
-    volatile int count;
-} PulseCounter;
+    volatile uint32_t count;
+} app_pulse_counter_t;
 
-/** @brief Status codes for initialization. */
-typedef enum PulseCounterInitStatusCode
-{
-    PULSE_COUNTER_INIT_OK = 0,
-    PULSE_COUNTER_ERR_UNSUPPORTED_GPIO,
-} PulseCounterInitStatusCode;
+/** @brief Initialize pulse counter and register interrupt callback. */
+void app_pulse_counter_init(app_pulse_counter_t                 *pulse_counter,
+                            platform_samd21g18a_eic_cfg_t const *trigger_cfg);
 
-/** @brief Initialize an PulseCounter structure. */
-PulseCounterInitStatusCode pulse_counter_init(PulseCounter *pulse_counter,
-                                              uint          trigger);
+/** @brief Reset pulse count. */
+void app_pulse_counter_reset(app_pulse_counter_t *pulse_counter);
 
-/** @brief Initialize IRQ configurations for the pulse counter. */
-void pulse_counter_irq_init(void);
-
-/** @brief Reset the count. */
-void pulse_counter_reset(PulseCounter *pulse_counter);
-
-/** @brief Return the count. */
-int pulse_counter_get(PulseCounter *pulse_counter);
+/** @brief Return the pulse count. */
+uint32_t app_pulse_counter_get(app_pulse_counter_t *pulse_counter);
 
 #endif

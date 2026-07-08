@@ -1,49 +1,46 @@
-#include "pulse_counter.h"
-#include "config.h"
-#include "hardware/gpio.h"
-#include "hardware/irq.h"
-#include "pico/types.h"
-#include <stddef.h>
+#include "app/pulse_counter.h"
 
-static PulseCounter *pulse_counter_for_irq = NULL;
+//static PulseCounter *pulse_counter_for_irq = NULL;
 
-/** @brief Increment counter upon interrupt from a laser pulse. */
-static void pulse_counter_irq_handler(void) {
-  uint32_t events = gpio_get_irq_event_mask(PULSE_TRIGGER_GPIO);
+/** @brief Increment counter upon trigger rising edge from laser/comparator. */
+static void 
+app_pulse_counter_irq_handler (
+  platform_samd21g18a_eic_extint_line_t line, void *context) 
+{
+  app_pulse_counter_t *pulse_counter;
 
-  if (events & GPIO_IRQ_EDGE_RISE) {
-    gpio_acknowledge_irq(PULSE_TRIGGER_GPIO, GPIO_IRQ_EDGE_RISE);
+  (void) line;
 
-    if (pulse_counter_for_irq != NULL) {
-      pulse_counter_for_irq->count++;
-    }
-  }
+  pulse_counter = (app_pulse_counter_t *)context;
+
+  pulse_counter->count++
+  
+  return;
 }
 
-PulseCounterInitStatusCode pulse_counter_init(PulseCounter *pulse_counter,
-                                              uint trigger) {
-  if (trigger != PULSE_TRIGGER_GPIO) {
-    return PULSE_COUNTER_ERR_UNSUPPORTED_GPIO;
-  }
+void
+app_pulse_counter_init (
+  app_pulse_counter_t                 *pulse_counter,
+  platform_samd21g18a_eic_cfg_t const *trigger_cfg)
+{
+  pulse_counter->trigger_cfg = trigger_cfg;
+  pulse_counter->count       = 0;
 
-  pulse_counter->trigger = trigger;
-  pulse_counter->count = 0;
+  platform_samd21g18a_eic_configure(trigger_cfg);
 
-  pulse_counter_for_irq = pulse_counter;
-
-  return PULSE_COUNTER_INIT_OK;
+  platform_samd21g18a_eic_register_callback_entry(
+    trigger_cfg->eic_pin->line,
+    app_pulse_counter_irq_handler,
+    pulse_counter);
 }
 
-void pulse_counter_irq_init(void) {
-  gpio_add_raw_irq_handler(PULSE_TRIGGER_GPIO, pulse_counter_irq_handler);
-  gpio_set_irq_enabled(PULSE_TRIGGER_GPIO, GPIO_IRQ_EDGE_RISE, true);
-  irq_set_enabled(IO_IRQ_BANK0, true);
-}
-
-void pulse_counter_reset(PulseCounter *pulse_counter) {
+void 
+app_pulse_counter_reset (app_pulse_counter_t *pulse_counter) 
+{
   pulse_counter->count = 0;
 }
 
-int pulse_counter_get(PulseCounter *pulse_counter) {
+uint32_t 
+app_pulse_counter_get(app_pulse_counter_t *pulse_counter) {
   return pulse_counter->count;
 }
