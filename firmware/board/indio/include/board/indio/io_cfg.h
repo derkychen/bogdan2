@@ -3,55 +3,35 @@
 
 #include "board/indio/analog_input.h"
 #include "board/indio/analog_output.h"
-#include "platform/samd21g18a/pin.h"
+#include "platform/samd21g18a/digital.h"
+#include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/i2c.h"
+
+// TODO: Test interrupt and digital read capability on necessary pins.
+// NOTE: This module only exposes the handles for pins used in this project.
+/** @brief Handle for the IND.I/O expansion port pin D4 as a digital pin. */
+extern platform_samd21g18a_digital_pin_t const board_indio_expansion_d4_digital;
+
+/** @brief Handle for the IND.I/O expansion port pin D5 as a digital pin. */
+extern platform_samd21g18a_digital_pin_t const board_indio_expansion_d5_digital;
+
+/** @brief Handle for the IND.I/O expansion port pin D7 as a digital pin. */
+extern platform_samd21g18a_eic_pin_t const board_indio_expansion_d7_eic;
+
+/** @brief Handle for the IND.I/O expansion port pin D6 as a digital pin. */
+extern platform_samd21g18a_eic_pin_t const board_indio_expansion_d6_eic;
 
 /**
- * @brief Handle for the IND.I/O expansion port pin D0/RX.
- *
- * WARNING: The current module for MCU digital I/O does not support this pin.
+ * @brief Handle for the SAMD21G18A pin corresponding to the I2C SDA on the
+ *        IND.I/O.
  */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d0;
+extern platform_samd21g18a_i2c_pin_t const board_indio_bus_sda;
 
 /**
- * @brief Handle for the IND.I/O expansion port pin D1/TX.
- *
- * WARNING: The current module for MCU digital I/O does not support this pin.
+ * @brief Handle for the SAMD21G18A pin corresponding to the I2C SCL on the
+ *        IND.I/O.
  */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d1;
-
-/** @brief Handle for the IND.I/O expansion port pin D2/SDA. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d2;
-
-/** @brief Handle for the IND.I/O expansion port pin D3/SCL. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d3;
-
-/** @brief Handle for the IND.I/O expansion port pin D4/A6. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d4;
-
-/** @brief Handle for the IND.I/O expansion port pin D5/PWM. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d5;
-
-/** @brief Handle for the IND.I/O expansion port pin D6/A7. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d6;
-
-/** @brief Handle for the IND.I/O expansion port pin D7. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d7;
-
-/**
- * @brief Handle for the IND.I/O expansion port pin D10/A10.
- *
- * WARNING: The current module for MCU digital I/O does not support this pin.
- */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d10;
-
-/** @brief Handle for the IND.I/O expansion port pin MISO/D14. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d14;
-
-/** @brief Handle for the IND.I/O expansion port pin SCLK/D15. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d15;
-
-/** @brief Handle for the IND.I/O expansion port pin MOSI/D16. */
-extern platform_samd21g18a_pin_t const board_indio_expansion_d16;
+extern platform_samd21g18a_i2c_pin_t const board_indio_bus_scl;
 
 /** @brief Handle for the IND.I/O analog output CH1. */
 extern board_indio_analog_output_channel_t const board_indio_analog_output_ch1;
