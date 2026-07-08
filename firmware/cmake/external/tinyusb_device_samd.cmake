@@ -4,7 +4,6 @@ target_sources(tinyusb_device_samd PRIVATE
   "${EXTERNAL_DIR}/tinyusb/src/tusb.c"
   "${EXTERNAL_DIR}/tinyusb/src/common/tusb_fifo.c"
   "${EXTERNAL_DIR}/tinyusb/src/device/usbd.c"
-  #"${TINYUSB_DIR}/src/device/usbd_control.c"
   "${EXTERNAL_DIR}/tinyusb/src/class/cdc/cdc_device.c"
   "${EXTERNAL_DIR}/tinyusb/src/portable/microchip/samd/dcd_samd.c"
 )
@@ -17,7 +16,7 @@ target_link_libraries(tinyusb_device_samd
   PRIVATE
     mcu::samd21g18a
   PUBLIC
-    config
+    usb
     external::cmsis_atmel_samd21g18a
 )
 

@@ -13,21 +13,26 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Important directories.
 set(APP_DIR "${PROJECT_SOURCE_DIR}/app")
-set(CONFIG_DIR "${PROJECT_SOURCE_DIR}/config")
-set(PLATFORM_SAMD21G18A_DIR "${PROJECT_SOURCE_DIR}/platform/samd21g18a")
-set(EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/external")
+set(BOARD_INDIO_DIR "${PROJECT_SOURCE_DIR}/board/indio")
 set(CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
+set(DRIVERS_DIR "${PROJECT_SOURCE_DIR}/drivers")
+set(EXTERNAL_DIR "${PROJECT_SOURCE_DIR}/external")
+set(PLATFORM_SAMD21G18A_DIR "${PROJECT_SOURCE_DIR}/platform/samd21g18a")
+set(USB_DIR "${PROJECT_SOURCE_DIR}/usb")
 
 # CMake wrappers for all external modules.
-include("${CMAKE_DIR}/mcu/samd21g18a.cmake")
-include("${CMAKE_DIR}/external/cmsis_core.cmake")
 include("${CMAKE_DIR}/external/cmsis_atmel_samd21g18a.cmake")
+include("${CMAKE_DIR}/external/cmsis_core.cmake")
+include("${CMAKE_DIR}/external/jsmn.cmake")
 include("${CMAKE_DIR}/external/tinyusb_device_samd.cmake")
+include("${CMAKE_DIR}/mcu/samd21g18a.cmake")
 
 # Other directories.
 add_subdirectory("${APP_DIR}")
-add_subdirectory("${CONFIG_DIR}")
+add_subdirectory("${BOARD_INDIO_DIR}")
+add_subdirectory("${DRIVERS_DIR}")
 add_subdirectory("${PLATFORM_SAMD21G18A_DIR}")
+add_subdirectory("${USB_DIR}")
 
 # Target.
 set(TARGET_NAME firmware.elf)
@@ -40,11 +45,13 @@ target_sources("${TARGET_NAME}" PRIVATE
 )
 
 target_link_libraries("${TARGET_NAME}" PRIVATE
-  mcu::samd21g18a
-  cmsis_core
-  cmsis_atmel_samd21g18a
-  platform_samd21g18a
   app
+  board_indio
+  cmsis_atmel_samd21g18a
+  cmsis_core
+  drivers
+  mcu::samd21g18a
+  platform_samd21g18a
 )
 
 set(SAMD21G18A_LINKER_SCRIPT_PATH
@@ -67,5 +74,4 @@ add_custom_command(
     firmware.bin
     firmware.hex
     firmware.map
-  COMMENT "Generating firmware.bin and firmware.hex"
 )
