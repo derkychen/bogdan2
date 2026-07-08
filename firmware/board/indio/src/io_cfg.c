@@ -1,8 +1,11 @@
 #include "board/indio/io_cfg.h"
+#include "board/indio/analog_input.h"
+#include "board/indio/analog_output.h"
 #include "drivers/mcp3424.h"
 #include "drivers/mcp4726.h"
-#include "platform/samd21g18a/pin.h"
-#include "sam.h" // IWYU pragma: keep
+#include "platform/samd21g18a/digital.h"
+#include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/i2c.h"
 
 #define SAMD21G18A_PORT_GROUP_A          (0U)
 #define SAMD21G18A_PORT_GROUP_B          (1U)
