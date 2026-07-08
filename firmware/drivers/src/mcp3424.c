@@ -108,8 +108,8 @@ drivers_mcp3424_read (drivers_mcp3424_device_t const *device,
 
     if (resolution == DRIVERS_MCP3424_RESOLUTION_18_BIT)
     {
-        raw = ((int32_t)data[0] << 16U) | ((int32_t)data[1] << 8U)
-              | (int32_t)data[2];
+        raw     = ((int32_t)data[0] << 16U) | ((int32_t)data[1] << 8U)
+                  | (int32_t)data[2];
         *result = sign_extend(raw, 18U);
     }
     else

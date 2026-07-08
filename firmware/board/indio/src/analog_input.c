@@ -6,10 +6,10 @@
 
 #define READ_POLL_INTERVAL_MSEC (1U)
 
-#define READ_TIMEOUT_12_BIT     (10U)
-#define READ_TIMEOUT_14_BIT     (25U)
-#define READ_TIMEOUT_16_BIT     (80U)
-#define READ_TIMEOUT_18_BIT     (300U)
+#define READ_TIMEOUT_12_BIT (10U)
+#define READ_TIMEOUT_14_BIT (25U)
+#define READ_TIMEOUT_16_BIT (80U)
+#define READ_TIMEOUT_18_BIT (300U)
 
 /** @brief Get the timeout limit in milliseconds for a certain resolution. */
 static uint32_t
@@ -65,10 +65,9 @@ board_indio_analog_input_read_raw (
             return BOARD_INDIO_ANALOG_INPUT_STATUS_ERR;
         }
 
-        platform_samd21g18a_time_sleep_msec(
-            BOARD_INDIO_ANALOG_INPUT_READ_POLL_INTERVAL_MSEC);
+        platform_samd21g18a_time_sleep_msec(READ_POLL_INTERVAL_MSEC);
 
-        elapsed_msec += BOARD_INDIO_ANALOG_INPUT_READ_POLL_INTERVAL_MSEC;
+        elapsed_msec += READ_POLL_INTERVAL_MSEC;
     }
 
     return BOARD_INDIO_ANALOG_INPUT_STATUS_ERR;
