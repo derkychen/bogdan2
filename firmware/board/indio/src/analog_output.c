@@ -21,7 +21,8 @@ board_indio_analog_output_write (
     board_indio_analog_output_channel_t const *channel, uint16_t value)
 {
     PLATFORM_SAMD21G18A_ASSERT(channel != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+    PLATFORM_SAMD21G18A_ASSERT(value >= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE);
+    PLATFORM_SAMD21G18A_ASSERT(value <= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE);
 
     return mcp4726_status_to_analog_output_status(
         drivers_mcp4726_write_output(channel, value));

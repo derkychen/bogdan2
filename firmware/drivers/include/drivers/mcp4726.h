@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define DRIVERS_MCP4726_MIN_VALUE (0U)
 #define DRIVERS_MCP4726_MAX_VALUE (4095U)
 
 /** @brief Status codes for MCP4726. */
