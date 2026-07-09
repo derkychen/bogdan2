@@ -1,7 +1,9 @@
 #include "app/path.h"
+#include "platform/samd21g18a/assert.h"
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 /**
  * @brief Get the coordinate of the path anchor on an axis.
@@ -28,11 +30,11 @@ get_anchor_coord (const app_axis_t *axis)
 
 /** @brief Append a point to a path. */
 static bool
-append (Position *path,
-        size_t    path_size_capacity,
-        size_t   *path_size_current,
-        int       x,
-        int       y)
+append (app_path_position_t *path,
+        size_t               path_size_capacity,
+        size_t              *path_size_current,
+        int                  x,
+        int                  y)
 {
     if (*path_size_current >= path_size_capacity)
     {
@@ -53,13 +55,13 @@ append (Position *path,
  * slice includes elements at both indices @p low and @p high.
  */
 static void
-reverse_path (Position *path, size_t low, size_t high)
+reverse_path (app_path_position_t *path, size_t low, size_t high)
 {
     while (low < high)
     {
-        Position tmp = path[low];
-        path[low]    = path[high];
-        path[high]   = tmp;
+        app_path_position_t tmp = path[low];
+        path[low]               = path[high];
+        path[high]              = tmp;
 
         low++;
         high--;
@@ -72,7 +74,10 @@ reverse_path (Position *path, size_t low, size_t high)
  * Since the path is cyclic, its rotation preserves the traversal.
  */
 static bool
-rotate_to_anchor (Position *path, size_t path_size, int anchor_x, int anchor_y)
+rotate_to_anchor (app_path_position_t *path,
+                  size_t               path_size,
+                  int                  anchor_x,
+                  int                  anchor_y)
 {
     // Search for the index of the anchor point.
     size_t anchor_index = 0;
@@ -121,13 +126,13 @@ choose_raster_direction (size_t                      x_num_points,
 {
     if ((x_num_points & 1u) == (y_num_points & 1u))
     {
-        return (prev_raster_direction == RASTER_DIRECTION_HORIZONTAL)
-                   ? RASTER_DIRECTION_VERTICAL
-                   : RASTER_DIRECTION_HORIZONTAL;
+        return (prev_raster_direction == APP_PATH_RASTER_DIRECTION_HORIZONTAL)
+                   ? APP_PATH_RASTER_DIRECTION_VERTICAL
+                   : APP_PATH_RASTER_DIRECTION_HORIZONTAL;
     }
 
-    return ((x_num_points & 1u) == 0u) ? RASTER_DIRECTION_VERTICAL
-                                       : RASTER_DIRECTION_HORIZONTAL;
+    return ((x_num_points & 1u) == 0u) ? APP_PATH_RASTER_DIRECTION_VERTICAL
+                                       : APP_PATH_RASTER_DIRECTION_HORIZONTAL;
 }
 
 /**
@@ -143,14 +148,14 @@ choose_raster_direction (size_t                      x_num_points,
  * modified rasters to utilize the same algorithm.
  */
 static bool
-append_local (Position         *path,
-              size_t            path_size_capacity,
-              size_t           *path_size_current,
-              const app_axis_t *x,
-              const app_axis_t *y,
-              int               row,
-              int               col,
-              bool              transposed)
+append_local (app_path_position_t *path,
+              size_t               path_size_capacity,
+              size_t              *path_size_current,
+              const app_axis_t    *x,
+              const app_axis_t    *y,
+              int                  row,
+              int                  col,
+              bool                 transposed)
 {
     if (transposed)
     {
@@ -175,14 +180,14 @@ append_local (Position         *path,
  * raster is impossible in this case.
  */
 static bool
-append_line (Position         *path,
-             size_t            path_size_capacity,
-             size_t           *path_size_current,
-             const app_axis_t *x,
-             const app_axis_t *y,
-             int               num_points,
-             int               anchor,
-             bool              transposed)
+append_line (app_path_position_t *path,
+             size_t               path_size_capacity,
+             size_t              *path_size_current,
+             const app_axis_t    *x,
+             const app_axis_t    *y,
+             int                  num_points,
+             int                  anchor,
+             bool                 transposed)
 {
     int col;
 
@@ -288,14 +293,14 @@ append_line (Position         *path,
  * @p rows must be even.
  */
 static bool
-append_even_unrotated_path (Position         *path,
-                            size_t            path_size_capacity,
-                            size_t           *path_size_current,
-                            const app_axis_t *x,
-                            const app_axis_t *y,
-                            int               rows,
-                            int               cols,
-                            bool              transposed)
+append_even_unrotated_path (app_path_position_t *path,
+                            size_t               path_size_capacity,
+                            size_t              *path_size_current,
+                            const app_axis_t    *x,
+                            const app_axis_t    *y,
+                            int                  rows,
+                            int                  cols,
+                            bool                 transposed)
 {
     int row;
     int col;
@@ -385,14 +390,14 @@ append_even_unrotated_path (Position         *path,
  * @p rows and @p cols must both be odd.
  */
 static bool
-append_odd_unrotated_path (Position         *path,
-                           size_t            path_size_capacity,
-                           size_t           *path_size_current,
-                           const app_axis_t *x,
-                           const app_axis_t *y,
-                           int               rows,
-                           int               cols,
-                           bool              transposed)
+append_odd_unrotated_path (app_path_position_t *path,
+                           size_t               path_size_capacity,
+                           size_t              *path_size_current,
+                           const app_axis_t    *x,
+                           const app_axis_t    *y,
+                           int                  rows,
+                           int                  cols,
+                           bool                 transposed)
 {
     int row;
     int col;
@@ -570,7 +575,7 @@ append_odd_unrotated_path (Position         *path,
         path, path_size_capacity, path_size_current, x, y, 0, 1, transposed);
 }
 
-Position *
+app_path_position_t *
 app_path_modified_raster (const app_axis_t            *x,
                           const app_axis_t            *y,
                           app_path_raster_direction_t *prev_raster_direction,
@@ -587,13 +592,12 @@ app_path_modified_raster (const app_axis_t            *x,
     int                         anchor_y;
     bool                        transposed;
     app_path_raster_direction_t direction;
-    Position                   *path;
+    app_path_position_t        *path;
 
-    if (path_size == NULL || x == NULL || y == NULL
-        || prev_raster_direction == NULL)
-    {
-        return NULL;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(x != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(prev_raster_direction != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
 
     *path_size = 0;
 
@@ -681,7 +685,7 @@ app_path_modified_raster (const app_axis_t            *x,
         x_num_points, y_num_points, *prev_raster_direction);
     *prev_raster_direction = direction;
 
-    if (direction == RASTER_DIRECTION_HORIZONTAL)
+    if (direction == APP_PATH_RASTER_DIRECTION_HORIZONTAL)
     {
         rows       = (int)y_num_points;
         cols       = (int)x_num_points;

@@ -5,14 +5,14 @@
 #include <stddef.h>
 
 /** @brief Define a point with x and y coordinates. */
-typedef struct Position
+typedef struct
 {
     /** The x-coordinate in units. */
     int x;
 
     /** The y-coordinate in units. */
     int y;
-} Position;
+} app_path_position_t;
 
 /**
  * @brief For storage of the direction of the raster.
@@ -20,13 +20,13 @@ typedef struct Position
  * NOTE: This is important in the actual geometry of the path as well as the
  * balancing of consecutive travel between the two stages.
  */
-typedef enum app_path_raster_direction_t
+typedef enum
 {
     /** Raster direction parallel to the x-axis (like the letter Z). */
-    RASTER_DIRECTION_HORIZONTAL = 0,
+    APP_PATH_RASTER_DIRECTION_HORIZONTAL = 0,
 
     /** Raster direction parallel to the y-axis (like the letter N). */
-    RASTER_DIRECTION_VERTICAL = 1,
+    APP_PATH_RASTER_DIRECTION_VERTICAL = 1,
 } app_path_raster_direction_t;
 
 /**
@@ -43,7 +43,7 @@ typedef enum app_path_raster_direction_t
  * movement of the stages for each grid and balance consecutive travel between
  * the stages.
  */
-Position *app_path_modified_raster(
+app_path_position_t *app_path_modified_raster(
     const app_axis_t            *x,
     const app_axis_t            *y,
     app_path_raster_direction_t *prev_raster_direction,
