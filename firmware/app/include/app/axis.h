@@ -5,6 +5,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/** @brief Axis status codes. */
+typedef enum
+{
+    APP_AXIS_STATUS_INIT_OK = 0,
+    APP_AXIS_STATUS_INIT_BOUND_OUTSIDE_RANGE,
+    APP_AXIS_STATUS_INIT_MIN_GREATER_THAN_MAX,
+    APP_AXIS_STATUS_INIT_UNIT_SMALLER_THAN_TOLERANCE,
+} app_axis_status_t;
+
 /** @brief Interface between coordinate system and controller. */
 typedef struct
 {
@@ -15,10 +24,10 @@ typedef struct
     int max;
 
     /** Length of each unit on the axis in nanometres */
-    int unit_nm;
+    uint32_t unit_nm;
 
-    /** Analog reading from the where the stage was calibrated to initially. */
-    uint16_t origin_analog_val;
+    /** Position in nanometres the stage was calibrated to initially. */
+    int origin_position_nm;
 
     /** State variable for current coordinate on the axis in units. */
     int current;
@@ -31,15 +40,15 @@ typedef struct
 } app_axis_t;
 
 /** @brief Initialize an axis structure. */
-void app_axis_init(app_axis_t       *axis,
-                   int               min,
-                   int               max,
-                   int               unit_nm,
-                   uint16_t          origin_analog_val,
-                   app_controller_t *controller);
+app_axis_status_t app_axis_init(app_axis_t       *axis,
+                                int               min,
+                                int               max,
+                                uint32_t          unit_nm,
+                                int               origin_position_nm,
+                                app_controller_t *controller);
 
 /** @brief Number of points on the axis. */
-size_t app_axis_num_points(const app_axis_t *axis);
+size_t app_axis_num_points(app_axis_t const *axis);
 
 /**
  * @brief Set the target of the axis.
@@ -53,7 +62,7 @@ void app_axis_set_target(app_axis_t *axis, int target);
 void app_axis_start_move(app_axis_t *axis);
 
 /** @brief Return whether the axis is moving or not */
-bool app_axis_is_moving(app_axis_t *axis);
+bool app_axis_stage_moving(app_axis_t *axis);
 
 /** @brief Update state variables when the stage is at its destination. */
 void app_axis_move_end(app_axis_t *axis);
