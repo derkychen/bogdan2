@@ -12,10 +12,11 @@
 #include <stdlib.h>
 
 // TODO: Tighten delays after entire pipeline is tested.
-#define USB_CONNECTION_POLL_INTERVAL_USEC (100U)
-#define TARGET_SET_DEBOUNCE_TIME_USEC     (100U)
-#define MAIN_LOOP_DELAY_USEC              (100U)
-#define TIGHT_LOOP_DELAY_USEC             (100U)
+#define USB_CONNECTION_POLL_INTERVAL_USEC        (100U)
+#define APP_SERIAL_CONNECTION_POLL_INTERVAL_USEC (100U)
+#define TARGET_SET_DEBOUNCE_TIME_USEC            (100U)
+#define MAIN_LOOP_DELAY_USEC                     (100U)
+#define TIGHT_LOOP_DELAY_USEC                    (100U)
 
 /** @brief Initialize important functionality. */
 static void
@@ -55,6 +56,12 @@ main (void)
         platform_samd21g18a_time_sleep_msec(USB_CONNECTION_POLL_INTERVAL_USEC);
     }
 
+    while (!app_serial_connected())
+    {
+        platform_samd21g18a_time_sleep_msec(
+            APP_SERIAL_CONNECTION_POLL_INTERVAL_USEC);
+    }
+
     app_serial_write_line("{\"ok\":true,\"msg\":\"waiting_for_instruction\"}");
 
     // These objects persist across profiles.
@@ -84,9 +91,11 @@ main (void)
 
     for (;;)
     {
-        if (app_serial_read_line(message, sizeof(message)))
+        if (app_serial_read_line(message, sizeof(message))
+            == APP_SERIAL_STATUS_OK_LINE_RECEIVED)
         {
-            if (app_instruction_parse_json(message, &instruction))
+            if (app_instruction_parse_json(&instruction, message)
+                == APP_INSTRUCTION_STATUS_OK_PARSED)
             {
                 app_axis_t x;
                 app_axis_t y;
@@ -98,14 +107,14 @@ main (void)
                               instruction.x_min,
                               instruction.x_max,
                               instruction.x_unit_nm,
-                              controller_read_analog_out(&x_controller),
+                              instruction.x_origin_nm,
                               &x_controller);
 
                 app_axis_init(&y,
                               instruction.y_min,
                               instruction.y_max,
                               instruction.y_unit_nm,
-                              controller_read_analog_out(&y_controller),
+                              instruction.y_origin_nm,
                               &y_controller);
 
                 path = app_path_modified_raster(
@@ -125,7 +134,8 @@ main (void)
                     app_axis_start_move(&x);
                     app_axis_start_move(&y);
 
-                    while (app_axis_is_moving(&x) || app_axis_is_moving(&y))
+                    while (app_axis_stage_moving(&x)
+                           || app_axis_stage_moving(&y))
                     {
                         task();
                     }
@@ -148,6 +158,11 @@ main (void)
 
                 free(path);
                 path = NULL;
+            }
+            else
+            {
+                app_serial_write_line(
+                    "{\"ok\":false,\"msg\":\"instruction_parse_failed\"}");
             }
         }
 
