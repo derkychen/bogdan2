@@ -49,7 +49,7 @@ app_serial_init (void)
 }
 
 bool
-app_serial_is_connected (void)
+app_serial_connected (void)
 {
     return tud_cdc_connected();
 }
