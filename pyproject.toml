@@ -12,6 +12,7 @@ dependencies = [
   "matplotlib",
   "numpy",
   "picosdk",
+  "pyserial",
 ]
 
 [tool.ruff]
