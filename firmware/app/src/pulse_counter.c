@@ -1,4 +1,6 @@
 #include "app/pulse_counter.h"
+#include "platform/samd21g18a/assert.h"
+#include <stddef.h>
 
 /** @brief Increment counter upon trigger rising edge from laser/comparator. */
 static void
@@ -6,6 +8,8 @@ app_pulse_counter_irq_handler (platform_samd21g18a_eic_extint_line_t line,
                                void                                 *context)
 {
     app_pulse_counter_t *pulse_counter;
+
+    PLATFORM_SAMD21G18A_ASSERT(context != NULL);
 
     (void)line;
 
@@ -21,6 +25,9 @@ app_pulse_counter_init (app_pulse_counter_t                 *pulse_counter,
                         platform_samd21g18a_eic_pin_t const *trigger)
 {
     platform_samd21g18a_eic_cfg_t trigger_cfg;
+
+    PLATFORM_SAMD21G18A_ASSERT(pulse_counter != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(trigger != NULL);
 
     pulse_counter->trigger = trigger;
     pulse_counter->count   = 0;
@@ -43,6 +50,8 @@ app_pulse_counter_init (app_pulse_counter_t                 *pulse_counter,
 void
 app_pulse_counter_reset (app_pulse_counter_t *pulse_counter)
 {
+    PLATFORM_SAMD21G18A_ASSERT(pulse_counter != NULL);
+
     pulse_counter->count = 0;
 
     return;
@@ -51,5 +60,7 @@ app_pulse_counter_reset (app_pulse_counter_t *pulse_counter)
 uint32_t
 app_pulse_counter_get (app_pulse_counter_t *pulse_counter)
 {
+    PLATFORM_SAMD21G18A_ASSERT(pulse_counter != NULL);
+
     return pulse_counter->count;
 }

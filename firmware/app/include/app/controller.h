@@ -76,6 +76,6 @@ void app_controller_write_analog_in(app_controller_t const *controller,
  * @brief Read the value corresponding to the stage's position from the
  *        controller Analog OUT.
  */
-uint16_t app_controller_read_analog_out(app_controller_t const *controller);
+int32_t app_controller_read_analog_out(app_controller_t const *controller);
 
 #endif
