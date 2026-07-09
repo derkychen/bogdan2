@@ -1,48 +1,61 @@
-#ifndef INSTRUCTION_H
-#define INSTRUCTION_H
+#ifndef APP_INSTRUCTION_H
+#define APP_INSTRUCTION_H
 
 #include <stdbool.h>
+#include <stdint.h>
+
+/** @brief Instruction status codes. */
+typedef enum
+{
+    APP_INSTRUCTION_STATUS_OK_PARSED = 0,
+    APP_INSTRUCTION_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
+    APP_INSTRUCTION_STATUS_ERR_JSON_PARSE,
+} app_instruction_status_t;
 
 /**
- * @brief Pico-specific instructions received from the computer.
+ * @brief Microcontroller-specific instructions received from the host.
  *
  * This structure defines the grid to profile as well as some parameters
- * relevant to waveform capture. Note that this structure only contains the
- * instructions relevant to the Pico, and is not the full set of instructions
- * given to `bogdan2.sh`.
+ * relevant to waveform capture.
+ *
+ * NOTE: This structure only contains the instructions relevant to the
+ *       microcontroller. It is not necessarily the full set of instructions.
  */
-typedef struct {
-  /** Minimum coordinate on the x-axis in units. */
-  int x_min;
+typedef struct
+{
+    /** Minimum coordinate on the x-axis in units. */
+    int x_min;
 
-  /** Maximum coordinate on the x-axis in units. */
-  int x_max;
+    /** Maximum coordinate on the x-axis in units. */
+    int x_max;
 
-  /** The length of each unit on the x-axis in nanometres. */
-  int x_unit_nm;
+    /** The length of each unit on the x-axis in nanometres. */
+    uint32_t x_unit_nm;
 
-  /** Minimum coordinate on the x-axis in units. */
-  int y_min;
+    /** Position of the origin of x-axis after calibration in nanometres. */
+    int x_origin_nm;
 
-  /** Maximum coordinate on the x-axis in units. */
-  int y_max;
+    /** Minimum coordinate on the x-axis in units. */
+    int y_min;
 
-  /** The length of each unit on the x-axis in nanometres. */
-  int y_unit_nm;
+    /** Maximum coordinate on the x-axis in units. */
+    int y_max;
 
-  /** The number of laser pulses that should be captured at each point.*/
-  int num_pulses;
+    /** The length of each unit on the x-axis in nanometres. */
+    uint32_t y_unit_nm;
 
-  /** The delay after the triggering of the PicoScope, in microseconds. */
-  int posttrigger_time_us;
-} Instruction;
+    /** Position of the origin of y-axis after calibration in nanometres. */
+    int y_origin_nm;
 
-/** @brief Initialise an instruction. */
-void instruction_init(Instruction *inst, int x_min_unit, int x_max_unit,
-                      int x_unit_nm, int y_min_unit, int y_max_unit,
-                      int y_unit_nm, int num_pulses, int posttrigger_time_us);
+    /** The number of laser pulses that should be captured at each point.*/
+    uint32_t num_pulses;
+
+    /** The delay after the triggering of the PicoScope, in microseconds. */
+    uint32_t posttrigger_time_us;
+} app_instruction_t;
 
 /** @brief Parse the JSON instruction sent through serial. */
-bool instruction_parse_json(const char *json, Instruction *inst);
+app_instruction_status_t app_instruction_parse_json(app_instruction_t *inst,
+                                                    char const        *json);
 
 #endif
