@@ -10,11 +10,11 @@ app_axis_init (app_axis_t       *axis,
                int               min,
                int               max,
                uint32_t          unit_nm,
-               int               origin_position_nm,
+               int               origin_nm,
                app_controller_t *controller)
 {
-    int min_position_nm;
-    int max_position_nm;
+    int min_nm;
+    int max_nm;
 
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
@@ -29,24 +29,22 @@ app_axis_init (app_axis_t       *axis,
         return APP_AXIS_STATUS_INIT_UNIT_SMALLER_THAN_TOLERANCE;
     }
 
-    min_position_nm = origin_position_nm + (min * (int)unit_nm);
-    max_position_nm = origin_position_nm + (max * (int)unit_nm);
+    min_nm = origin_nm + (min * (int)unit_nm);
+    max_nm = origin_nm + (max * (int)unit_nm);
 
-    if (min_position_nm <= STAGE_RANGE_MIN_NM
-        || min_position_nm >= STAGE_RANGE_MAX_NM
-        || max_position_nm <= STAGE_RANGE_MIN_NM
-        || max_position_nm >= STAGE_RANGE_MAX_NM)
+    if (min_nm <= STAGE_RANGE_MIN_NM || min_nm >= STAGE_RANGE_MAX_NM
+        || max_nm <= STAGE_RANGE_MIN_NM || max_nm >= STAGE_RANGE_MAX_NM)
     {
         return APP_AXIS_STATUS_INIT_BOUND_OUTSIDE_RANGE;
     }
 
-    axis->min                = min;
-    axis->max                = max;
-    axis->unit_nm            = unit_nm;
-    axis->origin_position_nm = origin_position_nm;
-    axis->current            = 0;
-    axis->target             = axis->current;
-    axis->controller         = controller;
+    axis->min        = min;
+    axis->max        = max;
+    axis->unit_nm    = unit_nm;
+    axis->origin_nm  = origin_nm;
+    axis->current    = 0;
+    axis->target     = axis->current;
+    axis->controller = controller;
 
     return APP_AXIS_STATUS_INIT_OK;
 }
@@ -63,7 +61,7 @@ void
 app_axis_set_target (app_axis_t *axis, int target)
 {
     uint16_t value;
-    int      target_position_nm;
+    int      target_nm;
 
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(target >= axis->min && target <= axis->max);
@@ -75,11 +73,10 @@ app_axis_set_target (app_axis_t *axis, int target)
         return;
     }
 
-    target_position_nm = target * (int)axis->unit_nm + axis->origin_position_nm;
+    target_nm = target * (int)axis->unit_nm + axis->origin_nm;
 
     // Calculate the analog value of the coordinate.
-    value = (uint16_t)(((uint64_t)((uint32_t)(target_position_nm
-                                              - STAGE_RANGE_MIN_NM))
+    value = (uint16_t)(((uint64_t)((uint32_t)(target_nm - STAGE_RANGE_MIN_NM))
                         * (BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE
                            - BOARD_INDIO_ANALOG_OUTPUT_MIN_VALUE))
                            / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM)

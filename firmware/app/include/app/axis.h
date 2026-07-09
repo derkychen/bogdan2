@@ -27,7 +27,7 @@ typedef struct
     uint32_t unit_nm;
 
     /** Position in nanometres the stage was calibrated to initially. */
-    int origin_position_nm;
+    int origin_nm;
 
     /** State variable for current coordinate on the axis in units. */
     int current;
@@ -44,7 +44,7 @@ app_axis_status_t app_axis_init(app_axis_t       *axis,
                                 int               min,
                                 int               max,
                                 uint32_t          unit_nm,
-                                int               origin_position_nm,
+                                int               origin_nm,
                                 app_controller_t *controller);
 
 /** @brief Number of points on the axis. */
