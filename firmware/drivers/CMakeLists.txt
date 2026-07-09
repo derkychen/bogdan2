@@ -1,7 +1,6 @@
 add_library(drivers OBJECT)
 
 target_sources(drivers PRIVATE
-  "${CMAKE_CURRENT_LIST_DIR}/src/mcp3424.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/mcp4726.c"
 )
 

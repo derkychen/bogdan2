@@ -1,7 +1,5 @@
 #include "board/indio/io_cfg.h"
-#include "board/indio/analog_input.h"
 #include "board/indio/analog_output.h"
-#include "drivers/mcp3424.h"
 #include "drivers/mcp4726.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
@@ -135,12 +133,6 @@ static drivers_mcp4726_device_t const analog_output_mcp4726_ch2 = {
     .address = BOARD_INDIO_ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
 };
 
-/** @brief Internal MCP3424 that controls all four channels. */
-static drivers_mcp3424_device_t const analog_input_mcp3424 = {
-    .master  = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-    .address = BOARD_INDIO_ANALOG_INPUT_MCP3424_ADDRESS,
-};
-
 platform_samd21g18a_digital_pin_t const board_indio_expansion_d4_digital
     = expansion_d4;
 
@@ -177,31 +169,3 @@ board_indio_analog_output_channel_t const board_indio_analog_output_ch1
 
 board_indio_analog_output_channel_t const board_indio_analog_output_ch2
     = analog_output_mcp4726_ch2;
-
-board_indio_analog_input_channel_t const board_indio_analog_input_ch1 = {
-    .device     = &analog_input_mcp3424,
-    .channel    = DRIVERS_MCP3424_CHANNEL_1,
-    .resolution = DRIVERS_MCP3424_RESOLUTION_14_BIT,
-    .gain       = DRIVERS_MCP3424_GAIN_1X,
-};
-
-board_indio_analog_input_channel_t const board_indio_analog_input_ch2 = {
-    .device     = &analog_input_mcp3424,
-    .channel    = DRIVERS_MCP3424_CHANNEL_2,
-    .resolution = DRIVERS_MCP3424_RESOLUTION_14_BIT,
-    .gain       = DRIVERS_MCP3424_GAIN_1X,
-};
-
-board_indio_analog_input_channel_t const board_indio_analog_input_ch3 = {
-    .device     = &analog_input_mcp3424,
-    .channel    = DRIVERS_MCP3424_CHANNEL_3,
-    .resolution = DRIVERS_MCP3424_RESOLUTION_14_BIT,
-    .gain       = DRIVERS_MCP3424_GAIN_1X,
-};
-
-board_indio_analog_input_channel_t const board_indio_analog_input_ch4 = {
-    .device     = &analog_input_mcp3424,
-    .channel    = DRIVERS_MCP3424_CHANNEL_4,
-    .resolution = DRIVERS_MCP3424_RESOLUTION_14_BIT,
-    .gain       = DRIVERS_MCP3424_GAIN_1X,
-};

@@ -1,5 +1,4 @@
 #include "app/controller.h"
-#include "board/indio/analog_input.h"
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/digital.h"
@@ -29,22 +28,19 @@ app_controllers_trigger_out_irq_handler (
 void
 app_controller_init (app_controller_t                          *controller,
                      platform_samd21g18a_pin_t const           *trigger_in,
-                     board_indio_analog_output_channel_t const *analog_in,
                      platform_samd21g18a_eic_pin_t const       *trigger_out,
-                     board_indio_analog_input_channel_t const  *analog_out)
+                     board_indio_analog_output_channel_t const *analog_in)
 {
     platform_samd21g18a_eic_cfg_t trigger_out_cfg;
 
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(trigger_in != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(analog_in != NULL);
     PLATFORM_SAMD21G18A_ASSERT(trigger_out != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(analog_out != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(analog_in != NULL);
 
     controller->trigger_in   = trigger_in;
-    controller->analog_in    = analog_in;
     controller->trigger_out  = trigger_out;
-    controller->analog_out   = analog_out;
+    controller->analog_in    = analog_in;
     controller->stage_moving = false;
 
     trigger_out_cfg = (platform_samd21g18a_eic_cfg_t) {
@@ -77,17 +73,4 @@ app_controller_write_analog_in (app_controller_t const *controller,
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
 
     (void)board_indio_analog_output_write(controller->analog_in, value);
-}
-
-int32_t
-app_controller_read_analog_out (app_controller_t const *controller)
-{
-    int32_t result;
-
-    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
-
-    (void)board_indio_analog_input_read(controller->analog_out, &result);
-
-    // WARNING: This assumes the default resolution of 14 bits.
-    return result;
 }

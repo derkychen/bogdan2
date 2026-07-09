@@ -8,7 +8,6 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "board/indio/analog_input.h"
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/pin.h"
@@ -27,9 +26,6 @@ typedef struct
     /** Interrupt pin connected to the controller Trigger OUT. */
     platform_samd21g18a_eic_pin_t const *trigger_out;
 
-    /** Data on the analog output connected to the controller Analog OUT. */
-    board_indio_analog_input_channel_t const *analog_out;
-
     /** State variable for whether the stage is moving. */
     volatile bool stage_moving;
 } app_controller_t;
@@ -37,9 +33,8 @@ typedef struct
 /** @brief Initialize a controller structure. */
 void app_controller_init(app_controller_t                          *controller,
                          platform_samd21g18a_pin_t const           *trigger_in,
-                         board_indio_analog_output_channel_t const *analog_in,
                          platform_samd21g18a_eic_pin_t const       *trigger_out,
-                         board_indio_analog_input_channel_t const  *analog_out);
+                         board_indio_analog_output_channel_t const *analog_in);
 
 /**
  * @brief Set the state of the stage (i.e. moving or not).
@@ -71,11 +66,5 @@ void app_controller_pulse_trigger_in(app_controller_t const *controller);
 /** @brief Set the target of the stage through the controller Analog IN. */
 void app_controller_write_analog_in(app_controller_t const *controller,
                                     uint16_t                dac_value);
-
-/**
- * @brief Read the value corresponding to the stage's position from the
- *        controller Analog OUT.
- */
-int32_t app_controller_read_analog_out(app_controller_t const *controller);
 
 #endif

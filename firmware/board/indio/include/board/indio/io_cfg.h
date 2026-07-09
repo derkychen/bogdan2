@@ -1,7 +1,6 @@
 #ifndef BOARD_INDIO_IO_CFG_H
 #define BOARD_INDIO_IO_CFG_H
 
-#include "board/indio/analog_input.h"
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
@@ -41,17 +40,5 @@ extern board_indio_analog_output_channel_t const board_indio_analog_output_ch1;
 
 /** @brief Handle for the IND.I/O analog output CH2. */
 extern board_indio_analog_output_channel_t const board_indio_analog_output_ch2;
-
-/** @brief Handle for the IND.I/O analog input CH1. */
-extern board_indio_analog_input_channel_t const board_indio_analog_input_ch1;
-
-/** @brief Handle for the IND.I/O analog input CH2. */
-extern board_indio_analog_input_channel_t const board_indio_analog_input_ch2;
-
-/** @brief Handle for the IND.I/O analog input CH3. */
-extern board_indio_analog_input_channel_t const board_indio_analog_input_ch3;
-
-/** @brief Handle for the IND.I/O analog input CH4. */
-extern board_indio_analog_input_channel_t const board_indio_analog_input_ch4;
 
 #endif
