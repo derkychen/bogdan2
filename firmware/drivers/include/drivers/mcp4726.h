@@ -5,14 +5,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DRIVERS_MCP4726_MIN_VALUE (0U)
 #define DRIVERS_MCP4726_MAX_VALUE (4095U)
 
 /** @brief Status codes for MCP4726. */
 typedef enum
 {
     DRIVERS_MCP4726_STATUS_OK = 0,
-    DRIVERS_MCP4726_STATUS_I2C_ERR,
+    DRIVERS_MCP4726_STATUS_ERR,
 } drivers_mcp4726_status_t;
 
 /** @brief MCP4726 register address type. */
@@ -33,7 +32,7 @@ drivers_mcp4726_status_t drivers_mcp4726_write_output(
     drivers_mcp4726_device_t const *device, uint16_t value);
 
 /**
- * @brief Write a 12-bit digital value to the MCP4726 device.
+ * @brief Write a 12-bit digital value to the MCP4726 device EEPROM.
  *
  * This function will likely not be used. The purpose of EEPROM is to store the
  * output even when the board is powered off. We have no use case for this.

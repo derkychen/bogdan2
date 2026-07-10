@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define REG_DAC        (0x40U)
-#define REG_DAC_EEPROM (0x60U)
+#define REG_DAC    (0x40U)
+#define REG_DAC_EE (0x60U)
 
 /** @brief Convert an I2C status code to a MCP4726 status code. */
 static drivers_mcp4726_status_t
@@ -14,11 +14,11 @@ i2c_status_to_mcp4726_status (platform_samd21g18a_i2c_status_t status)
     {
         case PLATFORM_SAMD21G18A_I2C_STATUS_OK:
             return DRIVERS_MCP4726_STATUS_OK;
-        case PLATFORM_SAMD21G18A_I2C_STATUS_NACK:
-        case PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT:
-        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR:
+        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS:
+        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_NACK:
+        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT:
         default:
-            return DRIVERS_MCP4726_STATUS_I2C_ERR;
+            return DRIVERS_MCP4726_STATUS_ERR;
     }
 }
 
@@ -45,6 +45,8 @@ drivers_mcp4726_status_t
 drivers_mcp4726_write_output (drivers_mcp4726_device_t const *device,
                               uint16_t                        value)
 {
+    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+
     return mcp4726_write(device, REG_DAC, value);
 }
 
@@ -52,5 +54,7 @@ drivers_mcp4726_status_t
 drivers_mcp4726_write_output_ee (drivers_mcp4726_device_t const *device,
                                  uint16_t                        value)
 {
-    return mcp4726_write(device, REG_DAC_EEPROM, value);
+    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+
+    return mcp4726_write(device, REG_DAC_EE, value);
 }

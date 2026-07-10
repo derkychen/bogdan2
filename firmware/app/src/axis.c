@@ -77,10 +77,8 @@ app_axis_set_target (app_axis_t *axis, int target)
 
     // Calculate the analog value of the coordinate.
     value = (uint16_t)(((uint64_t)((uint32_t)(target_nm - STAGE_RANGE_MIN_NM))
-                        * (BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE
-                           - BOARD_INDIO_ANALOG_OUTPUT_MIN_VALUE))
-                           / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM)
-                       + BOARD_INDIO_ANALOG_OUTPUT_MIN_VALUE);
+                        * BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE)
+                       / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
 
     app_controller_write_analog_in(axis->controller, value);
 }

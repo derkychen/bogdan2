@@ -215,12 +215,12 @@ sercom_poll_master_ready (Sercom *sercom)
     {
         if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0U)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR;
+            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS;
         }
 
         if (timeout == 0U)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT;
+            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT;
         }
 
         timeout--;
@@ -228,7 +228,7 @@ sercom_poll_master_ready (Sercom *sercom)
 
     if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_RXNACK) != 0U)
     {
-        return PLATFORM_SAMD21G18A_I2C_STATUS_NACK;
+        return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_NACK;
     }
 
     return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
@@ -244,12 +244,12 @@ sercom_poll_slave_ready (Sercom *sercom)
     {
         if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0U)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR;
+            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS;
         }
 
         if (timeout == 0U)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_TIMEOUT;
+            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT;
         }
 
         timeout--;
