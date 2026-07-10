@@ -4,7 +4,6 @@
 #include "drivers/mcp4726.h"
 #include <stddef.h>
 
-#define BOARD_INDIO_ANALOG_OUTPUT_MIN_VALUE (DRIVERS_MCP4726_MIN_VALUE)
 #define BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE (DRIVERS_MCP4726_MAX_VALUE)
 
 #define BOARD_INDIO_ANALOG_OUTPUT_CH1_MCP4726_ADDRESS (0x60)
@@ -14,11 +13,16 @@
 typedef enum
 {
     BOARD_INDIO_ANALOG_OUTPUT_STATUS_OK = 0,
-    BOARD_INDIO_ANALOG_OUTPUT_STATUS_ERR,
+    BOARD_INDIO_ANALOG_OUTPUT_STATUS_ERR_CFG,
+    BOARD_INDIO_ANALOG_OUTPUT_STATUS_ERR_WRITE,
 } board_indio_analog_output_status_t;
 
 /** @brief Analog output type. */
 typedef drivers_mcp4726_device_t board_indio_analog_output_channel_t;
+
+/** @brief Configure IND.I/O analog outputs CH1 and CH2 for 0-10 V. */
+board_indio_analog_output_status_t board_indio_analog_output_configure_v10(
+    void);
 
 /** @brief Write a 16-bit value to an MCP4726 device. */
 board_indio_analog_output_status_t board_indio_analog_output_write(
