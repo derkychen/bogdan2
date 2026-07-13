@@ -48,12 +48,6 @@ app_serial_init (void)
     return;
 }
 
-bool
-app_serial_connected (void)
-{
-    return tud_cdc_connected();
-}
-
 app_serial_status_t
 app_serial_read_line (char *buffer, size_t buffer_size)
 {

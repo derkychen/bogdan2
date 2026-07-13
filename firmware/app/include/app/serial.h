@@ -21,9 +21,6 @@ typedef enum
 /** @brief Initialize app-side serial processing, reset the line buffer. */
 void app_serial_init(void);
 
-/** @brief Wrapper around `tud_cdc_connected`. */
-bool app_serial_connected(void);
-
 /**
  * @brief Read one newline-terminated line from the RX buffer.
  *
