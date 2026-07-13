@@ -10,8 +10,8 @@
 
 /** @brief Record the stopping of stage movement. */
 static void
-app_controllers_trigger_out_irq_handler (
-    platform_samd21g18a_eic_extint_line_t line, void *context)
+controllers_trigger_out_isr (platform_samd21g18a_eic_extint_line_t line,
+                             void                                 *context)
 {
     app_controller_t *controller;
 
@@ -51,19 +51,66 @@ app_controller_init (app_controller_t                          *controller,
     platform_samd21g18a_eic_configure(&trigger_out_cfg);
 
     platform_samd21g18a_eic_register_callback_entry(
-        trigger_out_cfg.eic_pin->line,
-        app_controllers_trigger_out_irq_handler,
-        controller);
+        trigger_out_cfg.eic_pin->line, controllers_trigger_out_isr, controller);
+
+    platform_samd21g18a_eic_line_disable(controller->trigger_out->line);
+
+    return;
+}
+
+bool
+app_controller_get_stage_moving (app_controller_t const *controller)
+{
+    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+
+    return controller->stage_moving;
+}
+
+void
+app_controller_set_stage_moving (app_controller_t *controller,
+                                 bool              stage_moving)
+{
+    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+
+    // NOTE: This value will be changed to `false` upon an interrupt.
+    controller->stage_moving = stage_moving;
+
+    return;
+}
+
+void
+app_controller_interrupts_disable (app_controller_t const *controller)
+{
+    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);
+
+    platform_samd21g18a_eic_line_disable(controller->trigger_out->line);
+
+    return;
+}
+
+void
+app_controller_interrupts_enable (app_controller_t const *controller)
+{
+    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);
+
+    platform_samd21g18a_eic_line_enable(controller->trigger_out->line);
+
+    return;
 }
 
 void
 app_controller_pulse_trigger_in (app_controller_t const *controller)
 {
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(controller->trigger_in != NULL);
 
     platform_samd21g18a_digital_pin_level_set_high(controller->trigger_in);
     platform_samd21g18a_time_sleep_msec(START_MOVE_PULSE_WIDTH_MSEC);
     platform_samd21g18a_digital_pin_level_set_low(controller->trigger_in);
+
+    return;
 }
 
 void
@@ -71,6 +118,9 @@ app_controller_write_analog_in (app_controller_t const *controller,
                                 uint16_t                value)
 {
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(controller->analog_in != NULL);
 
     (void)board_indio_analog_output_write(controller->analog_in, value);
+
+    return;
 }

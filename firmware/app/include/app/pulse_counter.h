@@ -15,13 +15,16 @@ typedef struct
 } app_pulse_counter_t;
 
 /** @brief Initialize pulse counter and register interrupt callback. */
-void app_pulse_counter_init(app_pulse_counter_t                 *pulse_counter,
+void app_pulse_counter_init(app_pulse_counter_t                 *counter,
                             platform_samd21g18a_eic_pin_t const *trigger);
 
-/** @brief Reset pulse count. */
-void app_pulse_counter_reset(app_pulse_counter_t *pulse_counter);
-
 /** @brief Return the pulse count. */
-uint32_t app_pulse_counter_get(app_pulse_counter_t *pulse_counter);
+uint32_t app_pulse_counter_get_count(app_pulse_counter_t *counter);
+
+/** @brief Enable interrupts from the trigger. */
+void app_pulse_counter_start(app_pulse_counter_t *counter);
+
+/** @brief Disable interrupts from the trigger and reset the count. */
+void app_pulse_counter_end(app_pulse_counter_t *counter);
 
 #endif

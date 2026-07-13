@@ -49,6 +49,14 @@ app_axis_init (app_axis_t       *axis,
     return APP_AXIS_STATUS_INIT_OK;
 }
 
+bool
+app_axis_get_stage_moving (app_axis_t *axis)
+{
+    PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
+
+    return app_controller_get_stage_moving(axis->controller);
+}
+
 size_t
 app_axis_num_points (const app_axis_t *axis)
 {
@@ -81,10 +89,12 @@ app_axis_set_target (app_axis_t *axis, int target)
                        / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
 
     app_controller_write_analog_in(axis->controller, value);
+
+    return;
 }
 
 void
-app_axis_start_move (app_axis_t *axis)
+app_axis_move_start (app_axis_t *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
 
@@ -93,6 +103,8 @@ app_axis_start_move (app_axis_t *axis)
         return;
     }
 
+    app_controller_interrupts_enable(axis->controller);
+
     // NOTE: Setting the state of the stage to moving before pulsing the
     //       controller Trigger IN is important in ensuring accurate state
     //       tracking in the unlikely circumstance that the stage's movement
@@ -100,14 +112,8 @@ app_axis_start_move (app_axis_t *axis)
     //       `controller_pulse_trigger_in` is blocking.
     app_controller_set_stage_moving(axis->controller, true);
     app_controller_pulse_trigger_in(axis->controller);
-}
 
-bool
-app_axis_stage_moving (app_axis_t *axis)
-{
-    PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
-
-    return app_controller_get_stage_moving(axis->controller);
+    return;
 }
 
 void
@@ -121,4 +127,8 @@ app_axis_move_end (app_axis_t *axis)
     }
 
     axis->current = axis->target;
+
+    app_controller_interrupts_disable(axis->controller);
+
+    return;
 }

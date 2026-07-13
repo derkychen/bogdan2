@@ -36,26 +36,23 @@ void app_controller_init(app_controller_t                          *controller,
                          platform_samd21g18a_eic_pin_t const       *trigger_out,
                          board_indio_analog_output_channel_t const *analog_in);
 
+/** @brief Return whether the stage is moving or not. */
+bool app_controller_get_stage_moving(app_controller_t const *controller);
+
 /**
  * @brief Set the state of the stage (i.e. moving or not).
  *
  * When called directly and not by an interrupt, this function should be setting
  * `stage_moving` to `true`.
  */
-static inline void
-app_controller_set_stage_moving (app_controller_t *controller,
-                                 bool              stage_moving)
-{
-    // NOTE: This value will be changed to `false` upon an interrupt.
-    controller->stage_moving = stage_moving;
-}
+void app_controller_set_stage_moving(app_controller_t *controller,
+                                     bool              stage_moving);
 
-/** @brief Return whether the stage is moving or not. */
-static inline bool
-app_controller_get_stage_moving (app_controller_t const *controller)
-{
-    return controller->stage_moving;
-}
+/** @brief Disable the controller's interrupt line. */
+void app_controller_interrupts_disable(app_controller_t const *controller);
+
+/** @brief Enable the controller's interrupt line. */
+void app_controller_interrupts_enable(app_controller_t const *controller);
 
 /**
  * @brief Start the stage's movement to its target by pulsing HIGH the

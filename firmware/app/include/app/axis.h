@@ -47,6 +47,9 @@ app_axis_status_t app_axis_init(app_axis_t       *axis,
                                 int               origin_nm,
                                 app_controller_t *controller);
 
+/** @brief Return whether the axis is moving or not */
+bool app_axis_get_stage_moving(app_axis_t *axis);
+
 /** @brief Number of points on the axis. */
 size_t app_axis_num_points(app_axis_t const *axis);
 
@@ -59,10 +62,7 @@ size_t app_axis_num_points(app_axis_t const *axis);
 void app_axis_set_target(app_axis_t *axis, int target);
 
 /** @brief Start the axis' movement to its target. */
-void app_axis_start_move(app_axis_t *axis);
-
-/** @brief Return whether the axis is moving or not */
-bool app_axis_stage_moving(app_axis_t *axis);
+void app_axis_move_start(app_axis_t *axis);
 
 /** @brief Update state variables when the stage is at its destination. */
 void app_axis_move_end(app_axis_t *axis);
