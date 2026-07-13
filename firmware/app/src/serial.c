@@ -102,7 +102,7 @@ app_serial_read_line (char *buffer, size_t buffer_size)
         }
     }
 
-    return false;
+    return APP_SERIAL_STATUS_OK_LINE_PENDING;
 }
 
 app_serial_status_t
