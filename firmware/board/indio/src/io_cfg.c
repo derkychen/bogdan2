@@ -10,7 +10,6 @@
 #define SAMD21G18A_PERIPHERAL_FUNCTION_A (0U)
 #define SAMD21G18A_PERIPHERAL_FUNCTION_C (2U)
 
-// TODO: Remove unneeded internal pin structures if needed.
 #if 0
 /**
  * @brief Internal handle for the IND.I/O expansion port pin D0/RX.
@@ -121,6 +120,33 @@ static platform_samd21g18a_pin_t const pa17 = {
     .number     = 17U,
 };
 
+/**
+ * @brief Internal handle for the SAMD21G18A pin corresponding to the I2C SDA on
+ *        the IND.I/O.
+ */
+static platform_samd21g18a_i2c_pin_t const board_i2c_bus_sda = {
+    .pin = &pa16,
+    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD0,
+};
+
+/**
+ * @brief Internal handle for the SAMD21G18A pin corresponding to the I2C SCL on
+ *        the IND.I/O.
+ */
+static platform_samd21g18a_i2c_pin_t const board_i2c_bus_scl = {
+    .pin = &pa17,
+    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD1,
+};
+
+/** @brief Internal handle for I2C configuration of the IND.I/O. */
+static platform_samd21g18a_i2c_cfg_t const board_i2c_bus_cfg = {
+    .master           = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
+    .sda              = &board_i2c_bus_sda,
+    .scl              = &board_i2c_bus_scl,
+    .scl_frequency_hz = PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_FAST_HZ,
+    .scl_rise_nsec    = PLATFORM_SAMD21G18A_I2C_SCL_RISE_FAST_NSEC,
+};
+
 /** @brief Internal MCP4726 that controls all analog output CH1. */
 static drivers_mcp4726_device_t const analog_output_mcp4726_ch1 = {
     .master  = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
@@ -133,39 +159,51 @@ static drivers_mcp4726_device_t const analog_output_mcp4726_ch2 = {
     .address = BOARD_INDIO_ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
 };
 
-platform_samd21g18a_digital_pin_t const board_indio_expansion_d4_digital
+platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d4_digital
     = expansion_d4;
 
-platform_samd21g18a_digital_pin_t const board_indio_expansion_d5_digital
+platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d5_digital
     = expansion_d5;
 
-platform_samd21g18a_eic_pin_t const board_indio_expansion_d2_eic = {
+platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d2_eic = {
     .pin  = &expansion_d2,
     .line = 0U,
 };
 
-platform_samd21g18a_eic_pin_t const board_indio_expansion_d7_eic = {
+platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d7_eic = {
     .pin  = &expansion_d7,
     .line = 4U,
 };
 
-platform_samd21g18a_eic_pin_t const board_indio_expansion_d6_eic = {
+platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d6_eic = {
     .pin  = &expansion_d6,
     .line = 9U,
 };
 
-platform_samd21g18a_i2c_pin_t const board_indio_bus_sda = {
-    .pin = &pa16,
-    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD0,
-};
-
-platform_samd21g18a_i2c_pin_t const board_indio_bus_scl = {
-    .pin = &pa17,
-    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD1,
-};
-
-board_indio_analog_output_channel_t const board_indio_analog_output_ch1
+board_indio_analog_output_channel_t const board_indio_io_cfg_analog_output_ch1
     = analog_output_mcp4726_ch1;
 
-board_indio_analog_output_channel_t const board_indio_analog_output_ch2
+board_indio_analog_output_channel_t const board_indio_io_cfg_analog_output_ch2
     = analog_output_mcp4726_ch2;
+
+void
+board_indio_io_cfg_init (void)
+{
+    platform_samd21g18a_i2c_configure(&board_i2c_bus_cfg);
+
+    platform_samd21g18a_digital_pin_direction_set_output(
+        &board_indio_io_cfg_expansion_d4_digital);
+    platform_samd21g18a_digital_pin_direction_set_output(
+        &board_indio_io_cfg_expansion_d5_digital);
+
+    platform_samd21g18a_digital_pin_level_set_low(
+        &board_indio_io_cfg_expansion_d4_digital);
+    platform_samd21g18a_digital_pin_level_set_low(
+        &board_indio_io_cfg_expansion_d5_digital);
+
+    (void)board_indio_analog_output_configure_v10();
+    (void)board_indio_analog_output_write(&board_indio_io_cfg_analog_output_ch1,
+                                          0U);
+    (void)board_indio_analog_output_write(&board_indio_io_cfg_analog_output_ch2,
+                                          0U);
+}
