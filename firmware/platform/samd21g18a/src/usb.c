@@ -8,7 +8,8 @@
 void
 platform_samd21g18a_usb_init (void)
 {
-    // Enable USB peripheral bus clock.
+    // Enable USB peripheral bus clocks.
+    PM->AHBMASK.reg |= PM_AHBMASK_USB;
     PM->APBBMASK.reg |= PM_APBBMASK_USB;
 
     // Route GCLK0 to USB peripheral. This assumes `SystemInit` configured GCLK0
