@@ -5,8 +5,8 @@
  *       closed-loop control mode, with both input and output analog voltages
  *       ranging from 0 to 10 volts.
  */
-#ifndef CONTROLLER_H
-#define CONTROLLER_H
+#ifndef APP_CONTROLLER_H
+#define APP_CONTROLLER_H
 
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/eic.h"

@@ -1,5 +1,5 @@
-#ifndef PULSE_COUNTER_H
-#define PULSE_COUNTER_H
+#ifndef APP_PULSE_COUNTER_H
+#define APP_PULSE_COUNTER_H
 
 #include "platform/samd21g18a/eic.h"
 #include <stdint.h>

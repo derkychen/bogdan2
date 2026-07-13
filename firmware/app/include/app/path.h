@@ -1,5 +1,5 @@
-#ifndef PATH_H
-#define PATH_H
+#ifndef APP_PATH_H
+#define APP_PATH_H
 
 #include "app/axis.h"
 #include <stddef.h>
