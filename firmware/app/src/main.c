@@ -12,11 +12,8 @@
 #include <stdlib.h>
 
 // TODO: Tighten delays after entire pipeline is tested.
-#define USB_CONNECTION_POLL_INTERVAL_USEC        (100U)
-#define APP_SERIAL_CONNECTION_POLL_INTERVAL_USEC (100U)
-#define TARGET_SET_DEBOUNCE_TIME_USEC            (100U)
-#define MAIN_LOOP_DELAY_USEC                     (100U)
-#define TIGHT_LOOP_DELAY_USEC                    (100U)
+#define TARGET_SET_DEBOUNCE_TIME_USEC (100U)
+#define MAIN_LOOP_DELAY_USEC          (100U)
 
 /** @brief Initialize important functionality. */
 static void
@@ -28,6 +25,10 @@ init (void)
     platform_samd21g18a_time_init();
     platform_samd21g18a_usb_init();
 
+    // Initialize I/O to safe states and defaults.
+    board_indio_io_cfg_init();
+
+    // Initialize serial.
     app_serial_init();
 }
 
@@ -48,22 +49,6 @@ task (void)
 int
 main (void)
 {
-    init();
-
-    // Poll until a USB connection is established.
-    while (!platform_samd21g18a_usb_is_mounted())
-    {
-        platform_samd21g18a_time_sleep_msec(USB_CONNECTION_POLL_INTERVAL_USEC);
-    }
-
-    while (!app_serial_connected())
-    {
-        platform_samd21g18a_time_sleep_msec(
-            APP_SERIAL_CONNECTION_POLL_INTERVAL_USEC);
-    }
-
-    app_serial_write_line("{\"ok\":true,\"msg\":\"waiting_for_instruction\"}");
-
     // These objects persist across profiles.
     app_instruction_t instruction;
     char              message[APP_SERIAL_READ_BUFFER_SIZE];
@@ -71,24 +56,35 @@ main (void)
     app_controller_t x_controller;
     app_controller_t y_controller;
 
-    app_controller_init(&x_controller,
-                        &board_indio_expansion_d4_digital,
-                        &board_indio_expansion_d7_eic,
-                        &board_indio_analog_output_ch1);
-
-    app_controller_init(&y_controller,
-                        &board_indio_expansion_d5_digital,
-                        &board_indio_expansion_d6_eic,
-                        &board_indio_analog_output_ch2);
-
     app_pulse_counter_t pulse_counter;
-    app_pulse_counter_init(&pulse_counter, &board_indio_expansion_d2_eic);
 
     app_path_raster_direction_t prev_raster_direction
         = APP_PATH_RASTER_DIRECTION_HORIZONTAL;
 
+    init();
+
+    app_controller_init(&x_controller,
+                        &board_indio_io_cfg_expansion_d4_digital,
+                        &board_indio_io_cfg_expansion_d7_eic,
+                        &board_indio_io_cfg_analog_output_ch1);
+
+    app_controller_init(&y_controller,
+                        &board_indio_io_cfg_expansion_d5_digital,
+                        &board_indio_io_cfg_expansion_d6_eic,
+                        &board_indio_io_cfg_analog_output_ch2);
+
+    app_pulse_counter_init(&pulse_counter,
+                           &board_indio_io_cfg_expansion_d3_eic,
+                           &board_indio_io_cfg_expansion_d2_digital);
+
     for (;;)
     {
+        task();
+        platform_samd21g18a_time_sleep_usec(MAIN_LOOP_DELAY_USEC);
+
+        (void)app_serial_write_line(
+            "{\"ok\":true,\"msg\":\"waiting_for_instruction\"}");
+
         if (app_serial_read_line(message, sizeof(message))
             == APP_SERIAL_STATUS_OK_LINE_RECEIVED)
         {
@@ -101,19 +97,31 @@ main (void)
                 app_path_position_t *path;
                 size_t               path_size;
 
-                app_axis_init(&x,
-                              instruction.x_min,
-                              instruction.x_max,
-                              instruction.x_unit_nm,
-                              instruction.x_origin_nm,
-                              &x_controller);
+                if (app_axis_init(&x,
+                                  instruction.x_min,
+                                  instruction.x_max,
+                                  instruction.x_unit_nm,
+                                  instruction.x_origin_nm,
+                                  &x_controller)
+                    != APP_AXIS_STATUS_INIT_OK)
+                {
+                    app_serial_write_line(
+                        "{\"ok\":false,\"msg\":\"x_axis_init_err\"}");
+                    break;
+                }
 
-                app_axis_init(&y,
-                              instruction.y_min,
-                              instruction.y_max,
-                              instruction.y_unit_nm,
-                              instruction.y_origin_nm,
-                              &y_controller);
+                if (app_axis_init(&y,
+                                  instruction.y_min,
+                                  instruction.y_max,
+                                  instruction.y_unit_nm,
+                                  instruction.y_origin_nm,
+                                  &y_controller)
+                    != APP_AXIS_STATUS_INIT_OK)
+                {
+                    app_serial_write_line(
+                        "{\"ok\":false,\"msg\":\"x_axis_init_err\"}");
+                    break;
+                }
 
                 path = app_path_modified_raster(
                     &x, &y, &prev_raster_direction, &path_size);
@@ -128,12 +136,12 @@ main (void)
                     platform_samd21g18a_time_sleep_usec(
                         TARGET_SET_DEBOUNCE_TIME_USEC);
 
-                    // Move to the next point
-                    app_axis_start_move(&x);
-                    app_axis_start_move(&y);
+                    // Move to the next point.
+                    app_axis_move_start(&x);
+                    app_axis_move_start(&y);
 
-                    while (app_axis_stage_moving(&x)
-                           || app_axis_stage_moving(&y))
+                    while (app_axis_get_stage_moving(&x)
+                           || app_axis_get_stage_moving(&y))
                     {
                         task();
                     }
@@ -141,14 +149,16 @@ main (void)
                     app_axis_move_end(&x);
                     app_axis_move_end(&y);
 
-                    // Count pulses
-                    while (app_pulse_counter_get(&pulse_counter)
+                    // Count pulses.
+                    app_pulse_counter_start(&pulse_counter);
+
+                    while (app_pulse_counter_get_count(&pulse_counter)
                            < instruction.num_pulses)
                     {
                         task();
                     }
 
-                    app_pulse_counter_reset(&pulse_counter);
+                    app_pulse_counter_end(&pulse_counter);
 
                     platform_samd21g18a_time_sleep_usec(
                         instruction.posttrigger_time_us);
@@ -163,7 +173,5 @@ main (void)
                     "{\"ok\":false,\"msg\":\"instruction_parse_failed\"}");
             }
         }
-
-        task();
     }
 }
