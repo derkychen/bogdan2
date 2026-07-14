@@ -40,13 +40,11 @@ static platform_samd21g18a_pin_t const expansion_d2 = {
     .number     = 16U,
 };
 
-#if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D3/SCL. */
 static platform_samd21g18a_pin_t const expansion_d3 = {
     .port_group = SAMD21G18A_PORT_GROUP_A,
     .number     = 17U,
 };
-#endif
 
 /** @brief Internal handle for the IND.I/O expansion port pin D4/A6. */
 static platform_samd21g18a_pin_t const expansion_d4 = {
@@ -159,15 +157,18 @@ static drivers_mcp4726_device_t const analog_output_mcp4726_ch2 = {
     .address = BOARD_INDIO_ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
 };
 
+platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d2_digital
+    = expansion_d2;
+
 platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d4_digital
     = expansion_d4;
 
 platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d5_digital
     = expansion_d5;
 
-platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d2_eic = {
-    .pin  = &expansion_d2,
-    .line = 0U,
+platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d3_eic = {
+    .pin  = &expansion_d3,
+    .line = 1U,
 };
 
 platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d7_eic = {

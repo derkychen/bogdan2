@@ -5,8 +5,11 @@
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 
-// TODO: Test interrupt and digital read capability on necessary pins.
 // NOTE: This module only exposes the handles for pins used in this project.
+/** @brief Handle for the IND.I/O expansion port pin D2/SDA as a digital pin. */
+extern platform_samd21g18a_digital_pin_t const
+    board_indio_io_cfg_expansion_d2_digital;
+
 /** @brief Handle for the IND.I/O expansion port pin D4/A6 as a digital pin. */
 extern platform_samd21g18a_digital_pin_t const
     board_indio_io_cfg_expansion_d4_digital;
@@ -15,8 +18,8 @@ extern platform_samd21g18a_digital_pin_t const
 extern platform_samd21g18a_digital_pin_t const
     board_indio_io_cfg_expansion_d5_digital;
 
-/** @brief Handle for the IND.I/O expansion port pin D2/SDA as a digital pin. */
-extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d2_eic;
+/** @brief Handle for the IND.I/O expansion port pin D3/SCL as a digital pin. */
+extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d3_eic;
 
 /** @brief Handle for the IND.I/O expansion port pin D7 as a digital pin. */
 extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d7_eic;
