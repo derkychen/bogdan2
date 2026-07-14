@@ -28,7 +28,8 @@ platform_samd21g18a_digital_pin_direction_set_input (
     PLATFORM_SAMD21G18A_ASSERT(pin->number
                                <= PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
-    PORT->Group[pin->port_group].DIRCLR.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].DIRCLR.reg              = (1UL << pin->number);
+    PORT->Group[pin->port_group].PINCFG[pin->number].reg = PORT_PINCFG_INEN;
 
     return;
 }
