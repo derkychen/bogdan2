@@ -69,16 +69,20 @@ void platform_samd21g18a_eic_register_callback_entry(
     platform_samd21g18a_eic_callback_t    callback,
     void                                 *context);
 
-/** @brief Enable interrupts on a external interrupt line. */
-void platform_samd21g18a_eic_line_enable(
-    platform_samd21g18a_eic_extint_line_t line);
-
 /** @brief Disable interrupts on a external interrupt line. */
 void platform_samd21g18a_eic_line_disable(
     platform_samd21g18a_eic_extint_line_t line);
 
-/** @brief Clear interrupt flag on a external interrupt line. */
-void platform_samd21g18a_eic_line_clear(
+/** @brief Enable interrupts on a external interrupt line. */
+void platform_samd21g18a_eic_line_enable(
+    platform_samd21g18a_eic_extint_line_t line);
+
+/** @brief Disable hardware event output on a external interrupt line. */
+void platform_samd21g18a_eic_line_event_disable(
+    platform_samd21g18a_eic_extint_line_t line);
+
+/** @brief Enable hardware event output on a external interrupt line. */
+void platform_samd21g18a_eic_line_event_enable(
     platform_samd21g18a_eic_extint_line_t line);
 
 #endif

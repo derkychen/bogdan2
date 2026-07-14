@@ -151,17 +151,6 @@ platform_samd21g18a_eic_register_callback_entry (
 }
 
 void
-platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
-{
-    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
-
-    EIC->INTFLAG.reg  = (1UL << line);
-    EIC->INTENSET.reg = (1UL << line);
-
-    return;
-}
-
-void
 platform_samd21g18a_eic_line_disable (
     platform_samd21g18a_eic_extint_line_t line)
 {
@@ -173,12 +162,12 @@ platform_samd21g18a_eic_line_disable (
 }
 
 void
-platform_samd21g18a_eic_line_clear (platform_samd21g18a_eic_extint_line_t line)
+platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
 {
     PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
 
-    EIC->INTENCLR.reg = (1UL << line);
     EIC->INTFLAG.reg  = (1UL << line);
+    EIC->INTENSET.reg = (1UL << line);
 
     return;
 }
