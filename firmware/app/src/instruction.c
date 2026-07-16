@@ -313,6 +313,9 @@ token_field_find (token_t const *token, field_spec_t const **spec)
 {
     size_t index;
 
+    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(spec != NULL);
+
     for (index = 0U;
          index < (sizeof(instruction_fields) / sizeof(instruction_fields[0]));
          index++)
@@ -320,6 +323,8 @@ token_field_find (token_t const *token, field_spec_t const **spec)
         if (token_text_equals_str(token, instruction_fields[index].name))
         {
             *spec = &instruction_fields[index];
+
+            return FIELD_STATUS_OK;
         }
     }
 
@@ -333,10 +338,8 @@ token_field_set (token_t const      *token,
 {
     char *target;
 
-    if ((instruction == NULL) || (field == NULL))
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(field != NULL);
 
     target = ((char *)instruction) + field->offset;
 
@@ -396,7 +399,7 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
     {
         if ((token_index + 1) >= token_count)
         {
-            return false;
+            return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
         }
 
         token = (token_t) {
