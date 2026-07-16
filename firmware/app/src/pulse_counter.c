@@ -23,7 +23,7 @@ pulse_counter_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
 
     // Pulse the relay pin.
     platform_samd21g18a_digital_pin_level_set_high(counter->relay);
-    platform_samd21g18a_time_sleep_msec(RELAY_PULSE_WIDTH_USEC);
+    platform_samd21g18a_time_sleep_usec(RELAY_PULSE_WIDTH_USEC);
     platform_samd21g18a_digital_pin_level_set_low(counter->relay);
 
     return;
@@ -58,6 +58,9 @@ app_pulse_counter_init (app_pulse_counter_t                     *counter,
 
     platform_samd21g18a_digital_pin_direction_set_output(counter->relay);
     platform_samd21g18a_digital_pin_level_set_low(counter->relay);
+
+    platform_samd21g18a_digital_pin_direction_set_output(relay);
+    platform_samd21g18a_digital_pin_level_set_low(relay);
 
     return;
 }
