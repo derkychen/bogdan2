@@ -9,9 +9,13 @@
 typedef enum
 {
     APP_AXIS_STATUS_INIT_OK = 0,
-    APP_AXIS_STATUS_INIT_BOUND_OUTSIDE_RANGE,
-    APP_AXIS_STATUS_INIT_MIN_GREATER_THAN_MAX,
-    APP_AXIS_STATUS_INIT_UNIT_SMALLER_THAN_TOLERANCE,
+    APP_AXIS_STATUS_INIT_ERR_MIN_TOO_LOW,
+    APP_AXIS_STATUS_INIT_ERR_MIN_GREATER_THAN_MAX,
+    APP_AXIS_STATUS_INIT_ERR_MAX_TOO_HIGH,
+    APP_AXIS_STATUS_INIT_ERR_UNIT_SMALLER_THAN_TOLERANCE,
+    APP_AXIS_STATUS_INIT_ERR_UNIT_TOO_LARGE,
+    APP_AXIS_STATUS_INIT_ERR_ORIGIN_OUTSIDE_RANGE,
+    APP_AXIS_STATUS_INIT_ERR_BOUNDS_OUTSIDE_RANGE,
 } app_axis_status_t;
 
 /** @brief Interface between coordinate system and controller. */
@@ -48,7 +52,7 @@ app_axis_status_t app_axis_init(app_axis_t       *axis,
                                 app_controller_t *controller);
 
 /** @brief Return whether the axis is moving or not */
-bool app_axis_get_stage_moving(app_axis_t *axis);
+bool app_axis_get_stage_moving(app_axis_t const *axis);
 
 /** @brief Number of points on the axis. */
 size_t app_axis_num_points(app_axis_t const *axis);
