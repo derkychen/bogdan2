@@ -43,6 +43,9 @@ app_controller_init (app_controller_t                          *controller,
     controller->analog_in    = analog_in;
     controller->stage_moving = false;
 
+    platform_samd21g18a_digital_pin_cfg_set_output(trigger_in);
+    platform_samd21g18a_digital_pin_level_set_low(trigger_in);
+
     trigger_out_cfg = (platform_samd21g18a_eic_cfg_t) {
         .eic_pin = trigger_out,
         .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
@@ -54,6 +57,8 @@ app_controller_init (app_controller_t                          *controller,
         trigger_out_cfg.eic_pin->line, controllers_trigger_out_isr, controller);
 
     platform_samd21g18a_eic_line_disable(controller->trigger_out->line);
+
+    board_indio_analog_output_write(analog_in, 0U);
 
     return;
 }

@@ -56,11 +56,8 @@ app_pulse_counter_init (app_pulse_counter_t                     *counter,
 
     platform_samd21g18a_eic_line_disable(counter->trigger->line);
 
-    platform_samd21g18a_digital_pin_direction_set_output(counter->relay);
+    platform_samd21g18a_digital_pin_cfg_set_output(counter->relay);
     platform_samd21g18a_digital_pin_level_set_low(counter->relay);
-
-    platform_samd21g18a_digital_pin_direction_set_output(relay);
-    platform_samd21g18a_digital_pin_level_set_low(relay);
 
     return;
 }
