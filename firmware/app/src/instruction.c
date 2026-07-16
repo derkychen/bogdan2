@@ -412,7 +412,6 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
             return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
         }
 
-        // Unknown fields are ignored.
         token = (token_t) {
             .data = &tokens_data[token_index + 1],
             .json = json,
