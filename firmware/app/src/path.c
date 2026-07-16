@@ -1,4 +1,5 @@
 #include "app/path.h"
+#include "app/axis.h"
 #include "platform/samd21g18a/assert.h"
 #include <limits.h>
 #include <stdbool.h>
@@ -15,6 +16,8 @@
 static int
 get_anchor_coord (const app_axis_t *axis)
 {
+    PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
+
     if (axis->min > 0)
     {
         return axis->min;
@@ -29,23 +32,22 @@ get_anchor_coord (const app_axis_t *axis)
 }
 
 /** @brief Append a point to a path. */
-static bool
+static void
 append (app_path_position_t *path,
         size_t               path_size_capacity,
         size_t              *path_size_current,
         int                  x,
         int                  y)
 {
-    if (*path_size_current >= path_size_capacity)
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(*path_size_current < path_size_capacity);
 
     path[*path_size_current].x = x;
     path[*path_size_current].y = y;
     (*path_size_current)++;
 
-    return true;
+    return;
 }
 
 /**
@@ -57,6 +59,8 @@ append (app_path_position_t *path,
 static void
 reverse_path (app_path_position_t *path, size_t low, size_t high)
 {
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+
     while (low < high)
     {
         app_path_position_t tmp = path[low];
@@ -66,6 +70,8 @@ reverse_path (app_path_position_t *path, size_t low, size_t high)
         low++;
         high--;
     }
+
+    return;
 }
 
 /**
@@ -73,7 +79,7 @@ reverse_path (app_path_position_t *path, size_t low, size_t high)
  *
  * Since the path is cyclic, its rotation preserves the traversal.
  */
-static bool
+static void
 rotate_to_anchor (app_path_position_t *path,
                   size_t               path_size,
                   int                  anchor_x,
@@ -82,6 +88,8 @@ rotate_to_anchor (app_path_position_t *path,
     // Search for the index of the anchor point.
     size_t anchor_index = 0;
     bool   found        = false;
+
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
 
     for (size_t i = 0; i < path_size; i++)
     {
@@ -93,14 +101,11 @@ rotate_to_anchor (app_path_position_t *path,
         }
     }
 
-    if (!found)
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(found);
 
     if (anchor_index == 0)
     {
-        return true;
+        return;
     }
 
     // Rotate the array.
@@ -108,7 +113,7 @@ rotate_to_anchor (app_path_position_t *path,
     reverse_path(path, anchor_index, path_size - 1);
     reverse_path(path, 0, path_size - 1);
 
-    return true;
+    return;
 }
 
 /**
@@ -147,7 +152,7 @@ choose_raster_direction (size_t                      x_num_points,
  * Working in the initial local space allows for both horizontal and vertical
  * modified rasters to utilize the same algorithm.
  */
-static bool
+static void
 append_local (app_path_position_t *path,
               size_t               path_size_capacity,
               size_t              *path_size_current,
@@ -157,20 +162,25 @@ append_local (app_path_position_t *path,
               int                  col,
               bool                 transposed)
 {
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(x != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y != NULL);
+
     if (transposed)
     {
-        return append(path,
-                      path_size_capacity,
-                      path_size_current,
-                      x->min + row,
-                      y->min + col);
+        append(path,
+               path_size_capacity,
+               path_size_current,
+               x->min + row,
+               y->min + col);
     }
 
-    return append(path,
-                  path_size_capacity,
-                  path_size_current,
-                  x->min + col,
-                  y->min + row);
+    append(path,
+           path_size_capacity,
+           path_size_current,
+           x->min + col,
+           y->min + row);
 }
 
 /**
@@ -179,7 +189,7 @@ append_local (app_path_position_t *path,
  * The generated path starts and ends at the anchor, but skips over points as a
  * raster is impossible in this case.
  */
-static bool
+static void
 append_line (app_path_position_t *path,
              size_t               path_size_capacity,
              size_t              *path_size_current,
@@ -191,22 +201,28 @@ append_line (app_path_position_t *path,
 {
     int col;
 
-    if (num_points <= 0 || anchor < 0 || anchor >= num_points)
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(x != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y != NULL);
+
+    PLATFORM_SAMD21G18A_ASSERT(num_points > 0);
+    PLATFORM_SAMD21G18A_ASSERT(anchor >= 0);
+    PLATFORM_SAMD21G18A_ASSERT(anchor < num_points);
 
     // Handle a single point.
     if (num_points == 1)
     {
-        return append_local(path,
-                            path_size_capacity,
-                            path_size_current,
-                            x,
-                            y,
-                            0,
-                            0,
-                            transposed);
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     0,
+                     0,
+                     transposed);
+
+        return;
     }
 
     // Traverse the line by going to the nearest end first, minimizing the
@@ -216,75 +232,65 @@ append_line (app_path_position_t *path,
     {
         for (col = anchor; col >= 0; col--)
         {
-            if (!append_local(path,
-                              path_size_capacity,
-                              path_size_current,
-                              x,
-                              y,
-                              0,
-                              col,
-                              transposed))
-            {
-                return false;
-            }
+            append_local(path,
+                         path_size_capacity,
+                         path_size_current,
+                         x,
+                         y,
+                         0,
+                         col,
+                         transposed);
         }
 
         for (col = anchor + 1; col < num_points; col++)
         {
-            if (!append_local(path,
-                              path_size_capacity,
-                              path_size_current,
-                              x,
-                              y,
-                              0,
-                              col,
-                              transposed))
-            {
-                return false;
-            }
+            append_local(path,
+                         path_size_capacity,
+                         path_size_current,
+                         x,
+                         y,
+                         0,
+                         col,
+                         transposed);
         }
     }
     else
     {
         for (col = anchor; col < num_points; col++)
         {
-            if (!append_local(path,
-                              path_size_capacity,
-                              path_size_current,
-                              x,
-                              y,
-                              0,
-                              col,
-                              transposed))
-            {
-                return false;
-            }
+            append_local(path,
+                         path_size_capacity,
+                         path_size_current,
+                         x,
+                         y,
+                         0,
+                         col,
+                         transposed);
         }
 
         for (col = anchor - 1; col >= 0; col--)
         {
-            if (!append_local(path,
-                              path_size_capacity,
-                              path_size_current,
-                              x,
-                              y,
-                              0,
-                              col,
-                              transposed))
-            {
-                return false;
-            }
+            append_local(path,
+                         path_size_capacity,
+                         path_size_current,
+                         x,
+                         y,
+                         0,
+                         col,
+                         transposed);
         }
     }
 
-    return append_local(path,
-                        path_size_capacity,
-                        path_size_current,
-                        x,
-                        y,
-                        0,
-                        anchor,
-                        transposed);
+    append_local(path,
+                 path_size_capacity,
+                 path_size_current,
+                 x,
+                 y,
+                 0,
+                 anchor,
+                 transposed);
+
+    return;
 }
 
 /**
@@ -292,7 +298,7 @@ append_line (app_path_position_t *path,
  *
  * @p rows must be even.
  */
-static bool
+static void
 append_even_unrotated_path (app_path_position_t *path,
                             size_t               path_size_capacity,
                             size_t              *path_size_current,
@@ -305,26 +311,27 @@ append_even_unrotated_path (app_path_position_t *path,
     int row;
     int col;
 
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(x != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y != NULL);
+
     // Ensure an even number of rows and a two-dimensional grid.
-    if ((rows & 1) != 0 || rows <= 1 || cols <= 1)
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT((rows & 1) == 0);
+    PLATFORM_SAMD21G18A_ASSERT(rows > 1);
+    PLATFORM_SAMD21G18A_ASSERT(cols > 1);
 
     // Move to the top of the grid.
     for (row = 0; row < rows; row++)
     {
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          row,
-                          0,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     row,
+                     0,
+                     transposed);
     }
 
     // Raster horizontally until the adjacent to the origin.
@@ -334,54 +341,45 @@ append_even_unrotated_path (app_path_position_t *path,
         {
             for (col = 1; col < cols; col++)
             {
-                if (!append_local(path,
-                                  path_size_capacity,
-                                  path_size_current,
-                                  x,
-                                  y,
-                                  row,
-                                  col,
-                                  transposed))
-                {
-                    return false;
-                }
+                append_local(path,
+                             path_size_capacity,
+                             path_size_current,
+                             x,
+                             y,
+                             row,
+                             col,
+                             transposed);
             }
         }
         else
         {
             for (col = cols - 1; col >= 1; col--)
             {
-                if (!append_local(path,
-                                  path_size_capacity,
-                                  path_size_current,
-                                  x,
-                                  y,
-                                  row,
-                                  col,
-                                  transposed))
-                {
-                    return false;
-                }
+                append_local(path,
+                             path_size_capacity,
+                             path_size_current,
+                             x,
+                             y,
+                             row,
+                             col,
+                             transposed);
             }
         }
     }
 
     for (col = cols - 1; col >= 1; col--)
     {
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          0,
-                          col,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     0,
+                     col,
+                     transposed);
     }
 
-    return true;
+    return;
 }
 
 /**
@@ -389,7 +387,7 @@ append_even_unrotated_path (app_path_position_t *path,
  *
  * @p rows and @p cols must both be odd.
  */
-static bool
+static void
 append_odd_unrotated_path (app_path_position_t *path,
                            size_t               path_size_capacity,
                            size_t              *path_size_current,
@@ -402,42 +400,41 @@ append_odd_unrotated_path (app_path_position_t *path,
     int row;
     int col;
 
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(x != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y != NULL);
+
     // Ensure an odd, two-dimensional grid.
-    if ((rows & 1) == 0 || (cols & 1) == 0 || rows <= 1 || cols <= 1)
-    {
-        return false;
-    }
+    PLATFORM_SAMD21G18A_ASSERT((rows & 1) != 0);
+    PLATFORM_SAMD21G18A_ASSERT((cols & 1) != 0);
+    PLATFORM_SAMD21G18A_ASSERT(rows > 1);
+    PLATFORM_SAMD21G18A_ASSERT(cols > 1);
 
     // Move to the top of the grid.
     for (row = 0; row < rows; row++)
     {
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          row,
-                          0,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     row,
+                     0,
+                     transposed);
     }
 
     // Raster horizontally until at the right with two rows left.
     for (col = 1; col < cols; col++)
     {
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          rows - 1,
-                          col,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     rows - 1,
+                     col,
+                     transposed);
     }
 
     for (row = rows - 2; row > 1; row--)
@@ -446,133 +443,108 @@ append_odd_unrotated_path (app_path_position_t *path,
         {
             for (col = cols - 1; col >= 1; col--)
             {
-                if (!append_local(path,
-                                  path_size_capacity,
-                                  path_size_current,
-                                  x,
-                                  y,
-                                  row,
-                                  col,
-                                  transposed))
-                {
-                    return false;
-                }
+                append_local(path,
+                             path_size_capacity,
+                             path_size_current,
+                             x,
+                             y,
+                             row,
+                             col,
+                             transposed);
             }
         }
         else
         {
             for (col = 1; col < cols; col++)
             {
-                if (!append_local(path,
-                                  path_size_capacity,
-                                  path_size_current,
-                                  x,
-                                  y,
-                                  row,
-                                  col,
-                                  transposed))
-                {
-                    return false;
-                }
+                append_local(path,
+                             path_size_capacity,
+                             path_size_current,
+                             x,
+                             y,
+                             row,
+                             col,
+                             transposed);
             }
         }
     }
 
     // Move diagonally at the bottom-right corner to ensure a cyclic path.
-    if (!append_local(path,
-                      path_size_capacity,
-                      path_size_current,
-                      x,
-                      y,
-                      1,
-                      cols - 1,
-                      transposed))
-    {
-        return false;
-    }
+    append_local(path,
+                 path_size_capacity,
+                 path_size_current,
+                 x,
+                 y,
+                 1,
+                 cols - 1,
+                 transposed);
 
-    if (!append_local(path,
-                      path_size_capacity,
-                      path_size_current,
-                      x,
-                      y,
-                      1,
-                      cols - 2,
-                      transposed))
-    {
-        return false;
-    }
+    append_local(path,
+                 path_size_capacity,
+                 path_size_current,
+                 x,
+                 y,
+                 1,
+                 cols - 2,
+                 transposed);
 
-    if (!append_local(path,
-                      path_size_capacity,
-                      path_size_current,
-                      x,
-                      y,
-                      0,
-                      cols - 1,
-                      transposed))
-    {
-        return false;
-    }
+    append_local(path,
+                 path_size_capacity,
+                 path_size_current,
+                 x,
+                 y,
+                 0,
+                 cols - 1,
+                 transposed);
 
     col = cols - 2;
 
     // Squiggle toward the left until adjacent to the origin.
     while (col >= 2)
     {
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          0,
-                          col,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     0,
+                     col,
+                     transposed);
 
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          0,
-                          col - 1,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     0,
+                     col - 1,
+                     transposed);
 
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          1,
-                          col - 1,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     1,
+                     col - 1,
+                     transposed);
 
-        if (!append_local(path,
-                          path_size_capacity,
-                          path_size_current,
-                          x,
-                          y,
-                          1,
-                          col - 2,
-                          transposed))
-        {
-            return false;
-        }
+        append_local(path,
+                     path_size_capacity,
+                     path_size_current,
+                     x,
+                     y,
+                     1,
+                     col - 2,
+                     transposed);
 
         col -= 2;
     }
 
-    return append_local(
+    append_local(
         path, path_size_capacity, path_size_current, x, y, 0, 1, transposed);
+
+    return;
 }
 
 app_path_position_t *
@@ -604,38 +576,25 @@ app_path_modified_raster (const app_axis_t            *x,
     x_num_points = app_axis_num_points(x);
     y_num_points = app_axis_num_points(y);
 
-    if (x_num_points == 0 || y_num_points == 0)
-    {
-        return NULL;
-    }
-
-    if (x_num_points > INT_MAX || y_num_points > INT_MAX)
-    {
-        return NULL;
-    }
-
-    if (x_num_points > SIZE_MAX / y_num_points)
-    {
-        return NULL;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(x_num_points > 0);
+    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= INT_MAX);
+    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= (SIZE_MAX / y_num_points));
+    PLATFORM_SAMD21G18A_ASSERT(y_num_points > 0);
+    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= INT_MAX);
 
     grid_num_points = x_num_points * y_num_points;
 
-    if (grid_num_points > SIZE_MAX - 1)
-    {
-        return NULL;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(grid_num_points <= (SIZE_MAX - 1));
 
     path_size_capacity
         = (grid_num_points == 1) ? grid_num_points : grid_num_points + 1;
 
-    if (path_size_capacity > SIZE_MAX / sizeof *path)
-    {
-        return NULL;
-    }
+    PLATFORM_SAMD21G18A_ASSERT(path_size_capacity <= (SIZE_MAX - sizeof *path));
 
     path = malloc(path_size_capacity * sizeof *path);
 
+    // NOTE: The only failure mode for path generation should be a failed memory
+    //       allocation.
     if (path == NULL)
     {
         return NULL;
@@ -663,18 +622,14 @@ app_path_modified_raster (const app_axis_t            *x,
             transposed = true;
         }
 
-        if (!append_line(path,
-                         path_size_capacity,
-                         &path_size_current,
-                         x,
-                         y,
-                         num_points,
-                         anchor,
-                         transposed))
-        {
-            free(path);
-            return NULL;
-        }
+        append_line(path,
+                    path_size_capacity,
+                    &path_size_current,
+                    x,
+                    y,
+                    num_points,
+                    anchor,
+                    transposed);
 
         *path_size = path_size_current;
         return path;
@@ -700,47 +655,35 @@ app_path_modified_raster (const app_axis_t            *x,
 
     if ((rows & 1) == 0)
     {
-        if (!append_even_unrotated_path(path,
-                                        path_size_capacity,
-                                        &path_size_current,
-                                        x,
-                                        y,
-                                        rows,
-                                        cols,
-                                        transposed))
-        {
-            free(path);
-            return NULL;
-        }
+        append_even_unrotated_path(path,
+                                   path_size_capacity,
+                                   &path_size_current,
+                                   x,
+                                   y,
+                                   rows,
+                                   cols,
+                                   transposed);
     }
     else if (((rows & 1) == 1) && ((cols & 1) == 1))
     {
-        if (!append_odd_unrotated_path(path,
-                                       path_size_capacity,
-                                       &path_size_current,
-                                       x,
-                                       y,
-                                       rows,
-                                       cols,
-                                       transposed))
-        {
-            free(path);
-            return NULL;
-        }
+        append_odd_unrotated_path(path,
+                                  path_size_capacity,
+                                  &path_size_current,
+                                  x,
+                                  y,
+                                  rows,
+                                  cols,
+                                  transposed);
     }
     else
     {
-        free(path);
-        return NULL;
+        PLATFORM_SAMD21G18A_ASSERT(false);
     }
 
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current == grid_num_points);
+
     // Rotate the path to start at the anchor.
-    if (path_size_current != grid_num_points
-        || !rotate_to_anchor(path, grid_num_points, anchor_x, anchor_y))
-    {
-        free(path);
-        return NULL;
-    }
+    rotate_to_anchor(path, grid_num_points, anchor_x, anchor_y);
 
     path[grid_num_points] = path[0];
     *path_size            = path_size_capacity;
