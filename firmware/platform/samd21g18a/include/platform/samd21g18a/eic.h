@@ -57,8 +57,8 @@ void platform_samd21g18a_eic_init(void);
 /**
  * @brief Configure a pin connected to the EIC.
  *
- * NOTE: The structure whose pointer is passed to this function should be
- *       initialized beforehand.
+ * NOTE: This function disables the interrupt line specified by the
+ *       configuration.
  */
 void platform_samd21g18a_eic_configure(
     platform_samd21g18a_eic_cfg_t const *cfg);
