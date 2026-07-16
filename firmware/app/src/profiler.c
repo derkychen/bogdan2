@@ -69,6 +69,11 @@ app_profiler_profile (app_profiler_t          *profiler,
     path = app_path_modified_raster(
         &x, &y, &(profiler->prev_raster_direction), &path_size);
 
+    if (path == NULL)
+    {
+        return APP_PROFILER_STATUS_ERR;
+    }
+
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
 
     for (size_t i = 0; i < path_size; i++)
