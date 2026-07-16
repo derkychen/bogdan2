@@ -9,6 +9,7 @@
 typedef enum
 {
     APP_AXIS_STATUS_INIT_OK = 0,
+    APP_AXIS_STATUS_TARGET_OK,
     APP_AXIS_STATUS_INIT_ERR_MIN_TOO_LOW,
     APP_AXIS_STATUS_INIT_ERR_MIN_GREATER_THAN_MAX,
     APP_AXIS_STATUS_INIT_ERR_MAX_TOO_HIGH,
@@ -16,6 +17,7 @@ typedef enum
     APP_AXIS_STATUS_INIT_ERR_UNIT_TOO_LARGE,
     APP_AXIS_STATUS_INIT_ERR_ORIGIN_OUTSIDE_RANGE,
     APP_AXIS_STATUS_INIT_ERR_BOUNDS_OUTSIDE_RANGE,
+    APP_AXIS_STATUS_TARGET_ERR_CONTROLLER,
 } app_axis_status_t;
 
 /** @brief Interface between coordinate system and controller. */
@@ -63,7 +65,7 @@ size_t app_axis_num_points(app_axis_t const *axis);
  * It sets the target of the stage to the point corresponding to a given
  * coordinate.
  */
-void app_axis_set_target(app_axis_t *axis, int target);
+app_axis_status_t app_axis_set_target(app_axis_t *axis, int target);
 
 /** @brief Start the axis' movement to its target. */
 void app_axis_move_start(app_axis_t *axis);

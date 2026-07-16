@@ -118,14 +118,18 @@ app_controller_pulse_trigger_in (app_controller_t const *controller)
     return;
 }
 
-void
+app_controller_status_t
 app_controller_write_analog_in (app_controller_t const *controller,
                                 uint16_t                value)
 {
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller->analog_in != NULL);
 
-    (void)board_indio_analog_output_write(controller->analog_in, value);
+    if (board_indio_analog_output_write(controller->analog_in, value)
+        != BOARD_INDIO_ANALOG_OUTPUT_STATUS_OK)
+    {
+        return APP_CONTROLLER_STATUS_ANALOG_IN_ERR;
+    }
 
-    return;
+    return APP_CONTROLLER_STATUS_ANALOG_IN_OK;
 }

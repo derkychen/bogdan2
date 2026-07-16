@@ -82,8 +82,11 @@ app_profiler_profile (app_profiler_t          *profiler,
     {
         uint32_t start_msec;
 
-        app_axis_set_target(&x, path[i].x);
-        app_axis_set_target(&y, path[i].y);
+        if (app_axis_set_target(&x, path[i].x) != APP_AXIS_STATUS_TARGET_OK
+            || app_axis_set_target(&y, path[i].y) != APP_AXIS_STATUS_TARGET_OK)
+        {
+            return APP_PROFILER_STATUS_ERR_TARGET;
+        }
 
         platform_samd21g18a_time_sleep_usec(TARGET_SET_DEBOUNCE_TIME_USEC);
 

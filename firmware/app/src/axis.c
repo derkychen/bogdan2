@@ -89,7 +89,7 @@ app_axis_num_points (const app_axis_t *axis)
     return (size_t)(axis->max - axis->min) + 1U;
 }
 
-void
+app_axis_status_t
 app_axis_set_target (app_axis_t *axis, int target)
 {
     uint16_t value;
@@ -102,7 +102,7 @@ app_axis_set_target (app_axis_t *axis, int target)
 
     if (axis->current == axis->target)
     {
-        return;
+        return APP_AXIS_STATUS_TARGET_OK;
     }
 
     target_nm = target * (int)axis->unit_nm + axis->origin_nm;
@@ -112,9 +112,13 @@ app_axis_set_target (app_axis_t *axis, int target)
                         * BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE)
                        / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
 
-    app_controller_write_analog_in(axis->controller, value);
+    if (app_controller_write_analog_in(axis->controller, value)
+        != APP_CONTROLLER_STATUS_ANALOG_IN_OK)
+    {
+        return APP_AXIS_STATUS_TARGET_ERR_CONTROLLER;
+    }
 
-    return;
+    return APP_AXIS_STATUS_TARGET_OK;
 }
 
 void

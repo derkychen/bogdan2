@@ -14,6 +14,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/** @brief Controller status codes. */
+typedef enum
+{
+    APP_CONTROLLER_STATUS_ANALOG_IN_OK = 0,
+    APP_CONTROLLER_STATUS_ANALOG_IN_ERR,
+} app_controller_status_t;
+
 /** @brief Interface with the controller I/O and Pico interrupts. */
 typedef struct
 {
@@ -61,7 +68,7 @@ void app_controller_interrupts_enable(app_controller_t const *controller);
 void app_controller_pulse_trigger_in(app_controller_t const *controller);
 
 /** @brief Set the target of the stage through the controller Analog IN. */
-void app_controller_write_analog_in(app_controller_t const *controller,
-                                    uint16_t                dac_value);
+app_controller_status_t app_controller_write_analog_in(
+    app_controller_t const *controller, uint16_t dac_value);
 
 #endif
