@@ -70,56 +70,68 @@ platform_samd21g18a_eic_init (void)
 void
 platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
 {
-    uint8_t  config_index;
-    uint8_t  bit_position;
-    uint32_t mask;
-    uint32_t value;
-    uint8_t  pmux_index;
+    PortGroup *port;
+    uint8_t    pin_number;
+    uint8_t    pmux_index;
+    uint8_t    config_index;
+    uint8_t    bit_position;
+    uint32_t   pin_mask;
+    uint32_t   line_mask;
+    uint32_t   sense_mask;
+    uint32_t   sense_value;
 
     PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin != NULL);
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->port_group
                                < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->number
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->line < EXTINT_LINE_COUNT);
 
-    // Configure pin to act as EIC input.
-    PORT->Group[cfg->eic_pin->pin->port_group]
-        .PINCFG[cfg->eic_pin->pin->number]
-        .reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
+    port = &PORT->Group[cfg->eic_pin->pin->port_group];
 
-    pmux_index = cfg->eic_pin->pin->number / 2U;
+    pin_number = cfg->eic_pin->pin->number;
+    pin_mask   = 1UL << pin_number;
+    line_mask  = 1UL << cfg->eic_pin->line;
 
-    if ((cfg->eic_pin->pin->number & 1U) == 0U)
+    // Disable the interrupt line and clear flags.
+    EIC->INTENCLR.reg = line_mask;
+    EIC->INTFLAG.reg  = line_mask;
+
+    // Prevent contention with external output by setting the pin to an input
+    // with high impedance.
+    port->DIRCLR.reg             = pin_mask;
+    port->PINCFG[pin_number].reg = 0U;
+
+    // Configure the pin to the EIC peripheral function (A).
+    pmux_index = pin_number / 2U;
+
+    if ((pin_number & 1U) == 0U)
     {
-        PORT->Group[cfg->eic_pin->pin->port_group].PMUX[pmux_index].bit.PMUXE
+        port->PMUX[pmux_index].bit.PMUXE
             = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
     }
     else
     {
-        PORT->Group[cfg->eic_pin->pin->port_group].PMUX[pmux_index].bit.PMUXO
+        port->PMUX[pmux_index].bit.PMUXO
             = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
     }
 
-    // Configure pin sense.
-    EIC->CTRL.bit.ENABLE = 0U;
+    port->PINCFG[pin_number].reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    eic_poll_sync();
-
+    // Configure the pin's sense.
     config_index = cfg->eic_pin->line / 8U;
     bit_position = (uint8_t)((cfg->eic_pin->line % 8U) * 4U);
 
-    mask  = 0xFUL << bit_position;
-    value = cfg->sense << bit_position;
+    sense_mask  = 0x7UL << bit_position;
+    sense_value = ((uint32_t)cfg->sense & 0x7UL) << bit_position;
 
     EIC->CONFIG[config_index].reg
-        = (EIC->CONFIG[config_index].reg & ~mask) | value;
+        = (EIC->CONFIG[config_index].reg & ~sense_mask) | sense_value;
 
-    EIC->INTFLAG.reg = (1UL << cfg->eic_pin->line);
-
-    EIC->CTRL.bit.ENABLE = 1U;
-
-    eic_poll_sync();
+    // Clear flags.
+    EIC->INTFLAG.reg = line_mask;
 
     return;
 }
