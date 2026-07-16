@@ -8,6 +8,8 @@
 
 // TODO: Tighten delays after entire pipeline is tested.
 #define TARGET_SET_DEBOUNCE_TIME_USEC (1000U)
+#define AXES_TIMEOUT_MSEC             (10000U)
+#define PULSE_COUNTER_TIMEOUT_MSEC    (10000U)
 
 app_profiler_status_t
 app_profiler_init (app_profiler_t      *profiler,
@@ -52,7 +54,7 @@ app_profiler_profile (app_profiler_t          *profiler,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        return APP_PROFILER_STATUS_ERR;
+        return APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
 
     if (app_axis_init(&y,
@@ -63,7 +65,7 @@ app_profiler_profile (app_profiler_t          *profiler,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        return APP_PROFILER_STATUS_ERR;
+        return APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
     path = app_path_modified_raster(
@@ -71,13 +73,15 @@ app_profiler_profile (app_profiler_t          *profiler,
 
     if (path == NULL)
     {
-        return APP_PROFILER_STATUS_ERR;
+        return APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
     }
 
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
 
     for (size_t i = 0; i < path_size; i++)
     {
+        uint32_t start_msec;
+
         app_axis_set_target(&x, path[i].x);
         app_axis_set_target(&y, path[i].y);
 
@@ -87,9 +91,17 @@ app_profiler_profile (app_profiler_t          *profiler,
         app_axis_move_start(&x);
         app_axis_move_start(&y);
 
+        start_msec = platform_samd21g18a_time_msec();
+
         while (app_axis_get_stage_moving(&x) || app_axis_get_stage_moving(&y))
         {
             profiler->task();
+
+            if ((platform_samd21g18a_time_msec() - start_msec)
+                > AXES_TIMEOUT_MSEC)
+            {
+                return APP_PROFILER_STATUS_ERR_AXES_TIMEOUT;
+            }
         }
 
         app_axis_move_end(&x);
@@ -98,10 +110,18 @@ app_profiler_profile (app_profiler_t          *profiler,
         // Count pulses.
         app_pulse_counter_start(profiler->pulse_counter);
 
+        start_msec = platform_samd21g18a_time_msec();
+
         while (app_pulse_counter_get_count(profiler->pulse_counter)
                < instruction->num_pulses)
         {
             profiler->task();
+
+            if ((platform_samd21g18a_time_msec() - start_msec)
+                > PULSE_COUNTER_TIMEOUT_MSEC)
+            {
+                return APP_PROFILER_STATUS_ERR_PULSE_COUNTER_TIMEOUT;
+            }
         }
 
         app_pulse_counter_end(profiler->pulse_counter);
