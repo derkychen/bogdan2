@@ -15,12 +15,16 @@ typedef enum
 /** @brief Type for digital pins. */
 typedef platform_samd21g18a_pin_t platform_samd21g18a_digital_pin_t;
 
-/** @brief Set the direction of a digital pin to be output. */
-void platform_samd21g18a_digital_pin_direction_set_output(
+/**
+ * @brief Set the direction of a digital pin to be output.
+ *
+ * NOTE: This function sets the level of the digital pin to be low.
+ */
+void platform_samd21g18a_digital_pin_cfg_set_output(
     platform_samd21g18a_digital_pin_t const *pin);
 
 /** @brief Set the direction of a digital pin to be input. */
-void platform_samd21g18a_digital_pin_direction_set_input(
+void platform_samd21g18a_digital_pin_cfg_set_input(
     platform_samd21g18a_digital_pin_t const *pin);
 
 /** @brief Set a digital pin level to LOW. */
