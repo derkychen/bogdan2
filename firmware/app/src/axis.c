@@ -1,8 +1,6 @@
 #include "app/axis.h"
+#include "app/controller.h"
 #include "platform/samd21g18a/assert.h"
-
-#include <stdio.h>
-#include "app/serial.h"
 
 #define MIN_LOW            (-1000)
 #define MAX_HIGH           (1000)
@@ -96,11 +94,6 @@ app_axis_set_target (app_axis_t *axis, int target)
 {
     uint16_t value;
     int      target_nm;
-        char buf[64];
-
-snprintf(buf, sizeof(buf), "target=%d",
-         (unsigned)target);
-app_serial_write_line(buf);
 
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(target >= axis->min && target <= axis->max);
