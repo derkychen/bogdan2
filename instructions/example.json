@@ -1,12 +1,23 @@
 {
-	"x_min": -5,
-	"x_max": 5,
-	"x_unit_nm": 250000,
-	"y_min": -5,
-	"y_max": 5,
-	"y_unit_nm": 250000,
-	"num_pulses": 3,
-	"pre_trigger_time_ns": 100,
-	"post_trigger_time_ns": 100,
-	"sample_interval_ns": 4
+	"mode": "point",
+	"grid": {
+		"x": {
+			"min": -5,
+			"max": 5,
+			"unit_nm": 250000,
+			"origin_nm": 0
+		},
+		"y": {
+			"min": -5,
+			"max": 5,
+			"unit_nm": 250000,
+			"origin_nm": 0
+		}
+	},
+	"acquisition": {
+		"num_pulses": 3,
+		"pretrigger_time_ns": 100,
+		"posttrigger_time_ns": 100,
+		"sample_interval_ns": 4
+	}
 }
