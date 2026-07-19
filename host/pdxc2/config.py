@@ -5,7 +5,7 @@ from typing import ClassVar
 
 
 @dataclass
-class KinesisConfig:
+class Kinesis:
     """Constants used the usage of Thorlabs Kinesis."""
 
     KINESIS_DIR: ClassVar[str] = r"C:\Program Files\Thorlabs\Kinesis"
@@ -22,29 +22,27 @@ class KinesisConfig:
 
 
 @dataclass
-class PDXC2Config:
+class Controller:
     """Constants and configurations pertaining to each controller."""
 
     serial_num: bytes
 
-    analog_in_gain: float = 3.0303
+    analog_in_gain: float = 1.0
     analog_in_offset: float = 0.0
 
-    # TODO: Calibrate these values, if controller output is stable, increase
-    # gain to 3.3
-    analog_out_gain: float = 3.0
-    analog_out_offset: float = 0.0
+    analog_out_gain: float = 0.5
+    analog_out_offset: float = 5.0
 
 
 @dataclass
-class XPDXC2Config(PDXC2Config):
+class XController(Controller):
     """Configurations pertaining to the x-axis controller."""
 
     serial_num: bytes = b"112547939"
 
 
 @dataclass
-class YPDXC2Config(PDXC2Config):
+class YController(Controller):
     """Configurations pertaining to the y-axis controller."""
 
     serial_num: bytes = b"112512664"

@@ -9,7 +9,7 @@ what is necessary.
 import ctypes
 import os
 
-from config import KinesisConfig
+from pdxc2.config import Kinesis
 
 
 def _check_err_status_code(func, *args) -> None:
@@ -110,7 +110,7 @@ class PDXC2Controller:
         self._serial_num = ctypes.c_char_p(serial_num)
 
         self._lib = ctypes.cdll.LoadLibrary(
-            os.path.join(KinesisConfig.KINESIS_DIR, KinesisConfig.DLL_FILE)
+            os.path.join(Kinesis.KINESIS_DIR, Kinesis.DLL_FILE)
         )
 
         self._set_function_prototypes()
@@ -147,12 +147,12 @@ class PDXC2Controller:
 
         return params
 
-    def set_analog_rising_trigger_mode(self) -> None:
+    def set_to_analog_rising_trigger_mode(self) -> None:
         """Set Trigger Mode to Analog Rising Edge."""
         _check_err_status_code(
             self._lib.PDXC2_SetExternalTriggerConfig,
             self._serial_num,
-            KinesisConfig.PDXC2_TRIGGER_MODE_ANALOG_RISING,
+            Kinesis.PDXC2_TRIGGER_MODE_ANALOG_RISING,
         )
 
     def set_analog_rising_trigger_params(
