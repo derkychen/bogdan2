@@ -8,11 +8,13 @@ what is necessary.
 
 import ctypes
 import os
+import time
 from typing import Final
 
 KINESIS_DIR: Final[str] = r"C:\Program Files\Thorlabs\Kinesis"
 KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
 
+ENABLE_SETTLING_TIME_S: Final[float] = 0.500
 TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
 
@@ -66,6 +68,12 @@ class Controller:
 
         self._lib.PDXC2_Close.argtypes = [ctypes.c_char_p]
         self._lib.PDXC2_Close.restype = None
+
+        self._lib.PDXC2_StartPolling.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_int,
+        ]
+        self._lib.PDXC2_StartPolling.restype = ctypes.c_bool
 
         self._lib.PDXC2_Enable.argtypes = [ctypes.c_char_p]
         self._lib.PDXC2_Enable.restype = ctypes.c_short
@@ -123,7 +131,12 @@ class Controller:
         """Enable the controller."""
         _check_err_status_code(self._lib.TLI_BuildDeviceList)
         _check_err_status_code(self._lib.PDXC2_Open, self._serial_num)
+        _check_err_bool(self._lib.PDXC2_StartPolling, self._serial_num, 200)
+
+        # Settling delay as specified by the Kinesis API.
+        time.sleep(0.5)
         _check_err_status_code(self._lib.PDXC2_Enable, self._serial_num)
+        time.sleep(0.5)
 
         print(f"PDXC2 ({self._serial_num.value}) enabled.")
 

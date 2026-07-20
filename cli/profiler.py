@@ -1,7 +1,6 @@
 """This module contains the main profiling functionality."""
 
 import json
-import os
 import time
 from typing import Final
 
@@ -25,7 +24,6 @@ from host.pico.scope import Scope
 from host.utils.instruction import (
     MODE_CONTINUOUS,
     MODE_MAP,
-    InvalidModeException,
     check_no_none,
     mcu_instruction,
 )
@@ -35,19 +33,26 @@ Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
 
 CALIBRATION_REFRESH_S: Final[float] = 0.100
 
+PORT_WAIT_TIMEOUT_S: Final[float] = 10.0
+PORT_POLL_INTERVAL_S: Final[float] = 10.0
 BAUD_RATE: Final[int] = 115200
 
 
-class InvalidInstructionJSONException:
+class InvalidInstructionJSON(Exception):
     """When an invalid JSON is in the instruction file."""
 
 
-class InvalidJSONFromMCUException:
+class PortWaitTimeout(Exception):
+    """When the host times out waiting for the device on the port."""
+
+
+class InvalidJSONFromMCU(Exception):
     """When an invalid JSON is received from the microcontroller."""
 
 
 def _clear_terminal() -> None:
-    os.system("cls" if os.name == "nt" else "clear")
+    """Clear the terminal."""
+    print("\033[2J\033[H", end="")
 
 
 class Profiler:
@@ -58,7 +63,7 @@ class Profiler:
         self._scope = Scope()
 
         self._x_controller = Controller(X_PDXC2_SERIAL_NUM)
-        self._y_controller = Controller(X_PDXC2_SERIAL_NUM)
+        self._y_controller = Controller(Y_PDXC2_SERIAL_NUM)
 
         self._scope.open()
         self._scope.setup()
@@ -129,7 +134,7 @@ class Profiler:
                 instruction = json.load(f)
 
         except json.JSONDecodeError as e:
-            raise InvalidInstructionJSONException(
+            raise InvalidInstructionJSON(
                 f"Invalid JSON in '{instruction_path}': {e}"
             ) from e
 
@@ -137,16 +142,25 @@ class Profiler:
 
         self._scope.set_mode(SCOPE_MODE_BULK)
         self._scope.set_sample_region(
-            instruction["capture"]["posttrigger_time_ns"],
+            instruction["capture"]["pretrigger_time_ns"],
             instruction["capture"]["posttrigger_time_ns"],
             instruction["capture"]["sample_interval_ns"],
         )
 
-        try:
-            ser = serial.Serial(port, BAUD_RATE, timeout=None)
+        start = time.time()
+        while time.time() - start < PORT_WAIT_TIMEOUT_S:
+            available_ports = [
+                port.device for port in serial.tools.list_ports.comports()
+            ]
 
+            if port in available_ports:
+                break
+
+            time.sleep(PORT_POLL_INTERVAL_S)
+
+        with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
             if MODE_MAP[instruction["mode"]] == MODE_CONTINUOUS:
-                ser.write(mcu_instruction(instruction))
+                ser.write(json.dumps(mcu_instruction(instruction)).encode())
 
                 while True:
                     self._scope.configure_bulk_capture(
@@ -162,12 +176,14 @@ class Profiler:
                         status = json.loads(line)
 
                     except json.JSONDecodeError as e:
-                        raise InvalidInstructionJSONException(
+                        raise InvalidInstructionJSON(
                             f"Invalid JSON in '{instruction_path}': {e}"
                         ) from e
 
                     if status["ok"] and status["msg"] == "done":
                         break
+
+                    # TODO: Process data.
 
             else:
                 num_points = (
@@ -180,7 +196,7 @@ class Profiler:
                     + 1
                 )
 
-                ser.write(mcu_instruction(instruction))
+                ser.write(json.dumps(mcu_instruction(instruction)).encode())
 
                 for _ in range(num_points):
                     self._scope.configure_bulk_capture(
@@ -188,5 +204,4 @@ class Profiler:
                     )
                     self._scope.run_capture()
 
-        except KeyError as e:
-            raise InvalidModeException("Mode provided is not valid.") from e
+                # TODO: Process data.

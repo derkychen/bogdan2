@@ -3,8 +3,8 @@
 from typing import Any, Final
 
 MODE_POINT: Final[int] = 0
-MODE_TIME: Final[int] = 0
-MODE_CONTINUOUS: Final[int] = 0
+MODE_TIME: Final[int] = 1
+MODE_CONTINUOUS: Final[int] = 2
 
 MODE_MAP = {
     "point": MODE_POINT,
@@ -13,11 +13,11 @@ MODE_MAP = {
 }
 
 
-class InvalidModeException(Exception):
+class InvalidMode(Exception):
     """Exception for when the provided mode is not valid."""
 
 
-class InstructionFieldNoneException(Exception):
+class InstructionFieldNone(Exception):
     """Exception for when a field of an instruction is `None`."""
 
 
@@ -30,11 +30,9 @@ def check_no_none(instruction: dict[str, Any]) -> None:
     """Traverse all instruction fields and check that they are not `None`."""
     for key, val in instruction.items():
         if val is None:
-            raise InstructionFieldNoneException(
-                f"Instruction field {key} is `None`."
-            )
+            raise InstructionFieldNone(f"Instruction field {key} is `None`.")
 
-        if isinstance(val, dict):
+        if isinstance(val, (dict, list)):
             check_no_none(val)
 
 
@@ -43,9 +41,9 @@ def mcu_instruction(instruction: dict[str, Any]) -> dict[str, int]:
     indio_instruction = {}
 
     try:
-        indio_instruction["mode"] = MODE_MAP[instruction["mode"].lower()]
+        indio_instruction["mode"] = MODE_MAP[instruction["mode"]]
     except KeyError as err:
-        raise InvalidModeException("Mode provided is not valid.") from err
+        raise InvalidMode("Mode provided is not valid.") from err
 
     indio_instruction["x_min"] = instruction["grid"]["x"]["min"]
     indio_instruction["x_max"] = instruction["grid"]["x"]["max"]

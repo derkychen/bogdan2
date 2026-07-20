@@ -21,6 +21,12 @@ CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
 CHANNEL_C: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
 CHANNEL_D: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
 
+TIMEBASE_MAX_TRIES: Final[int] = 10
+
+
+class CouldNotFindTimebase(Exception):
+    """When searching for a timebase according to sample region fails."""
+
 
 class Scope:
     """Abstraction of the PicoScope."""
@@ -30,6 +36,29 @@ class Scope:
         assert_pico_ok(
             ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
         )
+
+    def _calculate_trigger_threshold_mv(
+        self,
+        channel: Channel,
+        multiplier: float = 7.0,
+        samples: int = 1000,
+    ):
+        """Calculate trigger threshold from a baseline capture.
+
+        threshold_mv = baseline_mean_mv + multiplier * baseline_noise_mv
+        """
+        channel.single_buffer_create(samples)
+
+        self.run_capture()
+
+        baseline_mv = channel.single_mv()
+
+        baseline_mean_mv = float(np.mean(baseline_mv))
+        baseline_noise_mv = float(np.std(baseline_mv))
+
+        threshold_mv = baseline_mean_mv + (multiplier * baseline_noise_mv)
+
+        return threshold_mv
 
     def __init__(
         self,
@@ -55,11 +84,11 @@ class Scope:
         return self._chandle
 
     def get_max_adc(self) -> ctypes.c_int16:
-        """Get the C handle of the PicoScope."""
+        """Get the maximum ADC value of the PicoScope."""
         return self._max_adc
 
     def get_timebase(self) -> int:
-        """Get the C handle of the PicoScope."""
+        """Get the timebase of the PicoScope."""
         return self._timebase
 
     def open(self) -> None:
@@ -107,7 +136,8 @@ class Scope:
         if self._mode == SCOPE_MODE_SINGLE:
             self._a.disable_trigger()
         else:
-            self._a.set_trigger(TRIGGER_RISING, threshold_mv=2000.0)
+            threshold_mv = self._calculate_trigger_threshold_mv(self._a)
+            self._a.set_trigger(TRIGGER_RISING, threshold_mv=threshold_mv)
 
     def set_sample_region(
         self,
@@ -131,7 +161,7 @@ class Scope:
 
         self._timebase = 1
 
-        while True:
+        for _ in range(TIMEBASE_MAX_TRIES):
             dt_ns = ctypes.c_float()
             returned_max_samples = ctypes.c_int32()
 
@@ -148,17 +178,14 @@ class Scope:
             )
 
             if dt_ns.value >= sample_interval_ns:
-                print(
-                    "Timebase:",
-                    self._timebase,
-                    "| Sample Interval: ",
-                    dt_ns.value,
-                    "ns",
-                )
-
-                break
+                return
 
             self._timebase += 1
+
+        raise CouldNotFindTimebase(
+            f"Could not find timebase with {self._total_samples} total "
+            f"samples and {sample_interval_ns} nanosecond sample interval."
+        )
 
     def configure_single_capture(self) -> None:
         """Create buffers for a single capture.
@@ -167,20 +194,10 @@ class Scope:
 
         NOTE: This function should only be called when in `SINGLE` mode.
         """
-        for channel in self._channels:
-            buffer = (ctypes.c_int16 * (self._total_samples))()
+        self._num_captures = 1
 
-            assert_pico_ok(
-                ps.ps2000aSetDataBuffers(
-                    self._chandle,
-                    channel.get_id(),
-                    buffer,
-                    None,
-                    self._total_samples,
-                    0,
-                    RATIO_MODE_NONE,
-                )
-            )
+        for channel in self._channels:
+            channel.single_buffer_create(self._total_samples)
 
     def configure_bulk_capture(self, num_captures: int) -> None:
         """Create buffers for a bulk capture.
@@ -190,44 +207,30 @@ class Scope:
 
         NOTE: This function should only be called when in `BULK` mode.
         """
+        self._num_captures = num_captures
         max_samples = ctypes.c_int32()
 
         assert_pico_ok(
             ps.ps2000aMemorySegments(
                 self._chandle,
-                num_captures,
+                self._num_captures,
                 ctypes.byref(max_samples),
             )
         )
 
         if self._total_samples > max_samples.value:
             raise ValueError(
-                f"Total number of samples ({self.total_samples}) is larger"
-                f"than the maximum number of samples per acquisition buffer"
+                f"Total number of samples ({self._total_samples}) is larger "
+                f"than the maximum number of samples per acquisition buffer "
                 f"{max_samples.value}."
             )
 
-        assert_pico_ok(ps.ps2000aSetNoOfCaptures(self._chandle, num_captures))
+        assert_pico_ok(
+            ps.ps2000aSetNoOfCaptures(self._chandle, self._num_captures)
+        )
 
         for channel in self._channels:
-            channel_buffer = []
-            channel.set_buffer(channel_buffer)
-
-            for i in range(num_captures):
-                segment = (ctypes.c_int16 * (self._total_samples))()
-
-                channel.channel_buffer_add_segment(segment)
-
-                assert_pico_ok(
-                    ps.ps2000aSetDataBuffer(
-                        self._chandle,
-                        channel.get_id(),
-                        segment,
-                        self._total_samples,
-                        i,
-                        RATIO_MODE_NONE,
-                    )
-                )
+            channel.bulk_buffer_create(self._total_samples, self._num_captures)
 
     def run_capture(self, timeout_s: float = 10.0) -> None:
         """Capture waveforms on every trigger."""
@@ -252,7 +255,7 @@ class Scope:
 
         while ready.value == 0:
             assert_pico_ok(
-                ps.ps2000aIsReady(self.chandle, ctypes.byref(ready))
+                ps.ps2000aIsReady(self._chandle, ctypes.byref(ready))
             )
 
             elapsed = time.time() - start
@@ -266,7 +269,7 @@ class Scope:
 
     def get_single(self) -> dict[str, float]:
         """Receive single capture from the PicoScope in millivolts."""
-        samples = ctypes.c_int32(self._total_samples)
+        samples = ctypes.c_uint32(self._total_samples)
         overflow = ctypes.c_int16()
 
         assert_pico_ok(
@@ -285,22 +288,21 @@ class Scope:
             print("WARNING: ADC overflow detected in capture.")
 
         return {
-            channel.name: channel.single_mv_from_buffer()
-            for channel in self._channels
+            channel.name: channel.single_mv() for channel in self._channels
         }
 
     def get_bulk(self) -> dict[str, np.array]:
         """Receive bulk capture from the PicoScope in millivolts."""
-        samples = ctypes.c_uint32(self.total_samples)
-        overflow = (ctypes.c_int16 * self.num_pulses)()
+        samples = ctypes.c_uint32(self._total_samples)
+        overflow = (ctypes.c_int16 * self._num_captures)()
 
         # Transfer captures from PicoScope memory to host.
         assert_pico_ok(
             ps.ps2000aGetValuesBulk(
-                self.chandle,
+                self._chandle,
                 ctypes.byref(samples),
                 0,
-                self.num_pulses - 1,
+                self._num_captures - 1,
                 0,
                 RATIO_MODE_NONE,
                 overflow,
@@ -311,10 +313,7 @@ class Scope:
         if any(overflow):
             print("WARNING: ADC overflow detected in one or more captures.")
 
-        return {
-            channel.name: channel.bulk_mv_from_buffer()
-            for channel in self._channels
-        }
+        return {channel.name: channel.bulk_mv() for channel in self._channels}
 
     def close(self) -> None:
         """Close the PicoScope."""
