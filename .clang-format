@@ -1,4 +1,4 @@
-# `clang-format` configurations to best adhere to Barr Group's Embedded C Coding Standard
+# Configurations to best adhere to Barr Group's Embedded C Coding Standard
 #
 # Based on and thanks to Peter Torelli's repository:
 # https://github.com/petertorelli/clang-format-barr-c
