@@ -2,18 +2,23 @@
 
 import ctypes
 import time
+from typing import Final
 
 import numpy as np
 from pico.channel import Channel
-from pico.config import (
-    ChannelRanges,
-    Channels,
-    RatioMode,
-    ScopeMode,
-    TriggerDirection,
+from pico.constants import (
+    RATIO_MODE_NONE,
+    SCOPE_MODE_BULK,
+    SCOPE_MODE_SINGLE,
+    TRIGGER_RISING,
 )
 from picosdk.functions import assert_pico_ok
 from picosdk.ps2000a import ps2000a as ps
+
+CHANNEL_ID_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
+CHANNEL_ID_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
+CHANNEL_ID_C: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
+CHANNEL_ID_D: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
 
 
 class Scope:
@@ -25,19 +30,16 @@ class Scope:
             ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
         )
 
-    def _set_timebase(self, timebase: int) -> None:
-        """Set the timebase of the PicoScope."""
-        self._timebase = timebase
-
     def __init__(
         self,
     ) -> None:
         """Initialize the PicoScope."""
         self._chandle = ctypes.c_int16()
         self._max_adc = ctypes.c_int16()
-        self._timebase = 1
+        self._timebase = None
 
-        self.mode = None
+        self._mode = None
+
         self._pretrigger_samples = None
         self._posttrigger_samples = None
         self._total_samples = None
@@ -46,8 +48,6 @@ class Scope:
         self._b = None
         self._c = None
         self._d = None
-
-        self._channels = [self._a, self._b, self._c, self._d]
 
     def get_chandle(self) -> ctypes.c_int16:
         """Get the C handle of the PicoScope."""
@@ -67,27 +67,29 @@ class Scope:
 
     def setup(
         self,
-        a_range_id: int = ChannelRanges.V5,
-        b_range_id: int = ChannelRanges.V20,
-        c_range_id: int = ChannelRanges.V20,
-        d_range_id: int = ChannelRanges.V20,
     ) -> None:
         """Set up the PicoScope."""
         self._set_max_adc()
-        self._set_timebase()
+        self._timebase = 1
 
-    def set_channel_ranges(
+    def configure_channels(
         self,
-        a_range_id: int = ChannelRanges.V5,
-        b_range_id: int = ChannelRanges.V20,
-        c_range_id: int = ChannelRanges.V20,
-        d_range_id: int = ChannelRanges.V20,
+        a_name: str,
+        b_name: str,
+        c_name: str,
+        d_name: str,
+        a_range_id: int,
+        b_range_id: int,
+        c_range_id: int,
+        d_range_id: int,
     ) -> None:
-        """Set the PicoScope channel ranges."""
-        self._a = Channel(self, Channels.A, a_range_id)
-        self._b = Channel(self, Channels.B, b_range_id)
-        self._c = Channel(self, Channels.C, c_range_id)
-        self._d = Channel(self, Channels.D, d_range_id)
+        """Configure PicoScope channel names and ranges."""
+        self._a = Channel(self, a_name, CHANNEL_ID_A, a_range_id)
+        self._b = Channel(self, b_name, CHANNEL_ID_B, b_range_id)
+        self._c = Channel(self, c_name, CHANNEL_ID_C, c_range_id)
+        self._d = Channel(self, d_name, CHANNEL_ID_D, d_range_id)
+
+        self._channels = [self._a, self._b, self._c, self._d]
 
     def set_mode(self, mode: int) -> None:
         """Set the mode of the PicoScope.
@@ -95,16 +97,16 @@ class Scope:
         Whether the PicoScope is triggered depends on whether it is capturing
         for calibration or profiling.
         """
-        assert mode == ScopeMode.SINGLE or mode == ScopeMode.BULK, (
+        assert mode in (SCOPE_MODE_SINGLE, SCOPE_MODE_BULK), (
             "The scope cannot be in any other mode."
         )
 
         self._mode = mode
 
-        if self._mode == ScopeMode.SINGLE:
+        if self._mode == SCOPE_MODE_SINGLE:
             self._a.disable_trigger()
         else:
-            self._a.set_trigger(TriggerDirection.RISING, threshold_mv=2000.0)
+            self._a.set_trigger(TRIGGER_RISING, threshold_mv=2000.0)
 
     def set_sample_region(
         self,
@@ -122,7 +124,9 @@ class Scope:
         self._posttrigger_samples = int(
             posttrigger_time_ns / sample_interval_ns
         )
-        self.total_samples = self._total_samples
+        self._total_samples = (
+            self._pretrigger_samples + self._posttrigger_samples
+        )
 
         self._timebase = 1
 
@@ -151,21 +155,16 @@ class Scope:
                     "ns",
                 )
 
-                return
+                break
 
             self._timebase += 1
 
-        self._set_timebase(
-            self._total_samples,
-            sample_interval_ns,
-        )
-
-    def create_single_buffers(self) -> None:
+    def configure_single_capture(self) -> None:
         """Create buffers for a single capture.
 
         Each channel has one buffer.
 
-        NOTE: This function should only be called when in `bulk` mode.
+        NOTE: This function should only be called when in `SINGLE` mode.
         """
         for channel in self._channels:
             buffer = (ctypes.c_int16 * (self._total_samples))()
@@ -178,24 +177,24 @@ class Scope:
                     None,
                     self._total_samples,
                     0,
-                    RatioMode.NONE,
+                    RATIO_MODE_NONE,
                 )
             )
 
-    def create_bulk_buffers(self, num_acquisition_buffers: int) -> None:
+    def configure_bulk_capture(self, num_captures: int) -> None:
         """Create buffers for a bulk capture.
 
         Each channel has one buffer. Each channel's buffer contains a number of
         buffers equal to the number of pulses to be captured.
 
-        NOTE: This function should only be called when in `bulk` mode.
+        NOTE: This function should only be called when in `BULK` mode.
         """
         max_samples = ctypes.c_int32()
 
         assert_pico_ok(
             ps.ps2000aMemorySegments(
                 self._chandle,
-                self.num_acquisition_buffers,
+                num_captures,
                 ctypes.byref(max_samples),
             )
         )
@@ -207,42 +206,39 @@ class Scope:
                 f"{max_samples.value}."
             )
 
-        status = ps.ps2000aSetNoOfCaptures(self.chandle, self.num_pulses)
-        assert_pico_ok(status)
+        assert_pico_ok(ps.ps2000aSetNoOfCaptures(self._chandle, num_captures))
 
         for channel in self._channels:
             channel_buffer = []
             channel.set_buffer(channel_buffer)
 
-            for i in range(num_acquisition_buffers):
-                acquisition_buffer = (ctypes.c_int16 * (self._total_samples))()
+            for i in range(num_captures):
+                segment = (ctypes.c_int16 * (self._total_samples))()
 
-                channel.channel_buffer_add_acquisition_buffer(
-                    acquisition_buffer
-                )
+                channel.channel_buffer_add_segment(segment)
 
                 assert_pico_ok(
                     ps.ps2000aSetDataBuffer(
                         self._chandle,
                         channel.get_id(),
-                        acquisition_buffer,
+                        segment,
                         self._total_samples,
                         i,
-                        RatioMode.NONE,
+                        RATIO_MODE_NONE,
                     )
                 )
 
-    def run_block_capture(self, timeout_s: float = 10.0) -> None:
+    def run_capture(self, timeout_s: float = 10.0) -> None:
         """Capture waveforms on every trigger."""
         unavailable_ms = ctypes.c_int32()
 
         assert_pico_ok(
             ps.ps2000aRunBlock(
-                self.chandle,
+                self._chandle,
                 self._pretrigger_samples,
                 self._posttrigger_samples,
-                self.timebase,
-                self.oversample,
+                self._timebase,
+                0,
                 ctypes.byref(unavailable_ms),
                 0,
                 None,
@@ -278,7 +274,7 @@ class Scope:
                 0,
                 ctypes.byref(samples),
                 1,
-                RatioMode.NONE,
+                RATIO_MODE_NONE,
                 0,
                 ctypes.byref(overflow),
             )
@@ -288,7 +284,7 @@ class Scope:
             print("WARNING: ADC overflow detected in capture.")
 
         return {
-            channel.name: channel.single_mv_from_buffer
+            channel.name: channel.single_mv_from_buffer()
             for channel in self._channels
         }
 
@@ -305,7 +301,7 @@ class Scope:
                 0,
                 self.num_pulses - 1,
                 0,
-                RatioMode.NONE,
+                RATIO_MODE_NONE,
                 overflow,
             )
         )
@@ -315,7 +311,7 @@ class Scope:
             print("WARNING: ADC overflow detected in one or more captures.")
 
         return {
-            channel.name: channel.bulk_mv_from_buffer
+            channel.name: channel.bulk_mv_from_buffer()
             for channel in self._channels
         }
 

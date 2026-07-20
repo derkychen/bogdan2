@@ -1,12 +1,15 @@
 """Abstraction for a PicoScope channel."""
 
 import ctypes
+from typing import Final
 
 import numpy as np
-from pico.config import ChannelCoupling, ChannelRatioMode
+from pico.constants import RATIO_MODE_NONE
 from pico.scope import Scope
 from picosdk.functions import adc2mV, assert_pico_ok, mV2adc
 from picosdk.ps2000a import ps2000a as ps
+
+COUPLING_DC: Final[int] = ps.PS2000A_COUPLING["PS2000A_DC"]
 
 
 class Channel:
@@ -14,7 +17,7 @@ class Channel:
 
     def _calculate_trigger_threshold_mv(
         self,
-        multiplier=7,
+        multiplier,
         samples=1000,
     ):
         """Calculate trigger threshold from a baseline capture.
@@ -32,7 +35,7 @@ class Channel:
                 buffer,
                 samples,
                 0,
-                ChannelRatioMode.NONE,
+                RATIO_MODE_NONE,
             )
         )
 
@@ -44,7 +47,7 @@ class Channel:
                 0,
                 samples,
                 self._scope_timebase,
-                self._oversample,
+                0,
                 ctypes.byref(time_unavail_ms),
                 0,
                 None,
@@ -55,11 +58,9 @@ class Channel:
         ready = ctypes.c_int16(0)
 
         while ready.value == 0:
-            status = ps.ps2000aIsReady(
-                self._scope_chandle, ctypes.byref(ready)
+            assert_pico_ok(
+                ps.ps2000aIsReady(self._scope_chandle, ctypes.byref(ready))
             )
-
-            assert_pico_ok(status)
 
         samples_returned = ctypes.c_int32(samples)
         overflow = ctypes.c_int16()
@@ -70,7 +71,7 @@ class Channel:
                 0,
                 ctypes.byref(samples_returned),
                 1,
-                ChannelRatioMode.NONE,
+                RATIO_MODE_NONE,
                 0,
                 ctypes.byref(overflow),
             )
@@ -113,7 +114,6 @@ class Channel:
 
         self._channel_id = channel_id
         self._range_id = range_id
-        self._oversample = 1
 
         self._buffer = None
         self._readings = None
@@ -123,11 +123,15 @@ class Channel:
                 self._scope_chandle,
                 self._channel_id,
                 1,
-                ChannelCoupling.DC,  # NOTE: Only DC is used.
+                COUPLING_DC,  # NOTE: Only DC is used.
                 self._range_id,
                 0.0,
             )
         )
+
+    def get_id(self) -> int:
+        """Get the channel ID (from the C enumeration)."""
+        return self._channel_id
 
     def set_buffer(self, buffer: list) -> None:
         """Set the channel buffer."""
@@ -136,8 +140,8 @@ class Channel:
     def set_trigger(
         self,
         direction_id: int,
-        threshold_mv: float = None,
-        threshold_multiplier: int = 7,
+        threshold_mv: float | None = None,
+        threshold_multiplier: int | None = None,
     ) -> None:
         """Configure a PicoScope channel as a logical trigger.
 
@@ -164,7 +168,7 @@ class Channel:
             ps.ps2000aSetSimpleTrigger(
                 self._scope_chandle,
                 1,
-                self.channel_id,
+                self._channel_id,
                 trigger_adc,
                 direction_id,
                 0,
@@ -178,18 +182,16 @@ class Channel:
             ps.ps2000aSetSimpleTrigger(self._scope_chandle, 0, 0, 0, 0, 0, 0)
         )
 
-    def channel_buffer_add_acquisition_buffer(
-        self, acquisition_buffer: ctypes.Array
-    ) -> None:
+    def channel_buffer_add_segment(self, segment: ctypes.Array) -> None:
         """Add a acquisition buffer to a channel buffer."""
-        self._buffer.append(acquisition_buffer)
+        self._buffer.append(segment)
 
     def single_mv_from_buffer(self) -> np.array:
         """Get a reading in millivolts from the channel buffer."""
         return adc2mV(
             self._buffer,
             self._range_id,
-            self._max_adc,
+            self._scope_max_adc,
         )
 
     def bulk_mv_from_buffer(self) -> np.array:
@@ -199,7 +201,7 @@ class Channel:
                 adc2mV(
                     adc_sample,
                     self._range_id,
-                    self._max_adc,
+                    self._scope_max_adc,
                 )
                 for adc_sample in self._buffer
             ]
