@@ -8,8 +8,12 @@ what is necessary.
 
 import ctypes
 import os
+from typing import Final
 
-from pdxc2.config import Kinesis
+KINESIS_DIR: Final[str] = r"C:\Program Files\Thorlabs\Kinesis"
+KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
+
+TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
 
 def _check_err_status_code(func, *args) -> None:
@@ -25,11 +29,11 @@ def _check_err_bool(func, *args) -> None:
     ret = func(*args)
 
     if not ret:
-        raise Exception(f"{func.__name__} failed with status code {ret}.")
+        raise Exception(f"{func.__name__} failed.")
 
 
 class PDXC2TriggerParams(ctypes.Structure):
-    """Corresponds the PDXC2_TriggerParams structure from the Kinesis C API."""
+    """Mirrors the PDXC2_TriggerParams structure from the Kinesis C API."""
 
     _pack_ = 1
     _fields_ = [
@@ -110,7 +114,7 @@ class PDXC2Controller:
         self._serial_num = ctypes.c_char_p(serial_num)
 
         self._lib = ctypes.cdll.LoadLibrary(
-            os.path.join(Kinesis.KINESIS_DIR, Kinesis.DLL_FILE)
+            os.path.join(KINESIS_DIR, KINESIS_DLL_FILE)
         )
 
         self._set_function_prototypes()
@@ -152,7 +156,7 @@ class PDXC2Controller:
         _check_err_status_code(
             self._lib.PDXC2_SetExternalTriggerConfig,
             self._serial_num,
-            Kinesis.PDXC2_TRIGGER_MODE_ANALOG_RISING,
+            TRIGGER_MODE_ANALOG_RISING,
         )
 
     def set_analog_rising_trigger_params(
