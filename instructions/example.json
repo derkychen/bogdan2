@@ -14,7 +14,7 @@
 			"origin_nm": 0
 		}
 	},
-	"acquisition": {
+	"capture": {
 		"num_pulses": 3,
 		"pretrigger_time_ns": 100,
 		"posttrigger_time_ns": 100,
