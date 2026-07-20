@@ -50,7 +50,7 @@ class PDXC2TriggerParams(ctypes.Structure):
     ]
 
 
-class PDXC2Controller:
+class Controller:
     """A wrapper around the Thorlabs Kinesis C Library.
 
     Provides methods to enable and configure the PDXC2.
