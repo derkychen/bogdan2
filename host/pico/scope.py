@@ -5,20 +5,21 @@ import time
 from typing import Final
 
 import numpy as np
-from pico.channel import Channel
-from pico.constants import (
+from picosdk.functions import assert_pico_ok
+from picosdk.ps2000a import ps2000a as ps
+
+from host.pico.channel import Channel
+from host.pico.constants import (
     RATIO_MODE_NONE,
     SCOPE_MODE_BULK,
     SCOPE_MODE_SINGLE,
     TRIGGER_RISING,
 )
-from picosdk.functions import assert_pico_ok
-from picosdk.ps2000a import ps2000a as ps
 
-CHANNEL_ID_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
-CHANNEL_ID_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
-CHANNEL_ID_C: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
-CHANNEL_ID_D: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
+CHANNEL_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
+CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
+CHANNEL_C: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
+CHANNEL_D: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
 
 
 class Scope:
@@ -75,19 +76,19 @@ class Scope:
     def configure_channels(
         self,
         a_name: str,
-        b_name: str,
-        c_name: str,
-        d_name: str,
         a_range_id: int,
+        b_name: str,
         b_range_id: int,
+        c_name: str,
         c_range_id: int,
+        d_name: str,
         d_range_id: int,
     ) -> None:
         """Configure PicoScope channel names and ranges."""
-        self._a = Channel(self, a_name, CHANNEL_ID_A, a_range_id)
-        self._b = Channel(self, b_name, CHANNEL_ID_B, b_range_id)
-        self._c = Channel(self, c_name, CHANNEL_ID_C, c_range_id)
-        self._d = Channel(self, d_name, CHANNEL_ID_D, d_range_id)
+        self._a = Channel(self, a_name, CHANNEL_A, a_range_id)
+        self._b = Channel(self, b_name, CHANNEL_B, b_range_id)
+        self._c = Channel(self, c_name, CHANNEL_C, c_range_id)
+        self._d = Channel(self, d_name, CHANNEL_D, d_range_id)
 
         self._channels = [self._a, self._b, self._c, self._d]
 
