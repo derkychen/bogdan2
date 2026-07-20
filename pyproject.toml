@@ -15,6 +15,13 @@ dependencies = [
   "pyserial",
 ]
 
+[project.scripts]
+bogdan2 = "cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [tool.ruff]
 line-length = 79
 target-version = "py311"
@@ -26,7 +33,4 @@ select = ["E", "W", "F", "I", "UP", "B", "SIM", "D"]
 convention = "google"
 
 [tool.setuptools]
-py-modules = [
-  "profile",
-  "calibrate",
-]
+packages = ["host","cli"]
