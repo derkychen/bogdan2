@@ -45,7 +45,7 @@ int
 main (void)
 {
     // These objects persist across profiles.
-    app_instruction_t instruction;
+    app_instruction_t instruction = { 0 };
     char              message[APP_SERIAL_READ_BUFFER_SIZE];
 
     app_controller_t     x_controller;
@@ -95,7 +95,7 @@ main (void)
                     == APP_PROFILER_STATUS_OK)
                 {
                     app_serial_write_line(
-                        "{\"ok\":true,\"msg\":\"profile_complete\"}");
+                        "{\"ok\":true,\"msg\":\"profile_done\"}");
                 }
                 else
                 {

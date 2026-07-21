@@ -152,7 +152,7 @@ class Profiler:
 
         start = time.time()
         while True:
-            if time.time() - start < PORT_WAIT_TIMEOUT_S:
+            if time.time() - start >= PORT_WAIT_TIMEOUT_S:
                 raise PortWaitTimeout("Timed out waiting for port.")
 
             available_ports = [p.device for p in list_ports.comports()]
@@ -166,7 +166,9 @@ class Profiler:
             mode = instruction["mode"]
 
             if mode == "continuous":
-                ser.write(json.dumps(mcu_instruction(instruction)).encode())
+                ser.write(
+                    json.dumps(mcu_instruction(instruction) + "\n").encode()
+                )
 
                 while True:
                     self._scope.configure_bulk_capture(
@@ -186,7 +188,7 @@ class Profiler:
                             f"Invalid JSON in '{instruction_path}': {e}"
                         ) from e
 
-                    if status["ok"] and status["msg"] == "done":
+                    if status["ok"] and status["msg"] == "profile_done":
                         break
 
                     # TODO: Process data.
@@ -202,7 +204,9 @@ class Profiler:
                     + 1
                 )
 
-                ser.write(json.dumps(mcu_instruction(instruction)).encode())
+                ser.write(
+                    json.dumps(mcu_instruction(instruction) + "\n").encode()
+                )
 
                 for _ in range(num_points):
                     self._scope.configure_bulk_capture(
