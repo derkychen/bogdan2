@@ -18,12 +18,18 @@ ENABLE_SETTLING_TIME_S: Final[float] = 0.500
 TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
 
+class KinesisStatusFailure(Exception):
+    """When a Thorlabs C library function fails."""
+
+
 def _check_err_status_code(func, *args) -> None:
     """For Thorlabs C library functions that return status codes."""
     ret = func(*args)
 
     if ret != 0:
-        raise Exception(f"{func.__name__} failed with status code {ret}.")
+        raise KinesisStatusFailure(
+            f"{func.__name__} failed with status code {ret}."
+        )
 
 
 def _check_err_bool(func, *args) -> None:
@@ -31,7 +37,7 @@ def _check_err_bool(func, *args) -> None:
     ret = func(*args)
 
     if not ret:
-        raise Exception(f"{func.__name__} failed.")
+        raise KinesisStatusFailure(f"{func.__name__} failed.")
 
 
 class PDXC2TriggerParams(ctypes.Structure):
@@ -74,6 +80,9 @@ class Controller:
             ctypes.c_int,
         ]
         self._lib.PDXC2_StartPolling.restype = ctypes.c_bool
+
+        self._lib.PDXC2_StopPolling.argtypes = [ctypes.c_char_p]
+        self._lib.PDXC2_StopPolling.restype = None
 
         self._lib.PDXC2_Enable.argtypes = [ctypes.c_char_p]
         self._lib.PDXC2_Enable.restype = ctypes.c_short
@@ -134,9 +143,9 @@ class Controller:
         _check_err_bool(self._lib.PDXC2_StartPolling, self._serial_num, 200)
 
         # Settling delay as specified by the Kinesis API.
-        time.sleep(0.5)
+        time.sleep(ENABLE_SETTLING_TIME_S)
         _check_err_status_code(self._lib.PDXC2_Enable, self._serial_num)
-        time.sleep(0.5)
+        time.sleep(ENABLE_SETTLING_TIME_S)
 
         print(f"PDXC2 ({self._serial_num.value}) enabled.")
 
@@ -206,4 +215,5 @@ class Controller:
     # TODO: More docstring information on exactly what this function does.
     def close(self) -> None:
         """Close the device."""
+        self._lib.PDXC2_StopPolling(self._serial_num)
         self._lib.PDXC2_Close(self._serial_num)

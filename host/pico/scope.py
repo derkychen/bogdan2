@@ -37,6 +37,48 @@ class Scope:
             ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
         )
 
+    def _get_single_values(self, samples: int) -> None:
+        """Transfer single capture from PicoScope memory to host."""
+        samples_u32 = ctypes.c_uint32(samples)
+        overflow = ctypes.c_int16()
+
+        assert_pico_ok(
+            ps.ps2000aGetValues(
+                self._chandle,
+                0,
+                ctypes.byref(samples_u32),
+                1,
+                RATIO_MODE_NONE,
+                0,
+                ctypes.byref(overflow),
+            )
+        )
+
+        # Check if the capture fell outside of signal range.
+        if overflow.value != 0:
+            print("WARNING: ADC overflow detected in capture.")
+
+    def _get_single_values(self, samples: int) -> None:
+        """Transfer bulk capture from PicoScope memory to host."""
+        samples_u32 = ctypes.c_uint32(samples)
+        overflow = (ctypes.c_int16 * self._num_captures)()
+
+        assert_pico_ok(
+            ps.ps2000aGetValuesBulk(
+                self._chandle,
+                ctypes.byref(samples_u32),
+                0,
+                self._num_captures - 1,
+                0,
+                RATIO_MODE_NONE,
+                overflow,
+            )
+        )
+
+        # Check if any captures fell outside of signal range.
+        if any(overflow):
+            print("WARNING: ADC overflow detected in one or more captures.")
+
     def _calculate_trigger_threshold_mv(
         self,
         channel: Channel,
@@ -49,7 +91,9 @@ class Scope:
         """
         channel.single_buffer_create(samples)
 
+        self.set_sample_region(0, samples)
         self.run_capture()
+        self._get_single_values(samples)
 
         baseline_mv = channel.single_mv()
 
@@ -269,23 +313,7 @@ class Scope:
 
     def get_single(self) -> dict[str, float]:
         """Receive single capture from the PicoScope in millivolts."""
-        samples = ctypes.c_uint32(self._total_samples)
-        overflow = ctypes.c_int16()
-
-        assert_pico_ok(
-            ps.ps2000aGetValues(
-                self._chandle,
-                0,
-                ctypes.byref(samples),
-                1,
-                RATIO_MODE_NONE,
-                0,
-                ctypes.byref(overflow),
-            )
-        )
-
-        if overflow.value != 0:
-            print("WARNING: ADC overflow detected in capture.")
+        self._get_single_values(self._total_samples)
 
         return {
             channel.name: channel.single_mv() for channel in self._channels
@@ -293,25 +321,7 @@ class Scope:
 
     def get_bulk(self) -> dict[str, np.array]:
         """Receive bulk capture from the PicoScope in millivolts."""
-        samples = ctypes.c_uint32(self._total_samples)
-        overflow = (ctypes.c_int16 * self._num_captures)()
-
-        # Transfer captures from PicoScope memory to host.
-        assert_pico_ok(
-            ps.ps2000aGetValuesBulk(
-                self._chandle,
-                ctypes.byref(samples),
-                0,
-                self._num_captures - 1,
-                0,
-                RATIO_MODE_NONE,
-                overflow,
-            )
-        )
-
-        # Check if any captures fell outside of signal range.
-        if any(overflow):
-            print("WARNING: ADC overflow detected in one or more captures.")
+        self._get_single_values(self._total_samples)
 
         return {channel.name: channel.bulk_mv() for channel in self._channels}
 

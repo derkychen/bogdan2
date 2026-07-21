@@ -64,18 +64,9 @@ class Channel:
     def set_trigger(
         self,
         direction_id: int,
-        threshold_mv: float | None = None,
+        threshold_mv: float,
     ) -> None:
-        """Configure a PicoScope channel as a logical trigger.
-
-        Args:
-            direction_id: Trigger direction from `ctypes` enumeration.
-            threshold_mv: Trigger threshold. Default is `None`, which means the
-                          threshold is calculated.
-            threshold_multiplier: Trigger threshold multiplier. Used in the
-                                  calculation of the threshold in millivolts if
-                                  it is not provided.
-        """
+        """Configure a PicoScope channel as a logical trigger."""
         trigger_adc = mV2adc(
             threshold_mv, self._range_id, self._scope.get_max_adc()
         )
@@ -102,7 +93,7 @@ class Channel:
                 self._channel_id,
                 buffer,
                 None,
-                self._total_samples,
+                samples,
                 0,
                 RATIO_MODE_NONE,
             )
@@ -125,7 +116,7 @@ class Channel:
                     self._scope.get_chandle(),
                     self._channel_id,
                     segment,
-                    self._total_samples,
+                    samples,
                     i,
                     RATIO_MODE_NONE,
                 )
@@ -141,7 +132,7 @@ class Channel:
 
     def single_mv(self) -> np.ndarray:
         """Get a reading in millivolts from the channel buffer."""
-        return np.ndarray(
+        return np.array(
             adc2mV(
                 self._buffer,
                 self._range_id,

@@ -26,14 +26,17 @@ def _ceil_div(num: int, denom: int) -> int:
     return -(num // -denom)
 
 
-def check_no_none(instruction: dict[str, Any]) -> None:
+def check_no_none(obj: dict[str, Any]) -> None:
     """Traverse all instruction fields and check that they are not `None`."""
-    for key, val in instruction.items():
-        if val is None:
-            raise InstructionFieldNone(f"Instruction field {key} is `None`.")
-
-        if isinstance(val, (dict, list)):
+    if isinstance(obj, dict):
+        for key, val in obj.items():
+            if val is None:
+                raise ValueError(f"{key} is None")
             check_no_none(val)
+
+    elif isinstance(obj, list):
+        for item in obj:
+            check_no_none(item)
 
 
 def mcu_instruction(instruction: dict[str, Any]) -> dict[str, int]:
