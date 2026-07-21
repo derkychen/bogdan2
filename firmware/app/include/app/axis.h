@@ -45,7 +45,7 @@ typedef struct
     app_controller_t *controller;
 } app_axis_t;
 
-/** @brief Initialize an axis structure. */
+/** @brief Initialize an axis structure and configure controller interrupts. */
 app_axis_status_t app_axis_init(app_axis_t       *axis,
                                 int               min,
                                 int               max,

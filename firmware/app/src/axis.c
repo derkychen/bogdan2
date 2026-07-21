@@ -70,6 +70,8 @@ app_axis_init (app_axis_t       *axis,
     axis->target     = axis->current;
     axis->controller = controller;
 
+    app_controller_configure_trigger_out(axis->controller);
+
     return APP_AXIS_STATUS_INIT_OK;
 }
 

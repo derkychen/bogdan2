@@ -43,6 +43,9 @@ void app_controller_init(app_controller_t                          *controller,
                          platform_samd21g18a_eic_pin_t const       *trigger_out,
                          board_indio_analog_output_channel_t const *analog_in);
 
+/** @brief Configure the Trigger OUT interrupt. */
+void app_controller_configure_trigger_out(app_controller_t *controller);
+
 /** @brief Return whether the stage is moving or not. */
 bool app_controller_get_stage_moving(app_controller_t const *controller);
 

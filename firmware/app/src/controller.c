@@ -10,8 +10,7 @@
 
 /** @brief Record the stopping of stage movement. */
 static void
-controllers_trigger_out_isr (platform_samd21g18a_eic_extint_line_t line,
-                             void                                 *context)
+trigger_out_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
 {
     app_controller_t *controller;
 
@@ -31,7 +30,6 @@ app_controller_init (app_controller_t                          *controller,
                      platform_samd21g18a_eic_pin_t const       *trigger_out,
                      board_indio_analog_output_channel_t const *analog_in)
 {
-    platform_samd21g18a_eic_cfg_t trigger_out_cfg;
 
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(trigger_in != NULL);
@@ -46,19 +44,30 @@ app_controller_init (app_controller_t                          *controller,
     platform_samd21g18a_digital_pin_cfg_set_output(trigger_in);
     platform_samd21g18a_digital_pin_level_set_low(trigger_in);
 
+    board_indio_analog_output_write(analog_in, 0U);
+
+    return;
+}
+
+void
+app_controller_configure_trigger_out (app_controller_t *controller)
+{
+    platform_samd21g18a_eic_cfg_t trigger_out_cfg;
+
+    PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);
+
     trigger_out_cfg = (platform_samd21g18a_eic_cfg_t) {
-        .eic_pin = trigger_out,
+        .eic_pin = controller->trigger_out,
         .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
     };
 
     platform_samd21g18a_eic_configure(&trigger_out_cfg);
 
     platform_samd21g18a_eic_register_callback_entry(
-        trigger_out_cfg.eic_pin->line, controllers_trigger_out_isr, controller);
+        trigger_out_cfg.eic_pin->line, trigger_out_isr, controller);
 
     platform_samd21g18a_eic_line_disable(controller->trigger_out->line);
-
-    board_indio_analog_output_write(analog_in, 0U);
 
     return;
 }
