@@ -7,7 +7,8 @@ target_sources(app PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/src/main.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/path.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/profiler.c"
-  "${CMAKE_CURRENT_LIST_DIR}/src/pulse_counter.c"
+  "${CMAKE_CURRENT_LIST_DIR}/src/pulse_receiver.c"
+  "${CMAKE_CURRENT_LIST_DIR}/src/pulse_tracker.c"
   "${CMAKE_CURRENT_LIST_DIR}/src/serial.c"
 )
 
