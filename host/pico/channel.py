@@ -64,7 +64,7 @@ class Channel:
     def set_trigger(
         self,
         direction_id: int,
-        threshold_mv: float,
+        threshold_mv: float = 2000.0,
     ) -> None:
         """Configure a PicoScope channel as a logical trigger."""
         trigger_adc = mV2adc(
@@ -109,7 +109,7 @@ class Channel:
         for i in range(captures):
             segment = (ctypes.c_int16 * (samples))()
 
-            self.buffer_add_segment(segment)
+            self._buffer.append(segment)
 
             assert_pico_ok(
                 ps.ps2000aSetDataBuffer(

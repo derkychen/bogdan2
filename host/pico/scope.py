@@ -58,7 +58,7 @@ class Scope:
         if overflow.value != 0:
             print("WARNING: ADC overflow detected in capture.")
 
-    def _get_single_values(self, samples: int) -> None:
+    def _get_bulk_values(self, samples: int) -> None:
         """Transfer bulk capture from PicoScope memory to host."""
         samples_u32 = ctypes.c_uint32(samples)
         overflow = (ctypes.c_int16 * self._num_captures)()
@@ -79,31 +79,6 @@ class Scope:
         if any(overflow):
             print("WARNING: ADC overflow detected in one or more captures.")
 
-    def _calculate_trigger_threshold_mv(
-        self,
-        channel: Channel,
-        multiplier: float = 7.0,
-        samples: int = 1000,
-    ):
-        """Calculate trigger threshold from a baseline capture.
-
-        threshold_mv = baseline_mean_mv + multiplier * baseline_noise_mv
-        """
-        channel.single_buffer_create(samples)
-
-        self.set_sample_region(0, samples)
-        self.run_capture()
-        self._get_single_values(samples)
-
-        baseline_mv = channel.single_mv()
-
-        baseline_mean_mv = float(np.mean(baseline_mv))
-        baseline_noise_mv = float(np.std(baseline_mv))
-
-        threshold_mv = baseline_mean_mv + (multiplier * baseline_noise_mv)
-
-        return threshold_mv
-
     def __init__(
         self,
     ) -> None:
@@ -117,6 +92,8 @@ class Scope:
         self._pretrigger_samples = None
         self._posttrigger_samples = None
         self._total_samples = None
+
+        self._num_captures = 1
 
         self._a = None
         self._b = None
@@ -180,8 +157,7 @@ class Scope:
         if self._mode == SCOPE_MODE_SINGLE:
             self._a.disable_trigger()
         else:
-            threshold_mv = self._calculate_trigger_threshold_mv(self._a)
-            self._a.set_trigger(TRIGGER_RISING, threshold_mv=threshold_mv)
+            self._a.set_trigger(TRIGGER_RISING, threshold_mv=2000.0)
 
     def set_sample_region(
         self,
@@ -321,7 +297,7 @@ class Scope:
 
     def get_bulk(self) -> dict[str, np.array]:
         """Receive bulk capture from the PicoScope in millivolts."""
-        self._get_single_values(self._total_samples)
+        self._get_bulk_values(self._total_samples)
 
         return {channel.name: channel.bulk_mv() for channel in self._channels}
 
