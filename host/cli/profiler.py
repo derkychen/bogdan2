@@ -151,6 +151,7 @@ class Profiler:
         self._scope.set_mode(SCOPE_MODE_BULK)
 
         start = time.time()
+
         while True:
             if time.time() - start >= PORT_WAIT_TIMEOUT_S:
                 raise PortWaitTimeout("Timed out waiting for port.")
@@ -162,10 +163,36 @@ class Profiler:
 
             time.sleep(PORT_POLL_INTERVAL_S)
 
-        with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
-            mode = instruction["mode"]
+        mode = instruction["mode"]
 
-            if mode == "continuous":
+        if mode not in ("point_count", "point_time", "continuous"):
+            raise InvalidMode(f"Invalid mode '{mode}'.")
+
+        with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
+            if mode == "point_count" or mode == "point_time":
+                num_points = (
+                    instruction["grid"]["x"]["max"]
+                    - instruction["grid"]["x"]["min"]
+                    + 1
+                ) * (
+                    instruction["grid"]["y"]["max"]
+                    - instruction["grid"]["y"]["min"]
+                    + 1
+                )
+
+                ser.write(
+                    json.dumps(mcu_instruction(instruction) + "\n").encode()
+                )
+
+                for _ in range(num_points):
+                    self._scope.configure_bulk_capture(
+                        instruction["capture"]["num_pulses"]
+                    )
+                    self._scope.run_capture()
+
+                # TODO: Process data.
+
+            elif mode == "continuous":
                 ser.write(
                     json.dumps(mcu_instruction(instruction) + "\n").encode()
                 )
@@ -192,29 +219,3 @@ class Profiler:
                         break
 
                     # TODO: Process data.
-
-            elif mode == "point_count" or mode == "point_time":
-                num_points = (
-                    instruction["grid"]["x"]["max"]
-                    - instruction["grid"]["x"]["min"]
-                    + 1
-                ) * (
-                    instruction["grid"]["y"]["max"]
-                    - instruction["grid"]["y"]["min"]
-                    + 1
-                )
-
-                ser.write(
-                    json.dumps(mcu_instruction(instruction) + "\n").encode()
-                )
-
-                for _ in range(num_points):
-                    self._scope.configure_bulk_capture(
-                        instruction["capture"]["num_pulses"]
-                    )
-                    self._scope.run_capture()
-
-                # TODO: Process data.
-
-            else:
-                raise InvalidMode(f"Invalid mode '{mode}'.")
