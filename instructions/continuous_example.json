@@ -1,0 +1,22 @@
+{
+	"mode": "point_count",
+	"grid": {
+		"x": {
+			"min": -5,
+			"max": 5,
+			"unit_nm": 250000,
+			"origin_nm": 0
+		},
+		"y": {
+			"min": -5,
+			"max": 5,
+			"unit_nm": 250000,
+			"origin_nm": 0
+		}
+	},
+	"capture": {
+		"pretrigger_time_ns": 100,
+		"posttrigger_time_ns": 100,
+		"sample_interval_ns": 4
+	}
+}

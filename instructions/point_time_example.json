@@ -1,5 +1,5 @@
 {
-	"mode": "point",
+	"mode": "point_time",
 	"grid": {
 		"x": {
 			"min": -5,
@@ -15,7 +15,7 @@
 		}
 	},
 	"capture": {
-		"num_pulses": 3,
+		"wait_time_ms": 10,
 		"pretrigger_time_ns": 100,
 		"posttrigger_time_ns": 100,
 		"sample_interval_ns": 4
