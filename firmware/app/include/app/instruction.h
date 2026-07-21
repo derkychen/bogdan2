@@ -13,6 +13,24 @@ typedef enum
 } app_instruction_status_t;
 
 /**
+ * @brief Instruction mode enumeration.
+ *
+ * `COUNT` moves to each point on a grid and counts a number of pulses.
+ *
+ * `TIME` moves to each point on a grid for a fixed amount of time.
+ *
+ * `CONTINUOUS` moves across the entire grid continuously.
+ */
+typedef enum
+{
+    APP_INSTRUCTION_MODE_POINT_COUNT = 0,
+    APP_INSTRUCTION_MODE_POINT_TIME  = 1,
+    APP_INSTRUCTION_MODE_CONTINUOUS  = 2,
+
+    APP_INSTRUCTION_MODE_COUNT,
+} app_instruction_mode_t;
+
+/**
  * @brief Microcontroller-specific instructions received from the host.
  *
  * This structure defines the grid to profile as well as some parameters
@@ -23,6 +41,9 @@ typedef enum
  */
 typedef struct
 {
+    /** Mode of the profiler. */
+    app_instruction_mode_t mode;
+
     /** Minimum coordinate on the x-axis in units. */
     int x_min;
 

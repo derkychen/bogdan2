@@ -11,22 +11,23 @@
 
 #define MAX_JSON_TOKENS (64U)
 
-#define FIELD_MASK_X_MIN               (1UL << 0U)
-#define FIELD_MASK_X_MAX               (1UL << 1U)
-#define FIELD_MASK_X_UNIT_NM           (1UL << 2U)
-#define FIELD_MASK_X_ORIGIN_NM         (1UL << 3U)
-#define FIELD_MASK_Y_MIN               (1UL << 4U)
-#define FIELD_MASK_Y_MAX               (1UL << 5U)
-#define FIELD_MASK_Y_UNIT_NM           (1UL << 6U)
-#define FIELD_MASK_Y_ORIGIN_NM         (1UL << 7U)
-#define FIELD_MASK_NUM_PULSES          (1UL << 8U)
-#define FIELD_MASK_POSTTRIGGER_TIME_US (1UL << 9U)
+#define FIELD_MASK_MODE                (1UL << 0U)
+#define FIELD_MASK_X_MIN               (1UL << 1U)
+#define FIELD_MASK_X_MAX               (1UL << 2U)
+#define FIELD_MASK_X_UNIT_NM           (1UL << 3U)
+#define FIELD_MASK_X_ORIGIN_NM         (1UL << 4U)
+#define FIELD_MASK_Y_MIN               (1UL << 5U)
+#define FIELD_MASK_Y_MAX               (1UL << 6U)
+#define FIELD_MASK_Y_UNIT_NM           (1UL << 7U)
+#define FIELD_MASK_Y_ORIGIN_NM         (1UL << 8U)
+#define FIELD_MASK_NUM_PULSES          (1UL << 9U)
+#define FIELD_MASK_POSTTRIGGER_TIME_US (1UL << 10U)
 
-#define FIELD_REQUIRED_MASK                                                  \
-    (FIELD_MASK_X_MIN | FIELD_MASK_X_MAX | FIELD_MASK_X_UNIT_NM              \
-     | FIELD_MASK_X_ORIGIN_NM | FIELD_MASK_Y_MIN | FIELD_MASK_Y_MAX          \
-     | FIELD_MASK_Y_UNIT_NM | FIELD_MASK_Y_ORIGIN_NM | FIELD_MASK_NUM_PULSES \
-     | FIELD_MASK_POSTTRIGGER_TIME_US)
+#define FIELD_REQUIRED_MASK                                             \
+    (FIELD_MASK_MODE | FIELD_MASK_X_MIN | FIELD_MASK_X_MAX              \
+     | FIELD_MASK_X_UNIT_NM | FIELD_MASK_X_ORIGIN_NM | FIELD_MASK_Y_MIN \
+     | FIELD_MASK_Y_MAX | FIELD_MASK_Y_UNIT_NM | FIELD_MASK_Y_ORIGIN_NM \
+     | FIELD_MASK_NUM_PULSES | FIELD_MASK_POSTTRIGGER_TIME_US)
 
 /** @brief Parsing status codes. */
 typedef enum
@@ -46,7 +47,8 @@ typedef enum
 /** @brief Enumeration of field types. */
 typedef enum
 {
-    FIELD_TYPE_INT = 0,
+    FIELD_TYPE_MODE = 0,
+    FIELD_TYPE_INT,
     FIELD_TYPE_UINT32,
 } field_type_t;
 
@@ -81,6 +83,12 @@ typedef struct
 } token_t;
 
 static field_spec_t const instruction_fields[] = {
+    {
+        .name   = "mode",
+        .type   = FIELD_TYPE_MODE,
+        .offset = offsetof(app_instruction_t, mode),
+        .mask   = FIELD_MASK_X_MIN,
+    },
     {
         .name   = "x_min",
         .type   = FIELD_TYPE_INT,
@@ -231,6 +239,39 @@ token_copy (token_t const *token, char *buffer, size_t buffer_size)
     return;
 }
 
+/** @brief Parse a token into a mode. */
+static parse_status_t
+token_parse_mode (token_t const *token, app_instruction_mode_t *value)
+{
+    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(value != NULL);
+
+    if (token->data->type != JSMN_PRIMITIVE)
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    if (token_text_equals_str(token, "count_point"))
+    {
+        *value = APP_INSTRUCTION_MODE_POINT_COUNT;
+        return PARSE_STATUS_OK;
+    }
+
+    if (token_text_equals_str(token, "time_point"))
+    {
+        *value = APP_INSTRUCTION_MODE_POINT_TIME;
+        return PARSE_STATUS_OK;
+    }
+
+    if (token_text_equals_str(token, "continuous"))
+    {
+        *value = APP_INSTRUCTION_MODE_CONTINUOUS;
+        return PARSE_STATUS_OK;
+    }
+
+    return PARSE_STATUS_ERR;
+}
+
 /** @brief Parse a token into an integer. */
 static parse_status_t
 token_parse_int (token_t const *token, int *value)
@@ -345,6 +386,10 @@ token_field_set (token_t const      *token,
 
     switch (field->type)
     {
+        case FIELD_TYPE_MODE:
+            return parse_to_field_status(
+                token_parse_mode(token, (app_instruction_mode_t *)target));
+
         case FIELD_TYPE_INT:
             return parse_to_field_status(token_parse_int(token, (int *)target));
 

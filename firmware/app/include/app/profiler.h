@@ -4,12 +4,13 @@
 #include "app/controller.h"
 #include "app/instruction.h"
 #include "app/path.h"
-#include "app/pulse_counter.h"
+#include "app/pulse_receiver.h"
 
 /** @brief Profiler status codes. */
 typedef enum
 {
     APP_PROFILER_STATUS_OK = 0,
+    APP_PROFILER_STATUS_ERR,
     APP_PROFILER_STATUS_ERR_X_AXIS_INIT,
     APP_PROFILER_STATUS_ERR_Y_AXIS_INIT,
     APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED,
@@ -33,8 +34,8 @@ typedef struct
     /** Controller for the y-axis. */
     app_controller_t *y_controller;
 
-    /** Pulse counter. */
-    app_pulse_counter_t *pulse_counter;
+    /** Receiver. */
+    app_pulse_receiver_t *receiver;
 
     /** Task to be called in all blocking delays.*/
     app_profiler_task_t task;
@@ -44,11 +45,11 @@ typedef struct
 } app_profiler_t;
 
 /** @brief Initialize the beam profiler. */
-app_profiler_status_t app_profiler_init(app_profiler_t      *profiler,
-                                        app_controller_t    *x_controller,
-                                        app_controller_t    *y_controller,
-                                        app_pulse_counter_t *pulse_counter,
-                                        app_profiler_task_t  task);
+app_profiler_status_t app_profiler_init(app_profiler_t       *profiler,
+                                        app_controller_t     *x_controller,
+                                        app_controller_t     *y_controller,
+                                        app_pulse_receiver_t *receiver,
+                                        app_profiler_task_t   task);
 
 /** @brief Profile a beam based on instructions. */
 app_profiler_status_t app_profiler_profile(

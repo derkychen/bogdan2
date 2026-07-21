@@ -44,9 +44,10 @@ typedef enum
  * the stages.
  */
 app_path_position_t *app_path_modified_raster(
-    const app_axis_t            *x,
-    const app_axis_t            *y,
+    app_axis_t const            *x,
+    app_axis_t const            *y,
     app_path_raster_direction_t *prev_raster_direction,
+    bool                         corners_only,
     size_t                      *path_size);
 
 #endif

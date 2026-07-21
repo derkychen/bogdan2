@@ -3,8 +3,9 @@
 #include "platform/samd21g18a/assert.h"
 #include <limits.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 /**
  * @brief Get the coordinate of the path anchor on an axis.
@@ -14,7 +15,7 @@
  * the anchor, and it is where the traversal of the grid begins and ends.
  */
 static int
-get_anchor_coord (const app_axis_t *axis)
+get_anchor_coord (app_axis_t const *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
 
@@ -156,8 +157,8 @@ static void
 append_local (app_path_position_t *path,
               size_t               path_size_capacity,
               size_t              *path_size_current,
-              const app_axis_t    *x,
-              const app_axis_t    *y,
+              app_axis_t const    *x,
+              app_axis_t const    *y,
               int                  row,
               int                  col,
               bool                 transposed)
@@ -174,6 +175,8 @@ append_local (app_path_position_t *path,
                path_size_current,
                x->min + row,
                y->min + col);
+
+        return;
     }
 
     append(path,
@@ -181,6 +184,8 @@ append_local (app_path_position_t *path,
            path_size_current,
            x->min + col,
            y->min + row);
+
+    return;
 }
 
 /**
@@ -193,8 +198,8 @@ static void
 append_line (app_path_position_t *path,
              size_t               path_size_capacity,
              size_t              *path_size_current,
-             const app_axis_t    *x,
-             const app_axis_t    *y,
+             app_axis_t const    *x,
+             app_axis_t const    *y,
              int                  num_points,
              int                  anchor,
              bool                 transposed)
@@ -302,8 +307,8 @@ static void
 append_even_unrotated_path (app_path_position_t *path,
                             size_t               path_size_capacity,
                             size_t              *path_size_current,
-                            const app_axis_t    *x,
-                            const app_axis_t    *y,
+                            app_axis_t const    *x,
+                            app_axis_t const    *y,
                             int                  rows,
                             int                  cols,
                             bool                 transposed)
@@ -391,8 +396,8 @@ static void
 append_odd_unrotated_path (app_path_position_t *path,
                            size_t               path_size_capacity,
                            size_t              *path_size_current,
-                           const app_axis_t    *x,
-                           const app_axis_t    *y,
+                           app_axis_t const    *x,
+                           app_axis_t const    *y,
                            int                  rows,
                            int                  cols,
                            bool                 transposed)
@@ -547,17 +552,81 @@ append_odd_unrotated_path (app_path_position_t *path,
     return;
 }
 
+/** @brief Determine whether a path changes direction at a point. */
+static bool
+corner_at (const app_path_position_t *previous,
+           const app_path_position_t *current,
+           const app_path_position_t *next)
+{
+    int64_t dx_previous;
+    int64_t dy_previous;
+    int64_t dx_next;
+    int64_t dy_next;
+    int64_t cross_product;
+    int64_t dot_product;
+
+    PLATFORM_SAMD21G18A_ASSERT(previous != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(next != NULL);
+
+    dx_previous = (int64_t)current->x - previous->x;
+    dy_previous = (int64_t)current->y - previous->y;
+    dx_next     = (int64_t)next->x - current->x;
+    dy_next     = (int64_t)next->y - current->y;
+
+    cross_product = (dx_previous * dy_next) - (dy_previous * dx_next);
+    dot_product   = (dx_previous * dx_next) + (dy_previous * dy_next);
+
+    return cross_product != 0 || dot_product <= 0;
+}
+
+/** @brief Remove points that do not represent corners in a path. */
+static void
+shrink_to_corners (app_path_position_t *path, size_t *path_size_current)
+{
+    size_t write_index;
+
+    PLATFORM_SAMD21G18A_ASSERT(path != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+
+    if (*path_size_current <= 2)
+    {
+        return;
+    }
+
+    write_index = 1;
+
+    for (size_t read_index = 1; read_index + 1 < *path_size_current;
+         read_index++)
+    {
+        if (corner_at(&path[read_index - 1],
+                      &path[read_index],
+                      &path[read_index + 1]))
+        {
+            path[write_index] = path[read_index];
+            write_index++;
+        }
+    }
+
+    path[write_index] = path[*path_size_current - 1];
+    write_index++;
+
+    *path_size_current = write_index;
+
+    return;
+}
+
 app_path_position_t *
-app_path_modified_raster (const app_axis_t            *x,
-                          const app_axis_t            *y,
+app_path_modified_raster (app_axis_t const            *x,
+                          app_axis_t const            *y,
                           app_path_raster_direction_t *prev_raster_direction,
+                          bool                         corners_only,
                           size_t                      *path_size)
 {
     size_t                      x_num_points;
     size_t                      y_num_points;
     size_t                      grid_num_points;
     size_t                      path_size_capacity;
-    size_t                      path_size_current = 0;
     int                         rows;
     int                         cols;
     int                         anchor_x;
@@ -577,10 +646,10 @@ app_path_modified_raster (const app_axis_t            *x,
     y_num_points = app_axis_num_points(y);
 
     PLATFORM_SAMD21G18A_ASSERT(x_num_points > 0);
-    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= INT_MAX);
-    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= (SIZE_MAX / y_num_points));
     PLATFORM_SAMD21G18A_ASSERT(y_num_points > 0);
     PLATFORM_SAMD21G18A_ASSERT(x_num_points <= INT_MAX);
+    PLATFORM_SAMD21G18A_ASSERT(y_num_points <= INT_MAX);
+    PLATFORM_SAMD21G18A_ASSERT(x_num_points <= (SIZE_MAX / y_num_points));
 
     grid_num_points = x_num_points * y_num_points;
 
@@ -589,7 +658,7 @@ app_path_modified_raster (const app_axis_t            *x,
     path_size_capacity
         = (grid_num_points == 1) ? grid_num_points : grid_num_points + 1;
 
-    PLATFORM_SAMD21G18A_ASSERT(path_size_capacity <= (SIZE_MAX - sizeof *path));
+    PLATFORM_SAMD21G18A_ASSERT(path_size_capacity <= (SIZE_MAX / sizeof *path));
 
     path = malloc(path_size_capacity * sizeof *path);
 
@@ -624,14 +693,18 @@ app_path_modified_raster (const app_axis_t            *x,
 
         append_line(path,
                     path_size_capacity,
-                    &path_size_current,
+                    path_size,
                     x,
                     y,
                     num_points,
                     anchor,
                     transposed);
 
-        *path_size = path_size_current;
+        if (corners_only)
+        {
+            shrink_to_corners(path, path_size);
+        }
+
         return path;
     }
 
@@ -655,38 +728,31 @@ app_path_modified_raster (const app_axis_t            *x,
 
     if ((rows & 1) == 0)
     {
-        append_even_unrotated_path(path,
-                                   path_size_capacity,
-                                   &path_size_current,
-                                   x,
-                                   y,
-                                   rows,
-                                   cols,
-                                   transposed);
+        append_even_unrotated_path(
+            path, path_size_capacity, path_size, x, y, rows, cols, transposed);
     }
     else if (((rows & 1) == 1) && ((cols & 1) == 1))
     {
-        append_odd_unrotated_path(path,
-                                  path_size_capacity,
-                                  &path_size_current,
-                                  x,
-                                  y,
-                                  rows,
-                                  cols,
-                                  transposed);
+        append_odd_unrotated_path(
+            path, path_size_capacity, path_size, x, y, rows, cols, transposed);
     }
     else
     {
         PLATFORM_SAMD21G18A_ASSERT(false);
     }
 
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current == grid_num_points);
+    PLATFORM_SAMD21G18A_ASSERT(*path_size == grid_num_points);
 
     // Rotate the path to start at the anchor.
     rotate_to_anchor(path, grid_num_points, anchor_x, anchor_y);
 
     path[grid_num_points] = path[0];
     *path_size            = path_size_capacity;
+
+    if (corners_only)
+    {
+        shrink_to_corners(path, path_size);
+    }
 
     return path;
 }

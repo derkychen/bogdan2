@@ -1,7 +1,7 @@
 #include "app/controller.h"
-#include "app/profiler.h"
 #include "app/instruction.h"
-#include "app/pulse_counter.h"
+#include "app/profiler.h"
+#include "app/pulse_receiver.h"
 #include "app/serial.h"
 #include "board/indio/io_cfg.h"
 #include "platform/samd21g18a/eic.h"
@@ -48,10 +48,10 @@ main (void)
     app_instruction_t instruction;
     char              message[APP_SERIAL_READ_BUFFER_SIZE];
 
-    app_controller_t    x_controller;
-    app_controller_t    y_controller;
-    app_pulse_counter_t pulse_counter;
-    app_profiler_t      profiler;
+    app_controller_t     x_controller;
+    app_controller_t     y_controller;
+    app_pulse_receiver_t receiver;
+    app_profiler_t       profiler;
 
     init();
 
@@ -65,12 +65,12 @@ main (void)
                         &board_indio_io_cfg_expansion_d16_eic,
                         &board_indio_io_cfg_analog_output_ch2);
 
-    app_pulse_counter_init(&pulse_counter,
-                           &board_indio_io_cfg_expansion_d6_eic,
-                           &board_indio_io_cfg_expansion_d7_digital);
+    app_pulse_receiver_init(&receiver,
+                            &board_indio_io_cfg_expansion_d6_eic,
+                            &board_indio_io_cfg_expansion_d7_digital);
 
     if (app_profiler_init(
-            &profiler, &x_controller, &y_controller, &pulse_counter, task)
+            &profiler, &x_controller, &y_controller, &receiver, task)
         != APP_PROFILER_STATUS_OK)
     {
         app_serial_write_line(
