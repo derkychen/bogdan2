@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from cli.profiler import Profiler
+from host.cli.profiler import Profiler
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers(dest="command", required=True)
