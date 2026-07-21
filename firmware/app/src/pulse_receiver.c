@@ -44,9 +44,9 @@ relay_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
 }
 
 void
-app_pulse_receiver_init (app_pulse_receiver_t                          *receiver,
-                   platform_samd21g18a_eic_pin_t const     *trigger,
-                   platform_samd21g18a_digital_pin_t const *relay)
+app_pulse_receiver_init (app_pulse_receiver_t                    *receiver,
+                         platform_samd21g18a_eic_pin_t const     *trigger,
+                         platform_samd21g18a_digital_pin_t const *relay)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
     PLATFORM_SAMD21G18A_ASSERT(trigger != NULL);

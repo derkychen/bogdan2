@@ -27,7 +27,7 @@ typedef struct
 
 /** @brief Initialize pulse tracker. */
 void app_pulse_tracker_init(app_pulse_tracker_t     *tracker,
-                            app_pulse_receiver_t          *receiver,
+                            app_pulse_receiver_t    *receiver,
                             app_pulse_tracker_mode_t mode);
 
 /** @brief Return the pulse count. */
