@@ -6,6 +6,7 @@ from typing import Final
 
 import numpy as np
 import serial
+from serial.tools import list_ports
 
 from host.pdxc2.constants import (
     ANALOG_IN_GAIN_0_TO_10,
@@ -22,8 +23,6 @@ from host.pico.constants import (
 )
 from host.pico.scope import Scope
 from host.utils.instruction import (
-    MODE_CONTINUOUS,
-    MODE_MAP,
     check_no_none,
     mcu_instruction,
 )
@@ -34,12 +33,16 @@ Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
 CALIBRATION_REFRESH_S: Final[float] = 0.100
 
 PORT_WAIT_TIMEOUT_S: Final[float] = 10.0
-PORT_POLL_INTERVAL_S: Final[float] = 10.0
+PORT_POLL_INTERVAL_S: Final[float] = 0.01
 BAUD_RATE: Final[int] = 115200
 
 
 class InvalidInstructionJSON(Exception):
     """When an invalid JSON is in the instruction file."""
+
+
+class InvalidMode(Exception):
+    """Exception for when the provided mode is not valid."""
 
 
 class PortWaitTimeout(Exception):
@@ -140,18 +143,19 @@ class Profiler:
 
         check_no_none(instruction)
 
-        self._scope.set_mode(SCOPE_MODE_BULK)
         self._scope.set_sample_region(
             instruction["capture"]["pretrigger_time_ns"],
             instruction["capture"]["posttrigger_time_ns"],
             instruction["capture"]["sample_interval_ns"],
         )
+        self._scope.set_mode(SCOPE_MODE_BULK)
 
         start = time.time()
-        while time.time() - start < PORT_WAIT_TIMEOUT_S:
-            available_ports = [
-                port.device for port in serial.tools.list_ports.comports()
-            ]
+        while True:
+            if time.time() - start < PORT_WAIT_TIMEOUT_S:
+                raise PortWaitTimeout("Timed out waiting for port.")
+
+            available_ports = [p.device for p in list_ports.comports()]
 
             if port in available_ports:
                 break
@@ -159,7 +163,9 @@ class Profiler:
             time.sleep(PORT_POLL_INTERVAL_S)
 
         with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
-            if MODE_MAP[instruction["mode"]] == MODE_CONTINUOUS:
+            mode = instruction["mode"]
+
+            if mode == "continuous":
                 ser.write(json.dumps(mcu_instruction(instruction)).encode())
 
                 while True:
@@ -185,7 +191,7 @@ class Profiler:
 
                     # TODO: Process data.
 
-            else:
+            elif mode == "point_count" or mode == "point_time":
                 num_points = (
                     instruction["grid"]["x"]["max"]
                     - instruction["grid"]["x"]["min"]
@@ -205,3 +211,6 @@ class Profiler:
                     self._scope.run_capture()
 
                 # TODO: Process data.
+
+            else:
+                raise InvalidMode(f"Invalid mode '{mode}'.")

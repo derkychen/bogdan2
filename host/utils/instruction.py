@@ -1,20 +1,6 @@
 """Instruction parsing module."""
 
-from typing import Any, Final
-
-MODE_POINT: Final[int] = 0
-MODE_TIME: Final[int] = 1
-MODE_CONTINUOUS: Final[int] = 2
-
-MODE_MAP = {
-    "point": MODE_POINT,
-    "time": MODE_TIME,
-    "continuous": MODE_CONTINUOUS,
-}
-
-
-class InvalidMode(Exception):
-    """Exception for when the provided mode is not valid."""
+from typing import Any
 
 
 class InstructionFieldNone(Exception):
@@ -43,11 +29,7 @@ def mcu_instruction(instruction: dict[str, Any]) -> dict[str, int]:
     """Parse instructions into a flat JSON for the Industruino IND.I/O."""
     indio_instruction = {}
 
-    try:
-        indio_instruction["mode"] = MODE_MAP[instruction["mode"]]
-    except KeyError as err:
-        raise InvalidMode("Mode provided is not valid.") from err
-
+    indio_instruction["mode"] = instruction["mode"]
     indio_instruction["x_min"] = instruction["grid"]["x"]["min"]
     indio_instruction["x_max"] = instruction["grid"]["x"]["max"]
     indio_instruction["x_unit_nm"] = instruction["grid"]["x"]["unit_nm"]
