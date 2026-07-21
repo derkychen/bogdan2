@@ -15,11 +15,9 @@ typedef enum
 /**
  * @brief Instruction mode enumeration.
  *
- * `COUNT` moves to each point on a grid and counts a number of pulses.
- *
- * `TIME` moves to each point on a grid for a fixed amount of time.
- *
- * `CONTINUOUS` moves across the entire grid continuously.
+ * `POINT_COUNT`: moves to each point on a grid and counts a number of pulses.
+ * `POINT_TIME`:  moves to each point on a grid for a fixed amount of time.
+ * `CONTINUOUS`:  moves across the entire grid continuously.
  */
 typedef enum
 {
@@ -38,6 +36,8 @@ typedef enum
  *
  * NOTE: This structure only contains the instructions relevant to the
  *       microcontroller. It is not necessarily the full set of instructions.
+ *
+ *       Depending on the mode, some of these are unnecessary.
  */
 typedef struct
 {
@@ -70,6 +70,9 @@ typedef struct
 
     /** The number of laser pulses that should be captured at each point.*/
     uint32_t num_pulses;
+
+    /** The amount of time to wait at each point, in microseconds. */
+    uint32_t wait_time_ms;
 
     /** The delay after the triggering of the PicoScope, in microseconds. */
     uint32_t posttrigger_time_us;
