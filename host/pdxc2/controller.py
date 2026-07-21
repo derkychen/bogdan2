@@ -147,7 +147,7 @@ class Controller:
         _check_err_status_code(self._lib.PDXC2_Enable, self._serial_num)
         time.sleep(ENABLE_SETTLING_TIME_S)
 
-        print(f"PDXC2 ({self._serial_num.value}) enabled.")
+        print(f"PDXC2 ({self._serial_num.value.decode()}) enabled.")
 
     def get_trigger_mode(self) -> int:
         """Get the Trigger Mode."""
