@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-bogdan2 = "cli:main"
+bogdan2 = "host.cli:main"
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -33,4 +33,4 @@ select = ["E", "W", "F", "I", "UP", "B", "SIM", "D"]
 convention = "google"
 
 [tool.setuptools]
-packages = ["host","cli"]
+packages = ["host"]
