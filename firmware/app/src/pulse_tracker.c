@@ -28,6 +28,9 @@ app_pulse_tracker_init (app_pulse_tracker_t     *tracker,
         case APP_PULSE_TRACKER_MODE_LAZY:
             break;
 
+        case APP_PULSE_TRACKER_MODE_COUNT:
+            __builtin_unreachable();
+
         default:
             PLATFORM_SAMD21G18A_ASSERT(false);
     }

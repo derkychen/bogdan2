@@ -145,7 +145,7 @@ dfll_lock_48_mhz (void)
         coarse = DFLL48M_COARSE_CAL_FALLBACK;
     }
 
-    SYSCTRL->DFLLVAL.bit.COARSE = coarse;
+    SYSCTRL->DFLLVAL.bit.COARSE = (uint8_t)(coarse & 0x3F);
     dfll_poll_until_ready();
 
     // Set the DFLL to closed-loop mode. Configure the DFLL to only output
