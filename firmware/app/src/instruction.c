@@ -37,7 +37,7 @@
     X(Y_UNIT_NM, "y_unit_nm", y_unit_nm, UINT32, ALL)                 \
     X(Y_ORIGIN_NM, "y_origin_nm", y_origin_nm, INT, ALL)              \
     X(NUM_PULSES, "num_pulses", num_pulses, UINT32, POINT_COUNT)      \
-    X(WAIT_TIME_US, "wait_time_ms", wait_time_ms, UINT32, POINT_TIME) \
+    X(WAIT_TIME_US, "wait_time_us", wait_time_us, UINT32, POINT_TIME) \
     X(POSTTRIGGER_TIME_US,                                            \
       "posttrigger_time_us",                                          \
       posttrigger_time_us,                                            \

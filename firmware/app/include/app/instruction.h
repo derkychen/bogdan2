@@ -72,7 +72,7 @@ typedef struct
     uint32_t num_pulses;
 
     /** The amount of time to wait at each point, in microseconds. */
-    uint32_t wait_time_ms;
+    uint32_t wait_time_us;
 
     /** The delay after the triggering of the PicoScope, in microseconds. */
     uint32_t posttrigger_time_us;
