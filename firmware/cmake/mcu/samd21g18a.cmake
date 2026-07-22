@@ -10,6 +10,11 @@ target_compile_options(samd21g18a INTERFACE
   -fno-asynchronous-unwind-tables
   -Wall
   -Wextra
+  -Wmaybe-uninitialized
+  -Wunused-but-set-variable
+  -Wswitch-enum
+  -Wshadow
+  -Wconversion
 )
 
 target_link_options(samd21g18a INTERFACE
