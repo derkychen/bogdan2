@@ -19,7 +19,7 @@ static app_profiler_status_t
 profile_mode_point_count (app_profiler_t          *profiler,
                           app_instruction_t const *instruction)
 {
-    app_profiler_status_t status;
+    app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
     app_axis_t          x;
     app_axis_t          y;
@@ -36,7 +36,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
 
     if (app_axis_init(&y,
@@ -47,7 +47,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
     app_pulse_tracker_init(
@@ -65,6 +65,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
     for (size_t i = 0; i < path_size; i++)
     {
         uint32_t start_msec;
+        uint32_t start_usec;
 
         if (app_axis_set_target(&x, path[i].x) != APP_AXIS_STATUS_TARGET_OK
             || app_axis_set_target(&y, path[i].y) != APP_AXIS_STATUS_TARGET_OK)
@@ -115,12 +116,23 @@ profile_mode_point_count (app_profiler_t          *profiler,
 
         app_pulse_tracker_end(&tracker);
 
-        platform_samd21g18a_time_sleep_usec(instruction->posttrigger_time_us);
+        start_usec = platform_samd21g18a_time_usec();
+
+        while (platform_samd21g18a_time_usec() - start_usec
+               <= instruction->posttrigger_time_us)
+        {
+            profiler->task();
+        }
     }
 
     status = APP_PROFILER_STATUS_OK;
 
 cleanup:
+    app_axis_move_end(&x);
+    app_axis_move_end(&y);
+
+    app_pulse_tracker_end(&tracker);
+
     free(path);
     path = NULL;
 
@@ -131,7 +143,7 @@ static app_profiler_status_t
 profile_mode_point_time (app_profiler_t          *profiler,
                          app_instruction_t const *instruction)
 {
-    app_profiler_status_t status;
+    app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
     app_axis_t          x;
     app_axis_t          y;
@@ -148,7 +160,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
 
     if (app_axis_init(&y,
@@ -159,7 +171,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
     app_pulse_tracker_init(
@@ -177,6 +189,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
     for (size_t i = 0; i < path_size; i++)
     {
         uint32_t start_msec;
+        uint32_t start_usec;
 
         if (app_axis_set_target(&x, path[i].x) != APP_AXIS_STATUS_TARGET_OK
             || app_axis_set_target(&y, path[i].y) != APP_AXIS_STATUS_TARGET_OK)
@@ -210,12 +223,23 @@ profile_mode_point_time (app_profiler_t          *profiler,
 
         app_pulse_tracker_relay_pulse(&tracker);
 
-        platform_samd21g18a_time_sleep_msec(instruction->wait_time_ms);
+        start_usec = platform_samd21g18a_time_usec();
+
+        while (platform_samd21g18a_time_usec() - start_usec
+               <= instruction->wait_time_us)
+        {
+            profiler->task();
+        }
     }
 
     status = APP_PROFILER_STATUS_OK;
 
 cleanup:
+    app_axis_move_end(&x);
+    app_axis_move_end(&y);
+
+    app_pulse_tracker_end(&tracker);
+
     free(path);
     path = NULL;
 
@@ -226,7 +250,7 @@ static app_profiler_status_t
 profile_mode_continuous (app_profiler_t          *profiler,
                          app_instruction_t const *instruction)
 {
-    app_profiler_status_t status;
+    app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
     app_axis_t          x;
     app_axis_t          y;
@@ -243,7 +267,7 @@ profile_mode_continuous (app_profiler_t          *profiler,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
 
     if (app_axis_init(&y,
@@ -254,7 +278,7 @@ profile_mode_continuous (app_profiler_t          *profiler,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
-        status = APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
+        return APP_PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
     app_pulse_tracker_init(
@@ -308,7 +332,14 @@ profile_mode_continuous (app_profiler_t          *profiler,
 
     app_pulse_tracker_end(&tracker);
 
+    status = APP_PROFILER_STATUS_OK;
+
 cleanup:
+    app_axis_move_end(&x);
+    app_axis_move_end(&y);
+
+    app_pulse_tracker_end(&tracker);
+
     free(path);
     path = NULL;
 
@@ -357,6 +388,9 @@ app_profiler_profile (app_profiler_t          *profiler,
         case APP_INSTRUCTION_MODE_CONTINUOUS:
             return profile_mode_continuous(profiler, instruction);
             break;
+
+        case APP_INSTRUCTION_MODE_COUNT:
+            __builtin_unreachable();
 
         default:
             PLATFORM_SAMD21G18A_ASSERT(false);
