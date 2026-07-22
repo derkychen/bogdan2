@@ -2,10 +2,9 @@
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
-#include "platform/samd21g18a/time.h"
 #include <stddef.h>
 
-#define RELAY_PULSE_WIDTH_USEC (1U)
+#define RELAY_PULSE_WIDTH_CYCLES (40U)
 
 /** @brief Increment the counter when triggered when counting is enabled. */
 static void
@@ -19,9 +18,9 @@ relay_and_count_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
 
     receiver = (app_pulse_receiver_t *)context;
 
-    receiver->count++;
-
     app_pulse_receiver_relay_pulse(receiver);
+
+    receiver->count++;
 
     return;
 }
@@ -150,6 +149,13 @@ app_pulse_receiver_relay_pulse (app_pulse_receiver_t const *receiver)
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
 
     platform_samd21g18a_digital_pin_level_set_high(receiver->relay);
-    platform_samd21g18a_time_sleep_usec(RELAY_PULSE_WIDTH_USEC);
+
+    // NOTE: The `time` module is not used here, as this delay is too short for
+    //       the `sleep_usec` function to be precise.
+    for (volatile uint32_t i = 0U; i < RELAY_PULSE_WIDTH_CYCLES; i++)
+    {
+        __NOP();
+    }
+
     platform_samd21g18a_digital_pin_level_set_low(receiver->relay);
 }
