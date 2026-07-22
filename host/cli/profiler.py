@@ -23,6 +23,7 @@ from host.pico.constants import (
 )
 from host.pico.scope import Scope
 from host.utils.instruction import (
+    MODES,
     check_no_none,
     mcu_instruction,
 )
@@ -53,13 +54,55 @@ class InvalidJSONFromMCU(Exception):
     """When an invalid JSON is received from the microcontroller."""
 
 
+class MCUTimeout(Exception):
+    """Host timed out waiting for a message from the microcontroller."""
+
+
+class MCUError(Exception):
+    """Host receives an error message from the microcontroller."""
+
+
 def _clear_terminal() -> None:
     """Clear the terminal."""
     print("\033[2J\033[H", end="")
 
 
+def _ser_write_newline_terminated(ser: serial.Serial, instruction: dict):
+    """Write a newline-terminated JSON over serial."""
+    ser.write((json.dumps(instruction) + "\n").encode())
+
+
+def _poll_mcu_status(ser: serial.Serial, timeout: float = 10.0) -> dict:
+    """Read one status line from the MCU, raising on any error status."""
+    start = time.time()
+
+    while time.time() - start < timeout:
+        line = ser.readline()
+        if not line:
+            continue
+
+        try:
+            status = json.loads(line)
+            return status
+
+        except json.JSONDecodeError as e:
+            raise InvalidJSONFromMCU(
+                f"Invalid JSON from microcontroller: {e}"
+            ) from e
+
+
 class Profiler:
     """Profiler class responsible for controlling scope and controllers."""
+
+    def __enter__(self) -> "Profiler":
+        """Return the instance."""
+        return self
+
+    def __exit__(self, *exc) -> None:
+        """Cleanup enabled controllers and open scope."""
+        self._x_controller.disable()
+        self._y_controller.disable()
+        self._scope.close()
 
     def __init__(self) -> None:
         """Initialize a profiler instance."""
@@ -165,11 +208,11 @@ class Profiler:
 
         mode = instruction["mode"]
 
-        if mode not in ("point_count", "point_time", "continuous"):
+        if mode not in MODES:
             raise InvalidMode(f"Invalid mode '{mode}'.")
 
         with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
-            if mode == "point_count" or mode == "point_time":
+            if mode in {"point_count", "point_time"}:
                 num_points = (
                     instruction["grid"]["x"]["max"]
                     - instruction["grid"]["x"]["min"]
@@ -180,42 +223,38 @@ class Profiler:
                     + 1
                 )
 
-                ser.write(
-                    json.dumps(mcu_instruction(instruction) + "\n").encode()
+                _ser_write_newline_terminated(
+                    ser, mcu_instruction(instruction)
                 )
 
-                for _ in range(num_points):
-                    self._scope.configure_bulk_capture(
-                        instruction["capture"]["num_pulses"]
-                    )
-                    self._scope.run_capture()
+                if _poll_mcu_status(ser)["ok"]:
+                    for _ in range(num_points):
+                        self._scope.configure_bulk_capture(
+                            instruction["capture"]["num_pulses"]
+                        )
+                        self._scope.run_capture()
 
-                # TODO: Process data.
+                    # TODO: Process data.
 
             elif mode == "continuous":
-                ser.write(
-                    json.dumps(mcu_instruction(instruction) + "\n").encode()
+                _ser_write_newline_terminated(
+                    ser, mcu_instruction(instruction)
                 )
 
-                while True:
-                    self._scope.configure_bulk_capture(
-                        instruction["capture"]["num_pulses"]
-                    )
-                    self._scope.run_capture()
+                if _poll_mcu_status(ser)["ok"]:
+                    while True:
+                        self._scope.configure_single_capture()
+                        self._scope.run_capture()
 
-                    line = ser.readline()
-                    if not line:
-                        continue
+                        status = _poll_mcu_status(ser, timeout=0.010)
 
-                    try:
-                        status = json.loads(line)
+                        if not status["ok"]:
+                            error = status["msg"]
+                            raise MCUError(
+                                f"Microcontroller error message: {error}"
+                            )
 
-                    except json.JSONDecodeError as e:
-                        raise InvalidInstructionJSON(
-                            f"Invalid JSON in '{instruction_path}': {e}"
-                        ) from e
-
-                    if status["ok"] and status["msg"] == "profile_done":
-                        break
+                        elif status["ok"] and status["msg"] == "profile_done":
+                            break
 
                     # TODO: Process data.

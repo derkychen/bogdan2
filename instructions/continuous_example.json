@@ -1,5 +1,5 @@
 {
-	"mode": "point_count",
+	"mode": "continuous",
 	"grid": {
 		"x": {
 			"min": -5,

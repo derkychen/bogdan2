@@ -1,6 +1,14 @@
 """Instruction parsing module."""
 
-from typing import Any
+from typing import Any, Final
+
+MODES: Final[frozenset[str]] = frozenset(
+    {
+        "point_count",
+        "point_time",
+        "continuous",
+    }
+)
 
 
 class InstructionFieldNone(Exception):
