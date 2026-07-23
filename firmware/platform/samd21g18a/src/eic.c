@@ -200,8 +200,6 @@ EIC_Handler (void)
     {
         if ((flags & (1UL << line)) != 0U)
         {
-            flags &= ~(1UL << line); // Clear the flag
-
             EIC->INTFLAG.reg = (1UL << line);
             callback         = callback_entries[line].callback;
             context          = callback_entries[line].context;
@@ -209,6 +207,13 @@ EIC_Handler (void)
             if (callback != NULL)
             {
                 callback(line, context);
+            }
+
+            flags &= ~(1UL << line);
+
+            if (flags == 0U)
+            {
+                break;
             }
         }
     }
