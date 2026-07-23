@@ -185,16 +185,14 @@ class Scope:
             dt_ns = ctypes.c_float()
             returned_max_samples = ctypes.c_int32()
 
-            assert_pico_ok(
-                ps.ps2000aGetTimebase2(
-                    self._chandle,
-                    self._timebase,
-                    self._total_samples,
-                    ctypes.byref(dt_ns),
-                    0,
-                    ctypes.byref(returned_max_samples),
-                    0,
-                )
+            ps.ps2000aGetTimebase2(
+                self._chandle,
+                self._timebase,
+                self._total_samples,
+                ctypes.byref(dt_ns),
+                0,
+                ctypes.byref(returned_max_samples),
+                0,
             )
 
             if dt_ns.value >= sample_interval_ns:
