@@ -188,34 +188,27 @@ platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
 void
 EIC_Handler (void)
 {
-    uint32_t                           flags;
-    platform_samd21g18a_eic_callback_t callback;
-    void                              *context;
+    uint32_t pending;
 
-    flags = EIC->INTFLAG.reg & EIC->INTENSET.reg;
+    pending = EIC->INTFLAG.reg & EIC->INTENSET.reg & EIC_INTFLAG_EXTINT_Msk;
 
-    for (platform_samd21g18a_eic_extint_line_t line = 0U;
-         line < EXTINT_LINE_COUNT;
-         line++)
+    // NOTE: This clears all flags so new interrupts can be received while
+    //       callbacks execute.
+    EIC->INTFLAG.reg = pending;
+
+    while (pending != 0U)
     {
-        if ((flags & (1UL << line)) != 0U)
-        {
-            EIC->INTFLAG.reg = (1UL << line);
-            callback         = callback_entries[line].callback;
-            context          = callback_entries[line].context;
+        platform_samd21g18a_eic_extint_line_t const line
+            = (platform_samd21g18a_eic_extint_line_t)__builtin_ctz(pending);
 
-            if (callback != NULL)
-            {
-                callback(line, context);
-            }
+        platform_samd21g18a_eic_callback_entry_t const entry
+            = callback_entries[line];
 
-            flags &= ~(1UL << line);
+        // Remove least-significant set bit.
+        pending &= pending - 1U;
 
-            if (flags == 0U)
-            {
-                break;
-            }
-        }
+        PLATFORM_SAMD21G18A_ASSERT(entry.callback != NULL);
+        entry.callback(line, entry.context);
     }
 
     return;
