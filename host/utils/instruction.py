@@ -58,8 +58,8 @@ def mcu_instruction(instruction: dict[str, Any]) -> dict[str, int]:
                 instruction["capture"]["posttrigger_time_ns"], 1000
             )
         case "point_time":
-            indio_instruction["wait_time_ms"] = instruction["capture"][
-                "wait_time_ms"
+            indio_instruction["wait_time_us"] = instruction["capture"][
+                "wait_time_us"
             ]
 
     check_no_none(indio_instruction)
