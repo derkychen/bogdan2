@@ -1,4 +1,4 @@
-# Installing Command-Line Dependencies
+# Installing Dependencies
 
 ## Windows
 
