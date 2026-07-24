@@ -3,18 +3,6 @@ add_library(samd21g18a INTERFACE)
 target_compile_options(samd21g18a INTERFACE
   -mcpu=cortex-m0plus
   -mthumb
-  -ffunction-sections
-  -fdata-sections
-  -fno-common
-  -fno-unwind-tables
-  -fno-asynchronous-unwind-tables
-  -Wall
-  -Wextra
-  -Wmaybe-uninitialized
-  -Wunused-but-set-variable
-  -Wswitch-enum
-  -Wshadow
-  -Wconversion
 )
 
 target_link_options(samd21g18a INTERFACE

@@ -19,6 +19,8 @@ target_include_directories(app PRIVATE
 target_link_libraries(app
   PRIVATE
     mcu::samd21g18a
+    options::features
+    options::warnings
   PUBLIC
     board_indio
     external::jsmn

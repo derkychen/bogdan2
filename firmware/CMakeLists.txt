@@ -25,6 +25,12 @@ include("${CMAKE_DIR}/external/cmsis_atmel_samd21g18a.cmake")
 include("${CMAKE_DIR}/external/cmsis_core.cmake")
 include("${CMAKE_DIR}/external/jsmn.cmake")
 include("${CMAKE_DIR}/external/tinyusb_device_samd.cmake")
+
+# CMake options (features and warnings)
+include("${CMAKE_DIR}/options/features.cmake")
+include("${CMAKE_DIR}/options/warnings.cmake")
+
+# CMake microcontroller-specific options
 include("${CMAKE_DIR}/mcu/samd21g18a.cmake")
 
 # Other directories.
