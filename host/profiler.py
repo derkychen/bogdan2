@@ -38,9 +38,6 @@ PORT_POLL_INTERVAL_S: Final[float] = 0.01
 BAUD_RATE: Final[int] = 115200
 
 
-class InvalidInstructionJSON(Exception):
-    """When an invalid JSON is in the instruction file."""
-
 
 class InvalidMode(Exception):
     """Exception for when the provided mode is not valid."""
@@ -173,17 +170,8 @@ class Profiler:
             _clear_terminal()
             print("\nStopped voltage monitor.")
 
-    def profile(self, port: str, instruction_path: str) -> None:
+    def profile(self, port: str, instruction: dict) -> None:
         """Run profiling with a set of instructions."""
-        try:
-            with open(instruction_path, encoding="utf-8") as f:
-                instruction = json.load(f)
-
-        except json.JSONDecodeError as e:
-            raise InvalidInstructionJSON(
-                f"Invalid JSON in '{instruction_path}': {e}"
-            ) from e
-
         check_no_none(instruction)
 
         self._scope.set_sample_region(

@@ -1,9 +1,15 @@
 """This module contains the Bogdan 2 CLI entry point."""
 
 import argparse
+import json
 from pathlib import Path
 
-from host.cli.profiler import Profiler
+from host.profiler import Profiler
+
+
+class InvalidInstructionJSON(Exception):
+    """When an invalid JSON is in the instruction file."""
+
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers(dest="command", required=True)
@@ -36,6 +42,13 @@ def main():
         instruction_path = Path(args.instruction)
 
         if instruction_path.is_file():
-            Profiler().profile(port, instruction_path)
+            try:
+                with open(instruction_path, encoding="utf-8") as f:
+                    Profiler().profile(port, json.load(f))
+
+            except json.JSONDecodeError as e:
+                raise InvalidInstructionJSON(
+                    f"Invalid JSON in '{instruction_path}': {e}"
+                ) from e
         else:
             raise FileNotFoundError("Instruction file not found.")
