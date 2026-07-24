@@ -10,11 +10,73 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-// TODO: Tighten delays after entire pipeline is tested.
-#define TARGET_SET_DEBOUNCE_TIME_USEC (1000U)
-#define AXES_TIMEOUT_MSEC             (10000U)
-#define PULSE_COUNTER_TIMEOUT_MSEC    (10000U)
+#define TARGET_SET_DEBOUNCE_TIME_USEC (1000u)
+#define AXES_TIMEOUT_MSEC             (10000u)
+#define PULSE_COUNTER_TIMEOUT_MSEC    (10000u)
 
+static app_profiler_status_t profile_mode_point_count(
+    app_profiler_t *profiler, app_instruction_t const *instruction);
+
+static app_profiler_status_t profile_mode_point_time(
+    app_profiler_t *profiler, app_instruction_t const *instruction);
+
+static app_profiler_status_t profile_mode_continuous(
+    app_profiler_t *profiler, app_instruction_t const *instruction);
+
+app_profiler_status_t
+app_profiler_init (app_profiler_t       *profiler,
+                   app_controller_t     *x_controller,
+                   app_controller_t     *y_controller,
+                   app_pulse_receiver_t *receiver,
+                   app_profiler_task_t   task)
+{
+    PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(x_controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(y_controller != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(task != NULL);
+
+    profiler->x_controller          = x_controller;
+    profiler->y_controller          = y_controller;
+    profiler->receiver              = receiver;
+    profiler->task                  = task;
+    profiler->prev_raster_direction = APP_PATH_RASTER_DIRECTION_HORIZONTAL;
+
+    return APP_PROFILER_STATUS_OK;
+}
+
+app_profiler_status_t
+app_profiler_profile (app_profiler_t          *profiler,
+                      app_instruction_t const *instruction)
+{
+    PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
+
+    switch (instruction->mode)
+    {
+        case APP_INSTRUCTION_MODE_POINT_COUNT:
+            return profile_mode_point_count(profiler, instruction);
+            break;
+
+        case APP_INSTRUCTION_MODE_POINT_TIME:
+            return profile_mode_point_time(profiler, instruction);
+            break;
+
+        case APP_INSTRUCTION_MODE_CONTINUOUS:
+            return profile_mode_continuous(profiler, instruction);
+            break;
+
+        case APP_INSTRUCTION_MODE_COUNT:
+            __builtin_unreachable();
+
+        default:
+            PLATFORM_SAMD21G18A_ASSERT(false);
+    }
+
+    return APP_PROFILER_STATUS_ERR;
+}
+
+/** @brief Profile a beam in `POINT_COUNT` mode. */
 static app_profiler_status_t
 profile_mode_point_count (app_profiler_t          *profiler,
                           app_instruction_t const *instruction)
@@ -139,6 +201,7 @@ cleanup:
     return status;
 }
 
+/** @brief Profile a beam in `POINT_TIME` mode. */
 static app_profiler_status_t
 profile_mode_point_time (app_profiler_t          *profiler,
                          app_instruction_t const *instruction)
@@ -246,6 +309,7 @@ cleanup:
     return status;
 }
 
+/** @brief Profile a beam in `CONTINUOUS` mode. */
 static app_profiler_status_t
 profile_mode_continuous (app_profiler_t          *profiler,
                          app_instruction_t const *instruction)
@@ -344,57 +408,4 @@ cleanup:
     path = NULL;
 
     return status;
-}
-
-app_profiler_status_t
-app_profiler_init (app_profiler_t       *profiler,
-                   app_controller_t     *x_controller,
-                   app_controller_t     *y_controller,
-                   app_pulse_receiver_t *receiver,
-                   app_profiler_task_t   task)
-{
-    PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(x_controller != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(y_controller != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(task != NULL);
-
-    profiler->x_controller          = x_controller;
-    profiler->y_controller          = y_controller;
-    profiler->receiver              = receiver;
-    profiler->task                  = task;
-    profiler->prev_raster_direction = APP_PATH_RASTER_DIRECTION_HORIZONTAL;
-
-    return APP_PROFILER_STATUS_OK;
-}
-
-app_profiler_status_t
-app_profiler_profile (app_profiler_t          *profiler,
-                      app_instruction_t const *instruction)
-{
-    PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
-
-    switch (instruction->mode)
-    {
-        case APP_INSTRUCTION_MODE_POINT_COUNT:
-            return profile_mode_point_count(profiler, instruction);
-            break;
-
-        case APP_INSTRUCTION_MODE_POINT_TIME:
-            return profile_mode_point_time(profiler, instruction);
-            break;
-
-        case APP_INSTRUCTION_MODE_CONTINUOUS:
-            return profile_mode_continuous(profiler, instruction);
-            break;
-
-        case APP_INSTRUCTION_MODE_COUNT:
-            __builtin_unreachable();
-
-        default:
-            PLATFORM_SAMD21G18A_ASSERT(false);
-    }
-
-    return APP_PROFILER_STATUS_ERR;
 }

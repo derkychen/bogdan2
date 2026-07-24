@@ -26,7 +26,7 @@ typedef enum
     APP_PATH_RASTER_DIRECTION_HORIZONTAL = 0,
 
     /** Raster direction parallel to the y-axis (like the letter N). */
-    APP_PATH_RASTER_DIRECTION_VERTICAL = 1,
+    APP_PATH_RASTER_DIRECTION_VERTICAL,
 } app_path_raster_direction_t;
 
 /**

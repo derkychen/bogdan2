@@ -15,14 +15,14 @@ platform_samd21g18a_digital_pin_cfg_set_output (
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
     // Set the pin to an input first.
-    PORT->Group[pin->port_group].DIRCLR.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].DIRCLR.reg = (1u << pin->number);
 
     // Set the pin as a GPIO and disable the input buffer.
-    PORT->Group[pin->port_group].PINCFG[pin->number].reg = 0U;
+    PORT->Group[pin->port_group].PINCFG[pin->number].reg = 0u;
 
     // Set the pin level to LOW and direction to output.
-    PORT->Group[pin->port_group].OUTCLR.reg = (1UL << pin->number);
-    PORT->Group[pin->port_group].DIRSET.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
+    PORT->Group[pin->port_group].DIRSET.reg = (1u << pin->number);
 
     return;
 }
@@ -43,7 +43,7 @@ platform_samd21g18a_digital_pin_cfg_set_input (
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
     // Set the pin to an input.
-    PORT->Group[pin->port_group].DIRCLR.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].DIRCLR.reg = (1u << pin->number);
 
     // Set the pin as a GPIO with input buffer enabled and no internal pull
     // resistor.
@@ -62,7 +62,7 @@ platform_samd21g18a_digital_pin_level_set_low (
     PLATFORM_SAMD21G18A_ASSERT(pin->number
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
-    PORT->Group[pin->port_group].OUTCLR.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
 
     return;
 }
@@ -77,7 +77,7 @@ platform_samd21g18a_digital_pin_level_set_high (
     PLATFORM_SAMD21G18A_ASSERT(pin->number
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
-    PORT->Group[pin->port_group].OUTSET.reg = (1UL << pin->number);
+    PORT->Group[pin->port_group].OUTSET.reg = (1u << pin->number);
 
     return;
 }
@@ -93,10 +93,10 @@ platform_samd21g18a_digital_pin_read (
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
 
     // Enable input buffer.
-    PORT->Group[pin->port_group].PINCFG[pin->number].bit.INEN = 1;
+    PORT->Group[pin->port_group].PINCFG[pin->number].bit.INEN = 1u;
 
     // Read pin state.
-    return ((PORT->Group[pin->port_group].IN.reg & (1UL << pin->number)) != 0)
+    return ((PORT->Group[pin->port_group].IN.reg & (1u << pin->number)) != 0u)
                ? PLATFORM_SAMD21G18A_DIGITAL_LEVEL_HIGH
                : PLATFORM_SAMD21G18A_DIGITAL_LEVEL_LOW;
 }

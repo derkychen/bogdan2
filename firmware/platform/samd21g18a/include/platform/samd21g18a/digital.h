@@ -8,8 +8,8 @@
 /** @brief Enumeration of digital levels. */
 typedef enum
 {
-    PLATFORM_SAMD21G18A_DIGITAL_LEVEL_LOW  = 0,
-    PLATFORM_SAMD21G18A_DIGITAL_LEVEL_HIGH = 1,
+    PLATFORM_SAMD21G18A_DIGITAL_LEVEL_LOW = 0,
+    PLATFORM_SAMD21G18A_DIGITAL_LEVEL_HIGH,
 } platform_samd21g18a_digital_level_t;
 
 /** @brief Type for digital pins. */

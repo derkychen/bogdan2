@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define APP_SERIAL_READ_BUFFER_SIZE (512U)
+#define APP_SERIAL_READ_BUFFER_SIZE (512u)
 
 /** @brief Serial status codes. */
 typedef enum

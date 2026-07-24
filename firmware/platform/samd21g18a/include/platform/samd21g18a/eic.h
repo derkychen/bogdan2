@@ -6,15 +6,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Wrap EIC sense bit macros.
-#define PLATFORM_SAMD21G18A_EIC_SENSE_RISE (EIC_CONFIG_SENSE0_RISE_Val)
-#define PLATFORM_SAMD21G18A_EIC_SENSE_FALL (EIC_CONFIG_SENSE0_FALL_Val)
-#define PLATFORM_SAMD21G18A_EIC_SENSE_BOTH (EIC_CONFIG_SENSE0_BOTH_Val)
-#define PLATFORM_SAMD21G18A_EIC_SENSE_HIGH (EIC_CONFIG_SENSE0_HIGH_Val)
-#define PLATFORM_SAMD21G18A_EIC_SENSE_LOW  (EIC_CONFIG_SENSE0_LOW_Val)
+/** @brief Enumeration for interrupt sensing. */
+typedef enum
+{
+    PLATFORM_SAMD21G18A_EIC_SENSE_RISE = 0,
+    PLATFORM_SAMD21G18A_EIC_SENSE_FALL,
+    PLATFORM_SAMD21G18A_EIC_SENSE_BOTH,
+    PLATFORM_SAMD21G18A_EIC_SENSE_HIGH,
+    PLATFORM_SAMD21G18A_EIC_SENSE_LOW,
 
-/** @brief Type for external interrupt line. */
-typedef uint32_t platform_samd21g18a_eic_sense_t;
+    PLATFORM_SAMD21G18A_EIC_SENSE_COUNT,
+} platform_samd21g18a_eic_sense_t;
 
 /** @brief Type for external interrupt line. */
 typedef uint8_t platform_samd21g18a_eic_extint_line_t;

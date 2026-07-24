@@ -1,6 +1,6 @@
 #include "tusb.h" // IWYU pragma: keep
 
-#define USB_VID (0xCafeu)
+#define USB_VID (0xCAFEu)
 #define USB_PID (0x4001u)
 #define USB_BCD (0x0200u)
 
@@ -14,7 +14,7 @@
 
 #define USB_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
 
-static const tusb_desc_device_t usb_device_descriptor
+static tusb_desc_device_t const usb_device_descriptor
     = { .bLength         = sizeof(tusb_desc_device_t),
         .bDescriptorType = TUSB_DESC_DEVICE,
         .bcdUSB          = USB_BCD,
@@ -35,7 +35,7 @@ static const tusb_desc_device_t usb_device_descriptor
 
         .bNumConfigurations = 0x01u };
 
-static const uint8_t usb_configuration_descriptor[]
+static uint8_t const usb_configuration_descriptor[]
     = { TUD_CONFIG_DESCRIPTOR(1,
                               USB_ITF_NUM_TOTAL,
                               0,
@@ -51,19 +51,19 @@ static const uint8_t usb_configuration_descriptor[]
                            USB_EP_NUM_CDC_IN,
                            64) };
 
-static const char *usb_string_descriptors[] = { (const char[]) { 0x09, 0x04 },
-                                                "ITECH",
-                                                "Industruino D21G CDC",
-                                                "000001",
+static char const *usb_string_descriptors[] = { (const char[]) { 0x09, 0x04 },
+                                                "MPSD",
+                                                "Bogdan 2 Beam Profiler",
+                                                "AR0006728",
                                                 "CDC Interface" };
 
-const uint8_t *
+uint8_t const *
 tud_descriptor_device_cb (void)
 {
-    return (const uint8_t *)&usb_device_descriptor;
+    return (uint8_t const *)&usb_device_descriptor;
 }
 
-const uint8_t *
+uint8_t const *
 tud_descriptor_configuration_cb (uint8_t index)
 {
     (void)index;
@@ -71,14 +71,13 @@ tud_descriptor_configuration_cb (uint8_t index)
     return usb_configuration_descriptor;
 }
 
-const uint16_t *
+uint16_t const *
 tud_descriptor_string_cb (uint8_t index, uint16_t langid)
 {
-    static uint16_t descriptor_string[32];
-    const char     *str;
-    uint8_t         chr_count;
-
     (void)langid;
+
+    static uint16_t descriptor_string[32];
+    uint8_t         chr_count;
 
     if (index == 0u)
     {
@@ -93,7 +92,7 @@ tud_descriptor_string_cb (uint8_t index, uint16_t langid)
             return NULL;
         }
 
-        str = usb_string_descriptors[index];
+        char const *str = usb_string_descriptors[index];
 
         chr_count = 0u;
 

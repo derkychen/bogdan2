@@ -4,10 +4,10 @@
 
 #define MIN_LOW            (-1000)
 #define MAX_HIGH           (1000)
-#define UNIT_MAX           (1000000U)
+#define UNIT_MAX           (1000000u)
 #define STAGE_RANGE_MIN_NM (-6000000)
 #define STAGE_RANGE_MAX_NM (6000000)
-#define STAGE_TOLERANCE    (300U)
+#define STAGE_TOLERANCE    (300u)
 
 app_axis_status_t
 app_axis_init (app_axis_t       *axis,
@@ -79,6 +79,7 @@ bool
 app_axis_get_stage_moving (app_axis_t const *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
     return app_controller_get_stage_moving(axis->controller);
 }
@@ -88,7 +89,7 @@ app_axis_num_points (const app_axis_t *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
 
-    return (size_t)(axis->max - axis->min) + 1U;
+    return (size_t)(axis->max - axis->min) + 1u;
 }
 
 app_axis_status_t
@@ -127,6 +128,7 @@ void
 app_axis_move_start (app_axis_t *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
     if (axis->current == axis->target)
     {
@@ -150,6 +152,7 @@ void
 app_axis_move_end (app_axis_t *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
     if (axis->current == axis->target)
     {

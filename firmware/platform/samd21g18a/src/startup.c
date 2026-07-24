@@ -1,4 +1,5 @@
 #include "sam.h" // IWYU pragma: keep
+#include <stddef.h>
 #include <stdint.h>
 
 // Bounds of segments in memory as initialized by linker script.
@@ -237,16 +238,16 @@ __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     .pfnReset_Handler     = (void *)Reset_Handler,
     .pfnNMI_Handler       = (void *)NMI_Handler,
     .pfnHardFault_Handler = (void *)HardFault_Handler,
-    .pfnReservedM12       = (void *)(0UL),
-    .pfnReservedM11       = (void *)(0UL),
-    .pfnReservedM10       = (void *)(0UL),
-    .pfnReservedM9        = (void *)(0UL),
-    .pfnReservedM8        = (void *)(0UL),
-    .pfnReservedM7        = (void *)(0UL),
-    .pfnReservedM6        = (void *)(0UL),
+    .pfnReservedM12       = NULL,
+    .pfnReservedM11       = NULL,
+    .pfnReservedM10       = NULL,
+    .pfnReservedM9        = NULL,
+    .pfnReservedM8        = NULL,
+    .pfnReservedM7        = NULL,
+    .pfnReservedM6        = NULL,
     .pfnSVC_Handler       = (void *)SVC_Handler,
-    .pfnReservedM4        = (void *)(0UL),
-    .pfnReservedM3        = (void *)(0UL),
+    .pfnReservedM4        = NULL,
+    .pfnReservedM3        = NULL,
     .pfnPendSV_Handler    = (void *)PendSV_Handler,
     .pfnSysTick_Handler   = (void *)SysTick_Handler,
 
@@ -272,24 +273,22 @@ __attribute__((section(".vectors"))) const DeviceVectors exception_table = {
     .pfnTC3_Handler     = (void *)TC3_Handler,
     .pfnTC4_Handler     = (void *)TC4_Handler,
     .pfnTC5_Handler     = (void *)TC5_Handler,
-    .pfnReserved21      = (void *)(0UL),
-    .pfnReserved22      = (void *)(0UL),
+    .pfnReserved21      = NULL,
+    .pfnReserved22      = NULL,
     .pfnADC_Handler     = (void *)ADC_Handler,
     .pfnAC_Handler      = (void *)AC_Handler,
     .pfnDAC_Handler     = (void *)DAC_Handler,
     .pfnPTC_Handler     = (void *)PTC_Handler,
     .pfnI2S_Handler     = (void *)I2S_Handler,
-    .pfnReserved28      = (void *)(0UL),
+    .pfnReserved28      = NULL,
 };
 
 void
 Reset_Handler (void)
 {
-    uint32_t *src, *dest;
-
     // Initialize the relocate segment.
-    src  = &_etext;
-    dest = &_srelocate;
+    uint32_t *src  = &_etext;
+    uint32_t *dest = &_srelocate;
 
     if (src != dest)
     {
@@ -302,7 +301,7 @@ Reset_Handler (void)
     // Initialize the zero segment.
     for (dest = &_szero; dest < &_ezero;)
     {
-        *dest++ = 0;
+        *dest++ = 0u;
     }
 
     // Set the exception vector table base address.
@@ -310,7 +309,7 @@ Reset_Handler (void)
     SCB->VTOR = ((uint32_t)&_sfixed & SCB_VTOR_TBLOFF_Msk);
 
     // Performance tuning for SRAM access.
-    SBMATRIX->SFR[SBMATRIX_SLAVE_HMCRAMC0].reg = 2U;
+    SBMATRIX->SFR[SBMATRIX_SLAVE_HMCRAMC0].reg = 2u;
 
     // Initialize the system.
     SystemInit();

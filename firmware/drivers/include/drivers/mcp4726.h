@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DRIVERS_MCP4726_MAX_VALUE (4095U)
+#define DRIVERS_MCP4726_MAX_VALUE (4095u)
 
 /** @brief Status codes for MCP4726. */
 typedef enum

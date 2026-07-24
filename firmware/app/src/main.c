@@ -8,31 +8,11 @@
 #include "platform/samd21g18a/time.h"
 #include "platform/samd21g18a/usb.h"
 
-#define MAIN_LOOP_DELAY_USEC (100U)
+#define MAIN_LOOP_DELAY_USEC (100u)
 
-/** @brief Initialize important functionality. */
-static void
-init (void)
-{
-    // NOTE: Platform initialization functions must be called before any other
-    //       functionality.
-    platform_samd21g18a_eic_init();
-    platform_samd21g18a_time_init();
-    platform_samd21g18a_usb_init();
+static void init(void);
 
-    // Initialize I/O to safe states and defaults.
-    board_indio_io_cfg_init();
-
-    // Initialize serial.
-    app_serial_init();
-}
-
-/** @brief Task function that should be called repeatedly in the `main` loop. */
-static void
-task (void)
-{
-    platform_samd21g18a_usb_task();
-}
+static void task(void);
 
 /**
  * @brief Bogdan 2 firmware application entry point.
@@ -44,30 +24,29 @@ task (void)
 int
 main (void)
 {
-    // These objects persist across profiles.
-    app_instruction_t instruction = { 0 };
-    char              message[APP_SERIAL_READ_BUFFER_SIZE];
-
-    app_controller_t     x_controller;
-    app_controller_t     y_controller;
-    app_pulse_receiver_t receiver;
-    app_profiler_t       profiler;
-
     init();
+
+    app_controller_t x_controller;
 
     app_controller_init(&x_controller,
                         &board_indio_io_cfg_expansion_d4_digital,
                         &board_indio_io_cfg_expansion_d5_eic,
                         &board_indio_io_cfg_analog_output_ch1);
 
+    app_controller_t y_controller;
+
     app_controller_init(&y_controller,
                         &board_indio_io_cfg_expansion_d15_digital,
                         &board_indio_io_cfg_expansion_d16_eic,
                         &board_indio_io_cfg_analog_output_ch2);
 
+    app_pulse_receiver_t receiver;
+
     app_pulse_receiver_init(&receiver,
                             &board_indio_io_cfg_expansion_d6_eic,
                             &board_indio_io_cfg_expansion_d7_digital);
+
+    app_profiler_t profiler;
 
     if (app_profiler_init(
             &profiler, &x_controller, &y_controller, &receiver, task)
@@ -76,6 +55,9 @@ main (void)
         app_serial_write_line(
             "{\"ok\":false,\"msg\":\"profiler_init_failed\"}");
     }
+
+    app_instruction_t instruction = { 0 };
+    char              message[APP_SERIAL_READ_BUFFER_SIZE];
 
     for (;;)
     {
@@ -110,4 +92,28 @@ main (void)
             }
         }
     }
+}
+
+/** @brief Initialize important functionality. */
+static void
+init (void)
+{
+    // NOTE: Platform initialization functions must be called before any other
+    //       functionality.
+    platform_samd21g18a_eic_init();
+    platform_samd21g18a_time_init();
+    platform_samd21g18a_usb_init();
+
+    // Initialize I/O to safe states and defaults.
+    board_indio_io_cfg_init();
+
+    // Initialize serial.
+    app_serial_init();
+}
+
+/** @brief Task function that should be called repeatedly in the `main` loop. */
+static void
+task (void)
+{
+    platform_samd21g18a_usb_task();
 }

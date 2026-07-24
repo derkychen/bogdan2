@@ -11,34 +11,9 @@
 static char   line_buffer[APP_SERIAL_READ_BUFFER_SIZE];
 static size_t line_buffer_current_size = 0U;
 
-/** @brief Reset the line buffer. */
-static void
-line_buffer_reset (void)
-{
-    line_buffer_current_size = 0U;
-    line_buffer[0]           = '\0';
+static void line_buffer_reset(void);
 
-    return;
-}
-
-/** @brief Copy a line from the line buffer into @p buffer. */
-static void
-line_buffer_copy_to (char *buffer, size_t buffer_size)
-{
-    size_t copy_size;
-
-    copy_size = line_buffer_current_size;
-
-    if (copy_size > (buffer_size - 1U))
-    {
-        copy_size = buffer_size - 1U;
-    }
-
-    memcpy(buffer, line_buffer, copy_size);
-    buffer[copy_size] = '\0';
-
-    line_buffer_reset();
-}
+static void line_buffer_copy_to(char *buffer, size_t buffer_size);
 
 void
 app_serial_init (void)
@@ -51,9 +26,6 @@ app_serial_init (void)
 app_serial_status_t
 app_serial_read_line (char *buffer, size_t buffer_size)
 {
-    uint8_t  byte;
-    uint32_t count;
-
     PLATFORM_SAMD21G18A_ASSERT(buffer != NULL);
     PLATFORM_SAMD21G18A_ASSERT(buffer_size > 0U);
 
@@ -65,7 +37,9 @@ app_serial_read_line (char *buffer, size_t buffer_size)
 
     while (tud_cdc_available() != 0u)
     {
-        count = tud_cdc_read(&byte, 1u);
+        uint8_t byte;
+
+        uint32_t count = tud_cdc_read(&byte, 1u);
 
         if (count != 1u)
         {
@@ -102,9 +76,6 @@ app_serial_read_line (char *buffer, size_t buffer_size)
 app_serial_status_t
 app_serial_write_line (char const *message)
 {
-    size_t   message_size;
-    uint32_t written;
-
     PLATFORM_SAMD21G18A_ASSERT(message != NULL);
 
     if (tud_cdc_connected() == false)
@@ -112,9 +83,9 @@ app_serial_write_line (char const *message)
         return APP_SERIAL_STATUS_ERR_DISCONNECTED;
     }
 
-    message_size = strlen(message);
+    size_t message_size = strlen(message);
 
-    written = tud_cdc_write(message, message_size);
+    uint32_t written = tud_cdc_write(message, message_size);
 
     if (written != message_size)
     {
@@ -132,4 +103,31 @@ app_serial_write_line (char const *message)
     }
 
     return APP_SERIAL_STATUS_ERR;
+}
+
+/** @brief Reset the line buffer. */
+static void
+line_buffer_reset (void)
+{
+    line_buffer_current_size = 0U;
+    line_buffer[0]           = '\0';
+
+    return;
+}
+
+/** @brief Copy a line from the line buffer into @p buffer. */
+static void
+line_buffer_copy_to (char *buffer, size_t buffer_size)
+{
+    size_t copy_size = line_buffer_current_size;
+
+    if (copy_size > (buffer_size - 1U))
+    {
+        copy_size = buffer_size - 1U;
+    }
+
+    memcpy(buffer, line_buffer, copy_size);
+    buffer[copy_size] = '\0';
+
+    line_buffer_reset();
 }

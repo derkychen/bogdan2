@@ -8,21 +8,8 @@
 
 #define START_MOVE_PULSE_WIDTH_MSEC (1u)
 
-/** @brief Record the stopping of stage movement. */
-static void
-trigger_out_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
-{
-    app_controller_t *controller;
-
-    PLATFORM_SAMD21G18A_ASSERT(context != NULL);
-
-    (void)line;
-    controller = (app_controller_t *)context;
-
-    app_controller_set_stage_moving(controller, false);
-
-    return;
-}
+static void trigger_out_isr(platform_samd21g18a_eic_extint_line_t line,
+                            void                                 *context);
 
 void
 app_controller_init (app_controller_t                          *controller,
@@ -43,7 +30,7 @@ app_controller_init (app_controller_t                          *controller,
     platform_samd21g18a_digital_pin_cfg_set_output(trigger_in);
     platform_samd21g18a_digital_pin_level_set_low(trigger_in);
 
-    board_indio_analog_output_write(analog_in, 0U);
+    board_indio_analog_output_write(analog_in, 0u);
 
     return;
 }
@@ -51,15 +38,14 @@ app_controller_init (app_controller_t                          *controller,
 void
 app_controller_configure_trigger_out (app_controller_t *controller)
 {
-    platform_samd21g18a_eic_cfg_t trigger_out_cfg;
-
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);
 
-    trigger_out_cfg = (platform_samd21g18a_eic_cfg_t) {
-        .eic_pin = controller->trigger_out,
-        .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
-    };
+    platform_samd21g18a_eic_cfg_t trigger_out_cfg
+        = (platform_samd21g18a_eic_cfg_t) {
+              .eic_pin = controller->trigger_out,
+              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
+          };
 
     platform_samd21g18a_eic_configure(&trigger_out_cfg);
 
@@ -140,4 +126,19 @@ app_controller_write_analog_in (app_controller_t const *controller,
     }
 
     return APP_CONTROLLER_STATUS_ANALOG_IN_OK;
+}
+
+/** @brief Record the stopping of stage movement. */
+static void
+trigger_out_isr (platform_samd21g18a_eic_extint_line_t line, void *context)
+{
+    PLATFORM_SAMD21G18A_ASSERT(context != NULL);
+
+    (void)line;
+
+    app_controller_t *controller = (app_controller_t *)context;
+
+    app_controller_set_stage_moving(controller, false);
+
+    return;
 }
