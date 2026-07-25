@@ -2,12 +2,12 @@
 #include "app/controller.h"
 #include "platform/samd21g18a/assert.h"
 
-#define MIN_LOW            (-1000)
-#define MAX_HIGH           (1000)
-#define UNIT_MAX_NM           (1000000u)
+#define MIN_MIN            (-1000)
+#define MAX_MAX            (1000)
+#define UNIT_MAX_NM        (1000000u)
 #define STAGE_RANGE_MIN_NM (-6000000)
 #define STAGE_RANGE_MAX_NM (6000000)
-#define STAGE_TOLERANCE_NM    (300u)
+#define STAGE_TOLERANCE_NM (300u)
 
 app_axis_status_t
 app_axis_init (app_axis_t       *axis,
@@ -23,14 +23,14 @@ app_axis_init (app_axis_t       *axis,
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
 
-    if (min < MIN_LOW)
+    if (min < MIN_MIN)
     {
-        return APP_AXIS_STATUS_INIT_ERR_MIN_TOO_LOW;
+        return APP_AXIS_STATUS_INIT_ERR_MIN_TOO_SMALL;
     }
 
-    if (max > MAX_HIGH)
+    if (max > MAX_MAX)
     {
-        return APP_AXIS_STATUS_INIT_ERR_MAX_TOO_HIGH;
+        return APP_AXIS_STATUS_INIT_ERR_MAX_TOO_LARGE;
     }
 
     if (min > max)
