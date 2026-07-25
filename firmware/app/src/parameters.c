@@ -1,4 +1,4 @@
-#include "app/instruction.h"
+#include "app/parameters.h"
 #include "jsmn.h"
 #include "platform/samd21g18a/assert.h"
 #include <errno.h>
@@ -14,20 +14,20 @@
 
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof((array)[0]))
 
-#define INSTRUCTION_MODE_MASK(mode) (UINT32_C(1) << (uint32_t)(mode))
+#define PARAMETERS_MODE_MASK(mode) (UINT32_C(1) << (uint32_t)(mode))
 
-#define FIELD_REQUIRED_MODES_ALL                              \
-    (INSTRUCTION_MODE_MASK(APP_INSTRUCTION_MODE_POINT_COUNT)  \
-     | INSTRUCTION_MODE_MASK(APP_INSTRUCTION_MODE_POINT_TIME) \
-     | INSTRUCTION_MODE_MASK(APP_INSTRUCTION_MODE_CONTINUOUS))
+#define FIELD_REQUIRED_MODES_ALL                            \
+    (PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_COUNT)  \
+     | PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_TIME) \
+     | PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_CONTINUOUS))
 
 #define FIELD_REQUIRED_MODES_POINT_COUNT \
-    INSTRUCTION_MODE_MASK(APP_INSTRUCTION_MODE_POINT_COUNT)
+    PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_COUNT)
 
 #define FIELD_REQUIRED_MODES_POINT_TIME \
-    INSTRUCTION_MODE_MASK(APP_INSTRUCTION_MODE_POINT_TIME)
+    PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_TIME)
 
-#define INSTRUCTION_FIELD_LIST(X)                                     \
+#define PARAMETERS_FIELD_LIST(X)                                      \
     X(MODE, "mode", mode, MODE, ALL)                                  \
     X(X_MIN, "x_min", x_min, INT, ALL)                                \
     X(X_MAX, "x_max", x_max, INT, ALL)                                \
@@ -45,10 +45,10 @@
       UINT32,                                                         \
       POINT_COUNT)
 
-#define INSTRUCTION_MODE_LIST(X)                       \
-    X("point_count", APP_INSTRUCTION_MODE_POINT_COUNT) \
-    X("point_time", APP_INSTRUCTION_MODE_POINT_TIME)   \
-    X("continuous", APP_INSTRUCTION_MODE_CONTINUOUS)
+#define PARAMETERS_MODE_LIST(X)                       \
+    X("point_count", APP_PARAMETERS_MODE_POINT_COUNT) \
+    X("point_time", APP_PARAMETERS_MODE_POINT_TIME)   \
+    X("continuous", APP_PARAMETERS_MODE_CONTINUOUS)
 
 /** @brief Parsing status codes. */
 typedef enum
@@ -70,7 +70,7 @@ typedef enum
 
 typedef enum
 {
-    INSTRUCTION_FIELD_LIST(FIELD_INDEX_ENUM)
+    PARAMETERS_FIELD_LIST(FIELD_INDEX_ENUM)
 
         FIELD_INDEX_COUNT,
 } field_index_t;
@@ -79,13 +79,13 @@ typedef enum
 
 #define FIELD_MASK(id) (UINT32_C(1) << FIELD_INDEX_##id)
 
-_Static_assert(FIELD_INDEX_COUNT <= 32, "Too many instruction fields");
-_Static_assert(APP_INSTRUCTION_MODE_COUNT <= 32, "Too many instruction modes");
+_Static_assert(FIELD_INDEX_COUNT <= 32, "Too many parameters");
+_Static_assert(APP_PARAMETERS_MODE_COUNT <= 32, "Too many modes");
 
 /**
  * @brief JSON fields.
  *
- * This format is used to store the internal schema for instructions.
+ * This format is used to store the internal schema for parameters.
  */
 typedef struct
 {
@@ -95,7 +95,7 @@ typedef struct
     /** Type. */
     field_type_t type;
 
-    /** Offset in the instructions structure. */
+    /** Offset in the parameters structure. */
     size_t offset;
 
     /** Mask specific to the field. */
@@ -119,17 +119,17 @@ typedef struct
     {                                                                          \
         .name           = json_name,                                           \
         .type           = FIELD_TYPE_##field_type,                             \
-        .offset         = offsetof(app_instruction_t, member),                 \
+        .offset         = offsetof(app_parameters_t, member),                  \
         .mask           = FIELD_MASK(id),                                      \
         .required_modes = FIELD_REQUIRED_MODES_##requirement,                  \
     },
 
-static field_spec_t const instruction_fields[]
-    = { INSTRUCTION_FIELD_LIST(FIELD_SPEC_INITIALIZER) };
+static field_spec_t const parameters_fields[]
+    = { PARAMETERS_FIELD_LIST(FIELD_SPEC_INITIALIZER) };
 
 #undef FIELD_SPEC_INITIALIZER
 
-_Static_assert(ARRAY_COUNT(instruction_fields) == FIELD_INDEX_COUNT,
+_Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
                "Instruction field table is incomplete");
 
 static bool token_is_valid(token_t const *token);
@@ -140,8 +140,8 @@ static parse_status_t token_copy(token_t const *token,
                                  char          *buffer,
                                  size_t         buffer_size);
 
-static parse_status_t token_parse_mode(token_t const          *token,
-                                       app_instruction_mode_t *value);
+static parse_status_t token_parse_mode(token_t const         *token,
+                                       app_parameters_mode_t *value);
 
 static parse_status_t token_parse_int(token_t const *token, int *value);
 
@@ -150,20 +150,20 @@ static parse_status_t token_parse_uint32(token_t const *token, uint32_t *value);
 static field_spec_t const *token_field_find(token_t const *token);
 
 static parse_status_t token_field_set(token_t const      *token,
-                                      app_instruction_t  *instruction,
+                                      app_parameters_t   *parameters,
                                       field_spec_t const *field);
 
-static uint32_t instruction_required_mask_get(app_instruction_mode_t mode);
+static uint32_t parameters_required_mask_get(app_parameters_mode_t mode);
 
 static parse_status_t token_next_index_get(jsmntok_t const *tokens_data,
                                            int              token_count,
                                            int              token_index,
                                            int             *next_token_index);
 
-app_instruction_status_t
-app_instruction_parse_json (app_instruction_t *instruction, char const *json)
+app_parameters_status_t
+app_parameters_parse_json (app_parameters_t *parameters, char const *json)
 {
-    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(parameters != NULL);
     PLATFORM_SAMD21G18A_ASSERT(json != NULL);
 
     jsmn_parser parser;
@@ -180,17 +180,17 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
 
     if (token_count < 0)
     {
-        return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
     if ((token_count < 1) || (tokens_data[0].type != JSMN_OBJECT))
     {
-        return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
-    app_instruction_t temp        = (app_instruction_t) { 0 };
-    uint32_t          fields_seen = 0u;
-    int               token_index = 1;
+    app_parameters_t temp        = (app_parameters_t) { 0 };
+    uint32_t         fields_seen = 0u;
+    int              token_index = 1;
 
     while ((token_index < token_count)
            && (tokens_data[token_index].start < tokens_data[0].end))
@@ -202,7 +202,7 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
 
         if (!token_is_valid(&token) || (token.data->type != JSMN_STRING))
         {
-            return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         field_spec_t const *field = token_field_find(&token);
@@ -211,7 +211,7 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
         if ((token_index >= token_count)
             || (tokens_data[token_index].start >= tokens_data[0].end))
         {
-            return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         token = (token_t) {
@@ -223,7 +223,7 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
         {
             if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
             {
-                return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+                return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
             }
 
             fields_seen |= field->mask;
@@ -235,7 +235,7 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
                 tokens_data, token_count, token_index, &next_token_index)
             != PARSE_STATUS_OK)
         {
-            return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         token_index = next_token_index;
@@ -243,24 +243,24 @@ app_instruction_parse_json (app_instruction_t *instruction, char const *json)
 
     if ((fields_seen & FIELD_MASK(MODE)) == 0u)
     {
-        return APP_INSTRUCTION_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+        return APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
     }
 
-    if ((uint32_t)temp.mode >= (uint32_t)APP_INSTRUCTION_MODE_COUNT)
+    if ((uint32_t)temp.mode >= (uint32_t)APP_PARAMETERS_MODE_COUNT)
     {
-        return APP_INSTRUCTION_STATUS_ERR_JSON_PARSE;
+        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
-    uint32_t required_fields = instruction_required_mask_get(temp.mode);
+    uint32_t required_fields = parameters_required_mask_get(temp.mode);
 
     if ((fields_seen & required_fields) != required_fields)
     {
-        return APP_INSTRUCTION_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+        return APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
     }
 
-    *instruction = temp;
+    *parameters = temp;
 
-    return APP_INSTRUCTION_STATUS_OK_PARSED;
+    return APP_PARAMETERS_STATUS_OK_PARSED;
 }
 
 /** @brief Check that a token is valid. */
@@ -342,7 +342,7 @@ token_copy (token_t const *token, char *buffer, size_t buffer_size)
 
 /** @brief Parse a token into a mode. */
 static parse_status_t
-token_parse_mode (token_t const *token, app_instruction_mode_t *value)
+token_parse_mode (token_t const *token, app_parameters_mode_t *value)
 {
     PLATFORM_SAMD21G18A_ASSERT(token != NULL);
     PLATFORM_SAMD21G18A_ASSERT(value != NULL);
@@ -360,7 +360,7 @@ token_parse_mode (token_t const *token, app_instruction_mode_t *value)
         return PARSE_STATUS_OK;                  \
     }
 
-    INSTRUCTION_MODE_LIST(TOKEN_PARSE_MODE)
+    PARAMETERS_MODE_LIST(TOKEN_PARSE_MODE)
 
 #undef TOKEN_PARSE_MODE
 
@@ -469,11 +469,11 @@ token_field_find (token_t const *token)
 {
     PLATFORM_SAMD21G18A_ASSERT(token != NULL);
 
-    for (size_t index = 0u; index < ARRAY_COUNT(instruction_fields); index++)
+    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
     {
-        if (token_text_equals_str(token, instruction_fields[index].name))
+        if (token_text_equals_str(token, parameters_fields[index].name))
         {
-            return &instruction_fields[index];
+            return &parameters_fields[index];
         }
     }
 
@@ -482,23 +482,23 @@ token_field_find (token_t const *token)
 
 static parse_status_t
 token_field_set (token_t const      *token,
-                 app_instruction_t  *instruction,
+                 app_parameters_t   *parameters,
                  field_spec_t const *field)
 {
-    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(parameters != NULL);
     PLATFORM_SAMD21G18A_ASSERT(field != NULL);
 
-    if ((instruction == NULL) || (field == NULL))
+    if ((parameters == NULL) || (field == NULL))
     {
         return PARSE_STATUS_ERR;
     }
 
-    char *target = ((char *)instruction) + field->offset;
+    char *target = ((char *)parameters) + field->offset;
 
     switch (field->type)
     {
         case FIELD_TYPE_MODE:
-            return token_parse_mode(token, (app_instruction_mode_t *)target);
+            return token_parse_mode(token, (app_parameters_mode_t *)target);
 
         case FIELD_TYPE_INT:
             return token_parse_int(token, (int *)target);
@@ -511,26 +511,26 @@ token_field_set (token_t const      *token,
     }
 }
 
-/** @brief Get the required field mask for an instruction mode. */
+/** @brief Get the required field mask for a mode. */
 static uint32_t
-instruction_required_mask_get (app_instruction_mode_t mode)
+parameters_required_mask_get (app_parameters_mode_t mode)
 {
     PLATFORM_SAMD21G18A_ASSERT((uint32_t)mode
-                               < (uint32_t)APP_INSTRUCTION_MODE_COUNT);
+                               < (uint32_t)APP_PARAMETERS_MODE_COUNT);
 
-    if ((uint32_t)mode >= (uint32_t)APP_INSTRUCTION_MODE_COUNT)
+    if ((uint32_t)mode >= (uint32_t)APP_PARAMETERS_MODE_COUNT)
     {
         return 0u;
     }
 
-    uint32_t mode_mask     = INSTRUCTION_MODE_MASK(mode);
+    uint32_t mode_mask     = PARAMETERS_MODE_MASK(mode);
     uint32_t required_mask = 0u;
 
-    for (size_t index = 0u; index < ARRAY_COUNT(instruction_fields); index++)
+    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
     {
-        if ((instruction_fields[index].required_modes & mode_mask) != 0u)
+        if ((parameters_fields[index].required_modes & mode_mask) != 0u)
         {
-            required_mask |= instruction_fields[index].mask;
+            required_mask |= parameters_fields[index].mask;
         }
     }
 

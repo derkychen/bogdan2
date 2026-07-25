@@ -1,5 +1,5 @@
-#ifndef APP_INSTRUCTION_H
-#define APP_INSTRUCTION_H
+#ifndef APP_PARAMETERS_H
+#define APP_PARAMETERS_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -7,10 +7,10 @@
 /** @brief Instruction status codes. */
 typedef enum
 {
-    APP_INSTRUCTION_STATUS_OK_PARSED = 0,
-    APP_INSTRUCTION_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
-    APP_INSTRUCTION_STATUS_ERR_JSON_PARSE,
-} app_instruction_status_t;
+    APP_PARAMETERS_STATUS_OK_PARSED = 0,
+    APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
+    APP_PARAMETERS_STATUS_ERR_JSON_PARSE,
+} app_parameters_status_t;
 
 /**
  * @brief Instruction mode enumeration.
@@ -21,28 +21,28 @@ typedef enum
  */
 typedef enum
 {
-    APP_INSTRUCTION_MODE_POINT_COUNT = 0,
-    APP_INSTRUCTION_MODE_POINT_TIME,
-    APP_INSTRUCTION_MODE_CONTINUOUS,
+    APP_PARAMETERS_MODE_POINT_COUNT = 0,
+    APP_PARAMETERS_MODE_POINT_TIME,
+    APP_PARAMETERS_MODE_CONTINUOUS,
 
-    APP_INSTRUCTION_MODE_COUNT,
-} app_instruction_mode_t;
+    APP_PARAMETERS_MODE_COUNT,
+} app_parameters_mode_t;
 
 /**
- * @brief Microcontroller-specific instructions received from the host.
+ * @brief Microcontroller-specific parameters received from the host.
  *
  * This structure defines the grid to profile as well as some parameters
  * relevant to waveform capture.
  *
- * NOTE: This structure only contains the instructions relevant to the
- *       microcontroller. It is not necessarily the full set of instructions.
+ * NOTE: This structure only contains the parameters relevant to the
+ *       microcontroller. It is not necessarily the full set of parameters.
  *
  *       Depending on the mode, some of these are unnecessary.
  */
 typedef struct
 {
     /** Mode of the profiler. */
-    app_instruction_mode_t mode;
+    app_parameters_mode_t mode;
 
     /** Minimum coordinate on the x-axis in units. */
     int x_min;
@@ -76,10 +76,10 @@ typedef struct
 
     /** The delay after the triggering of the PicoScope, in microseconds. */
     uint32_t posttrigger_time_us;
-} app_instruction_t;
+} app_parameters_t;
 
-/** @brief Parse the JSON instruction sent through serial. */
-app_instruction_status_t app_instruction_parse_json(app_instruction_t *inst,
-                                                    char const        *json);
+/** @brief Parse the JSON parameters sent through serial. */
+app_parameters_status_t app_parameters_parse_json(app_parameters_t *parameters,
+                                                  char const       *json);
 
 #endif

@@ -2,7 +2,7 @@
 #define APP_PROFILER_H
 
 #include "app/controller.h"
-#include "app/instruction.h"
+#include "app/parameters.h"
 #include "app/path.h"
 #include "app/pulse_receiver.h"
 
@@ -51,8 +51,8 @@ app_profiler_status_t app_profiler_init(app_profiler_t       *profiler,
                                         app_pulse_receiver_t *receiver,
                                         app_profiler_task_t   task);
 
-/** @brief Profile a beam based on instructions. */
+/** @brief Profile a beam based on parameters. */
 app_profiler_status_t app_profiler_profile(
-    app_profiler_t *profiler, app_instruction_t const *instruction);
+    app_profiler_t *profiler, app_parameters_t const *parameters);
 
 #endif

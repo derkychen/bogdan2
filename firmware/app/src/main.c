@@ -1,5 +1,5 @@
 #include "app/controller.h"
-#include "app/instruction.h"
+#include "app/parameters.h"
 #include "app/profiler.h"
 #include "app/pulse_receiver.h"
 #include "app/serial.h"
@@ -56,8 +56,8 @@ main (void)
             "{\"ok\":false,\"msg\":\"profiler_init_failed\"}");
     }
 
-    app_instruction_t instruction = { 0 };
-    char              message[APP_SERIAL_READ_BUFFER_SIZE];
+    app_parameters_t parameters = { 0 };
+    char             message[APP_SERIAL_READ_BUFFER_SIZE];
 
     for (;;)
     {
@@ -67,13 +67,13 @@ main (void)
         if (app_serial_read_line(message, sizeof(message))
             == APP_SERIAL_STATUS_OK_LINE_RECEIVED)
         {
-            if (app_instruction_parse_json(&instruction, message)
-                == APP_INSTRUCTION_STATUS_OK_PARSED)
+            if (app_parameters_parse_json(&parameters, message)
+                == APP_PARAMETERS_STATUS_OK_PARSED)
             {
                 app_serial_write_line(
                     "{\"ok\":true,\"msg\":\"instructions_received\"}");
 
-                if (app_profiler_profile(&profiler, &instruction)
+                if (app_profiler_profile(&profiler, &parameters)
                     == APP_PROFILER_STATUS_OK)
                 {
                     app_serial_write_line(

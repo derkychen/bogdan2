@@ -1,6 +1,6 @@
 #include "app/profiler.h"
 #include "app/axis.h"
-#include "app/instruction.h"
+#include "app/parameters.h"
 #include "app/path.h"
 #include "app/pulse_receiver.h"
 #include "app/pulse_tracker.h"
@@ -15,13 +15,13 @@
 #define PULSE_COUNTER_TIMEOUT_MSEC    (10000u)
 
 static app_profiler_status_t profile_mode_point_count(
-    app_profiler_t *profiler, app_instruction_t const *instruction);
+    app_profiler_t *profiler, app_parameters_t const *parameters);
 
 static app_profiler_status_t profile_mode_point_time(
-    app_profiler_t *profiler, app_instruction_t const *instruction);
+    app_profiler_t *profiler, app_parameters_t const *parameters);
 
 static app_profiler_status_t profile_mode_continuous(
-    app_profiler_t *profiler, app_instruction_t const *instruction);
+    app_profiler_t *profiler, app_parameters_t const *parameters);
 
 app_profiler_status_t
 app_profiler_init (app_profiler_t       *profiler,
@@ -47,26 +47,26 @@ app_profiler_init (app_profiler_t       *profiler,
 
 app_profiler_status_t
 app_profiler_profile (app_profiler_t          *profiler,
-                      app_instruction_t const *instruction)
+                      app_parameters_t const *parameters)
 {
     PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(instruction != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(parameters != NULL);
 
-    switch (instruction->mode)
+    switch (parameters->mode)
     {
-        case APP_INSTRUCTION_MODE_POINT_COUNT:
-            return profile_mode_point_count(profiler, instruction);
+        case APP_PARAMETERS_MODE_POINT_COUNT:
+            return profile_mode_point_count(profiler, parameters);
             break;
 
-        case APP_INSTRUCTION_MODE_POINT_TIME:
-            return profile_mode_point_time(profiler, instruction);
+        case APP_PARAMETERS_MODE_POINT_TIME:
+            return profile_mode_point_time(profiler, parameters);
             break;
 
-        case APP_INSTRUCTION_MODE_CONTINUOUS:
-            return profile_mode_continuous(profiler, instruction);
+        case APP_PARAMETERS_MODE_CONTINUOUS:
+            return profile_mode_continuous(profiler, parameters);
             break;
 
-        case APP_INSTRUCTION_MODE_COUNT:
+        case APP_PARAMETERS_MODE_COUNT:
             __builtin_unreachable();
 
         default:
@@ -79,7 +79,7 @@ app_profiler_profile (app_profiler_t          *profiler,
 /** @brief Profile a beam in `POINT_COUNT` mode. */
 static app_profiler_status_t
 profile_mode_point_count (app_profiler_t          *profiler,
-                          app_instruction_t const *instruction)
+                          app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
@@ -91,10 +91,10 @@ profile_mode_point_count (app_profiler_t          *profiler,
     size_t               path_size;
 
     if (app_axis_init(&x,
-                      instruction->x_min,
-                      instruction->x_max,
-                      instruction->x_unit_nm,
-                      instruction->x_origin_nm,
+                      parameters->x_min,
+                      parameters->x_max,
+                      parameters->x_unit_nm,
+                      parameters->x_origin_nm,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
@@ -102,10 +102,10 @@ profile_mode_point_count (app_profiler_t          *profiler,
     }
 
     if (app_axis_init(&y,
-                      instruction->y_min,
-                      instruction->y_max,
-                      instruction->y_unit_nm,
-                      instruction->y_origin_nm,
+                      parameters->y_min,
+                      parameters->y_max,
+                      parameters->y_unit_nm,
+                      parameters->y_origin_nm,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
@@ -164,7 +164,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
 
         start_msec = platform_samd21g18a_time_msec();
 
-        while (app_pulse_tracker_get_count(&tracker) < instruction->num_pulses)
+        while (app_pulse_tracker_get_count(&tracker) < parameters->num_pulses)
         {
             profiler->task();
 
@@ -181,7 +181,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
         start_usec = platform_samd21g18a_time_usec();
 
         while (platform_samd21g18a_time_usec() - start_usec
-               <= instruction->posttrigger_time_us)
+               <= parameters->posttrigger_time_us)
         {
             profiler->task();
         }
@@ -204,7 +204,7 @@ cleanup:
 /** @brief Profile a beam in `POINT_TIME` mode. */
 static app_profiler_status_t
 profile_mode_point_time (app_profiler_t          *profiler,
-                         app_instruction_t const *instruction)
+                         app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
@@ -216,10 +216,10 @@ profile_mode_point_time (app_profiler_t          *profiler,
     size_t               path_size;
 
     if (app_axis_init(&x,
-                      instruction->x_min,
-                      instruction->x_max,
-                      instruction->x_unit_nm,
-                      instruction->x_origin_nm,
+                      parameters->x_min,
+                      parameters->x_max,
+                      parameters->x_unit_nm,
+                      parameters->x_origin_nm,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
@@ -227,10 +227,10 @@ profile_mode_point_time (app_profiler_t          *profiler,
     }
 
     if (app_axis_init(&y,
-                      instruction->y_min,
-                      instruction->y_max,
-                      instruction->y_unit_nm,
-                      instruction->y_origin_nm,
+                      parameters->y_min,
+                      parameters->y_max,
+                      parameters->y_unit_nm,
+                      parameters->y_origin_nm,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
@@ -289,7 +289,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
         start_usec = platform_samd21g18a_time_usec();
 
         while (platform_samd21g18a_time_usec() - start_usec
-               <= instruction->wait_time_us)
+               <= parameters->wait_time_us)
         {
             profiler->task();
         }
@@ -312,7 +312,7 @@ cleanup:
 /** @brief Profile a beam in `CONTINUOUS` mode. */
 static app_profiler_status_t
 profile_mode_continuous (app_profiler_t          *profiler,
-                         app_instruction_t const *instruction)
+                         app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
 
@@ -324,10 +324,10 @@ profile_mode_continuous (app_profiler_t          *profiler,
     size_t               path_size;
 
     if (app_axis_init(&x,
-                      instruction->x_min,
-                      instruction->x_max,
-                      instruction->x_unit_nm,
-                      instruction->x_origin_nm,
+                      parameters->x_min,
+                      parameters->x_max,
+                      parameters->x_unit_nm,
+                      parameters->x_origin_nm,
                       profiler->x_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {
@@ -335,10 +335,10 @@ profile_mode_continuous (app_profiler_t          *profiler,
     }
 
     if (app_axis_init(&y,
-                      instruction->y_min,
-                      instruction->y_max,
-                      instruction->y_unit_nm,
-                      instruction->y_origin_nm,
+                      parameters->y_min,
+                      parameters->y_max,
+                      parameters->y_unit_nm,
+                      parameters->y_origin_nm,
                       profiler->y_controller)
         != APP_AXIS_STATUS_INIT_OK)
     {

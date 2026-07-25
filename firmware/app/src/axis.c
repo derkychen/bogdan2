@@ -4,10 +4,10 @@
 
 #define MIN_LOW            (-1000)
 #define MAX_HIGH           (1000)
-#define UNIT_MAX           (1000000u)
+#define UNIT_MAX_NM           (1000000u)
 #define STAGE_RANGE_MIN_NM (-6000000)
 #define STAGE_RANGE_MAX_NM (6000000)
-#define STAGE_TOLERANCE    (300u)
+#define STAGE_TOLERANCE_NM    (300u)
 
 app_axis_status_t
 app_axis_init (app_axis_t       *axis,
@@ -38,12 +38,12 @@ app_axis_init (app_axis_t       *axis,
         return APP_AXIS_STATUS_INIT_ERR_MIN_GREATER_THAN_MAX;
     }
 
-    if (unit_nm < STAGE_TOLERANCE)
+    if (unit_nm < STAGE_TOLERANCE_NM)
     {
         return APP_AXIS_STATUS_INIT_ERR_UNIT_SMALLER_THAN_TOLERANCE;
     }
 
-    if (unit_nm > UNIT_MAX)
+    if (unit_nm > UNIT_MAX_NM)
     {
         return APP_AXIS_STATUS_INIT_ERR_UNIT_TOO_LARGE;
     }
