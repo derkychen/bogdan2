@@ -34,4 +34,4 @@ dummy-variable-rgx = "^_$"
 convention = "google"
 
 [tool.setuptools]
-packages = ["host"]
+packages = ["api", "host"]
