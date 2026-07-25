@@ -15,9 +15,6 @@ dependencies = [
   "pyserial",
 ]
 
-[project.scripts]
-bogdan2 = "host.cli:main"
-
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
@@ -34,4 +31,8 @@ dummy-variable-rgx = "^_$"
 convention = "google"
 
 [tool.setuptools]
-packages = ["api", "host"]
+packages = [
+  "api",
+  "examples",
+  "host",
+]
