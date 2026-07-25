@@ -6,6 +6,8 @@ Analog Rising Edge. This module does not provide complete functionality, only
 what is necessary.
 """
 
+# TODO: Figure out how to properly set and persist settings.
+
 import ctypes
 import os
 import time
@@ -212,7 +214,6 @@ class Controller:
         """
         _check_err_bool(self._lib.PDXC2_PersistSettings, self._serial_num)
 
-    # TODO: More docstring information on exactly what this function does.
     def close(self) -> None:
         """Close the device."""
         self._lib.PDXC2_StopPolling(self._serial_num)

@@ -11,8 +11,6 @@ from picosdk.ps2000a import ps2000a as ps
 from host.pico.channel import Channel
 from host.pico.constants import (
     RATIO_MODE_NONE,
-    SCOPE_MODE_BULK,
-    SCOPE_MODE_SINGLE,
     TRIGGER_RISING,
 )
 
