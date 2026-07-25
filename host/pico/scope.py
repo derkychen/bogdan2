@@ -87,8 +87,6 @@ class Scope:
         self._max_adc = ctypes.c_int16()
         self._timebase = None
 
-        self._mode = None
-
         self._pretrigger_samples = None
         self._posttrigger_samples = None
         self._total_samples = None
@@ -142,23 +140,6 @@ class Scope:
 
         self._channels = [self._a, self._b, self._c, self._d]
 
-    def set_mode(self, mode: int) -> None:
-        """Set the mode of the PicoScope.
-
-        Whether the PicoScope is triggered depends on whether it is capturing
-        for calibration or profiling.
-        """
-        assert mode in (SCOPE_MODE_SINGLE, SCOPE_MODE_BULK), (
-            "The scope cannot be in any other mode."
-        )
-
-        self._mode = mode
-
-        if self._mode == SCOPE_MODE_SINGLE:
-            self._a.disable_trigger()
-        else:
-            self._a.set_trigger(TRIGGER_RISING, threshold_mv=2000.0)
-
     def set_sample_region(
         self,
         pretrigger_time_ns: int,
@@ -205,12 +186,18 @@ class Scope:
             f"samples and {sample_interval_ns} nanosecond sample interval."
         )
 
+    def disable_trigger_a(self) -> None:
+        """Disable triggering of the PicoScope."""
+        self._a.disable_trigger()
+
+    def enable_trigger_a(self, threshold_mv: float = 2000.0) -> None:
+        """Enable triggering of the PicoScope."""
+        self._a.set_trigger(TRIGGER_RISING, threshold_mv=threshold_mv)
+
     def configure_single_capture(self) -> None:
         """Create buffers for a single capture.
 
         Each channel has one buffer.
-
-        NOTE: This function should only be called when in `SINGLE` mode.
         """
         self._num_captures = 1
 
@@ -222,8 +209,6 @@ class Scope:
 
         Each channel has one buffer. Each channel's buffer contains a number of
         buffers equal to the number of pulses to be captured.
-
-        NOTE: This function should only be called when in `BULK` mode.
         """
         self._num_captures = num_captures
         max_samples = ctypes.c_int32()

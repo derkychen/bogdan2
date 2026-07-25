@@ -38,7 +38,6 @@ PORT_POLL_INTERVAL_S: Final[float] = 0.01
 BAUD_RATE: Final[int] = 115200
 
 
-
 class InvalidMode(Exception):
     """Exception for when the provided mode is not valid."""
 
@@ -69,25 +68,6 @@ def _ser_write_newline_terminated(ser: serial.Serial, instruction: dict):
     ser.write((json.dumps(instruction) + "\n").encode())
 
 
-def _poll_mcu_status(ser: serial.Serial, timeout: float = 10.0) -> dict:
-    """Read one status line from the MCU, raising on any error status."""
-    start = time.time()
-
-    while time.time() - start < timeout:
-        line = ser.readline()
-        if not line:
-            continue
-
-        try:
-            status = json.loads(line)
-            return status
-
-        except json.JSONDecodeError as e:
-            raise InvalidJSONFromMCU(
-                f"Invalid JSON from microcontroller: {e}"
-            ) from e
-
-
 class Profiler:
     """Profiler class responsible for controlling scope and controllers."""
 
@@ -97,8 +77,8 @@ class Profiler:
 
     def __exit__(self, *exc) -> None:
         """Cleanup enabled controllers and open scope."""
-        self._x_controller.disable()
-        self._y_controller.disable()
+        self._x_controller.close()
+        self._y_controller.close()
         self._scope.close()
 
     def __init__(self) -> None:
@@ -107,20 +87,6 @@ class Profiler:
 
         self._x_controller = Controller(X_PDXC2_SERIAL_NUM)
         self._y_controller = Controller(Y_PDXC2_SERIAL_NUM)
-
-        self._scope.open()
-        self._scope.setup()
-
-        self._scope.configure_channels(
-            "trigger_mv",
-            RANGE_5V,
-            "x_mv",
-            RANGE_20V,
-            "y_mv",
-            RANGE_20V,
-            "intensity_mv",
-            RANGE_20V,
-        )
 
         self._x_controller.enable()
         self._y_controller.enable()
@@ -142,12 +108,30 @@ class Profiler:
             ANALOG_OUT_OFFSET_0_TO_10,
         )
 
+        self._scope.open()
+        self._scope.setup()
+
+        self._scope.configure_channels(
+            "trigger_mv",
+            RANGE_5V,
+            "x_mv",
+            RANGE_20V,
+            "y_mv",
+            RANGE_20V,
+            "intensity_mv",
+            RANGE_20V,
+        )
+
+        self._scope.disable_trigger()
+
     def calibrate(self) -> None:
         """Run calibration by printing a continuous stream of intensities."""
         self._scope.set_mode(SCOPE_MODE_SINGLE)
         self._scope.set_sample_region(0, 4000)
 
         try:
+            self._scope.disable_trigger_a()
+
             while True:
                 self._scope.configure_single_capture()
                 self._scope.run_capture()
@@ -156,6 +140,7 @@ class Profiler:
                 intensity_mv = np.mean(reading["intensity_mv"])
 
                 _clear_terminal()
+
                 print(
                     "Current Intensity (mV):\n"
                     "\n"
@@ -199,50 +184,121 @@ class Profiler:
         if mode not in MODES:
             raise InvalidMode(f"Invalid mode '{mode}'.")
 
-        with serial.Serial(port, BAUD_RATE, timeout=None) as ser:
-            if mode in {"point_count", "point_time"}:
-                num_points = (
-                    instruction["grid"]["x"]["max"]
-                    - instruction["grid"]["x"]["min"]
-                    + 1
-                ) * (
-                    instruction["grid"]["y"]["max"]
-                    - instruction["grid"]["y"]["min"]
-                    + 1
+        self._ser = serial.Serial(port, BAUD_RATE, timeout=None)
+
+        match mode:
+            case "point_count":
+                self._profile_mode_point_count()
+
+            case "point_time":
+                self._profile_mode_point_count()
+
+            case "continuous":
+                self._profile_mode_continuous()
+
+        self._ser.close()
+
+    def _poll_mcu_status(self, timeout_s: float = 10.0) -> dict:
+        """Read one status line from the MCU, raising on any error status."""
+        start = time.time()
+
+        while time.time() - start < timeout_s:
+            line = self._ser.readline()
+            if not line:
+                continue
+
+            try:
+                status = json.loads(line)
+                return status
+
+            except json.JSONDecodeError as e:
+                raise InvalidJSONFromMCU(
+                    f"Invalid JSON from microcontroller: {e}"
+                ) from e
+
+    def _profile_mode_point_count(self, instruction: dict) -> None:
+        """Profile a beam in `point_count` mode."""
+        num_points = (
+            instruction["grid"]["x"]["max"]
+            - instruction["grid"]["x"]["min"]
+            + 1
+        ) * (
+            instruction["grid"]["y"]["max"]
+            - instruction["grid"]["y"]["min"]
+            + 1
+        )
+
+        self._scope.set_sample_region(
+            instruction["capture"]["pretrigger_time_ns"],
+            instruction["capture"]["posttrigger_time_ns"],
+            instruction["capture"]["sample_interval_ns"],
+        )
+
+        _ser_write_newline_terminated(self._ser, mcu_instruction(instruction))
+
+        if self._poll_mcu_status()["ok"]:
+            self._scope.enable_trigger_a()
+
+            for _ in range(num_points):
+                self._scope.configure_bulk_capture(
+                    instruction["capture"]["num_pulses"]
                 )
+                self._scope.run_capture()
 
-                _ser_write_newline_terminated(
-                    ser, mcu_instruction(instruction)
-                )
+            self._scope.disable_trigger()
 
-                if _poll_mcu_status(ser)["ok"]:
-                    for _ in range(num_points):
-                        self._scope.configure_bulk_capture(
-                            instruction["capture"]["num_pulses"]
-                        )
-                        self._scope.run_capture()
+    def _profile_mode_point_time(self, instruction: dict) -> None:
+        """Profile a beam in `point_time` mode."""
+        num_points = (
+            instruction["grid"]["x"]["max"]
+            - instruction["grid"]["x"]["min"]
+            + 1
+        ) * (
+            instruction["grid"]["y"]["max"]
+            - instruction["grid"]["y"]["min"]
+            + 1
+        )
 
-                    # TODO: Process data.
+        self._scope.set_sample_region(
+            instruction["capture"]["pretrigger_time_ns"],
+            instruction["capture"]["posttrigger_time_ns"],
+            instruction["capture"]["sample_interval_ns"],
+        )
 
-            elif mode == "continuous":
-                _ser_write_newline_terminated(
-                    ser, mcu_instruction(instruction)
-                )
+        _ser_write_newline_terminated(self._ser, mcu_instruction(instruction))
 
-                if _poll_mcu_status(ser)["ok"]:
-                    while True:
-                        self._scope.configure_single_capture()
-                        self._scope.run_capture()
+        if self._poll_mcu_status()["ok"]:
+            self._scope.enable_trigger_a()
 
-                        status = _poll_mcu_status(ser, timeout=0.010)
+            for _ in range(num_points):
+                self._scope.configure_single_capture()
+                self._scope.run_capture()
 
-                        if not status["ok"]:
-                            error = status["msg"]
-                            raise MCUError(
-                                f"Microcontroller error message: {error}"
-                            )
+            self._scope.disable_trigger()
 
-                        elif status["ok"] and status["msg"] == "profile_done":
-                            break
+    def _profile_mode_continuous(self, instruction: dict) -> None:
+        """Profile a beam in `continuous` mode."""
+        self._scope.set_sample_region(
+            instruction["pretrigger_time_ns"],
+            instruction["posttrigger_time_ns"],
+            instruction["sample_interval_ns"],
+        )
 
-                    # TODO: Process data.
+        _ser_write_newline_terminated(self._ser, mcu_instruction(instruction))
+
+        if self._poll_mcu_status()["ok"]:
+            self._scope.enable_trigger_a()
+
+            while True:
+                self._scope.configure_single_capture()
+                self._scope.run_capture()
+
+                status = self._poll_mcu_status(timeout_s=0.010)
+
+                if not status["ok"]:
+                    error = status["msg"]
+                    raise MCUError(f"Microcontroller error message: {error}")
+
+                elif status["ok"] and status["msg"] == "profile_done":
+                    self._scope.disable_trigger()
+                    break
