@@ -2,6 +2,7 @@
 
 import json
 import time
+from contextlib import ExitStack
 from typing import Final
 
 import numpy as np
@@ -10,11 +11,11 @@ from serial.tools import list_ports
 
 from api.params import (
     ContinuousCaptureParams,
+    GridParams,
     PointCountCaptureParams,
     PointTimeCaptureParams,
     ProfilerParams,
 )
-from api.utils import ceil_div
 from host.pdxc2.constants import (
     ANALOG_IN_GAIN_0_TO_10,
     ANALOG_IN_OFFSET_0_TO_10,
@@ -25,16 +26,9 @@ from host.pdxc2.controller import Controller
 from host.pico.constants import (
     RANGE_5V,
     RANGE_20V,
-    SCOPE_MODE_BULK,
-    SCOPE_MODE_SINGLE,
 )
 from host.pico.scope import Scope
-
-_MODE_STR_FROM_CAPTURE_MODE_TYPE: Final[dict] = {
-    PointCountCaptureParams: "point_count",
-    PointTimeCaptureParams: "point_time",
-    ContinuousCaptureParams: "continuous",
-}
+from host.utils import ceil_div
 
 X_PDXC2_SERIAL_NUM: Final[bytes] = b"112547939"
 Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
@@ -71,7 +65,7 @@ def _clear_terminal() -> None:
     print("\033[2J\033[H", end="")
 
 
-def _ser_write_newline_terminated(ser: serial.Serial, params: dict):
+def _ser_write_newline_terminated(ser: serial.Serial, params: dict) -> None:
     """Write a newline-terminated JSON over serial."""
     ser.write((json.dumps(params) + "\n").encode())
 
@@ -79,23 +73,102 @@ def _ser_write_newline_terminated(ser: serial.Serial, params: dict):
 class Profiler:
     """Profiler class responsible for controlling scope and controllers."""
 
+    def __init__(self) -> None:
+        """Initialize the profiler. Acquires no hardware."""
+        self._scope = Scope()
+        self._x_controller = Controller(X_PDXC2_SERIAL_NUM)
+        self._y_controller = Controller(Y_PDXC2_SERIAL_NUM)
+        self._ser: serial.Serial | None = None
+
     def __enter__(self) -> "Profiler":
-        """Return the instance."""
+        """Acquire hardware."""
+        with ExitStack() as stack:
+            self._x_controller.enable()
+            stack.callback(self._x_controller.close)
+
+            self._y_controller.enable()
+            stack.callback(self._y_controller.close)
+
+            self._scope.open()
+            stack.callback(self._scope.close)
+
+            self._configure()
+
+            self._stack = stack.pop_all()
+
         return self
 
     def __exit__(self, *exc) -> None:
-        """Cleanup enabled controllers and open scope."""
-        self._x_controller.close()
-        self._y_controller.close()
-        self._scope.close()
+        """Cleanup hardware."""
+        if self._ser is not None:
+            self._ser.close()
+        self._stack.close()
 
-    def __init__(self) -> None:
-        """Initialize a profiler instance."""
-        self._scope = Scope()
+    def calibrate(self) -> None:
+        """Run calibration by printing a continuous stream of intensities."""
+        self._scope.set_sample_region(0, 4000)
 
-        self._x_controller = Controller(X_PDXC2_SERIAL_NUM)
-        self._y_controller = Controller(Y_PDXC2_SERIAL_NUM)
+        try:
+            self._scope.disable_trigger_a()
+            self._scope.configure_single_capture()
 
+            while True:
+                self._scope.run_capture()
+
+                reading = self._scope.get_single()
+                intensity_mv = np.mean(reading["intensity_mv"])
+
+                _clear_terminal()
+
+                print(
+                    "Current Intensity (mV):\n"
+                    "\n"
+                    f"{intensity_mv}\n"
+                    "\n"
+                    "Ctrl+C to quit"
+                )
+
+                time.sleep(CALIBRATION_REFRESH_S)
+
+        except KeyboardInterrupt:
+            _clear_terminal()
+            print("\nStopped voltage monitor.")
+
+    def profile(self, port: str, params: ProfilerParams) -> None:
+        """Run profiling with a set of parameters."""
+        start = time.time()
+
+        while True:
+            if time.time() - start >= PORT_WAIT_TIMEOUT_S:
+                raise PortWaitTimeout("Timed out waiting for port.")
+
+            available_ports = [p.device for p in list_ports.comports()]
+
+            if port in available_ports:
+                break
+
+            time.sleep(PORT_POLL_INTERVAL_S)
+
+        self._ser = serial.Serial(port, BAUD_RATE, timeout=1.0)
+
+        match params.capture:
+            case PointCountCaptureParams() as capture:
+                self._profile_mode_point_count(params.grid, capture)
+
+            case PointTimeCaptureParams() as capture:
+                self._profile_mode_point_time(params.grid, capture)
+
+            case ContinuousCaptureParams() as capture:
+                self._profile_mode_continuous(params.grid, capture)
+
+            case _:
+                raise InvalidMode(
+                    f"Unsupported mode: {type(params.capture).__name__}"
+                )
+
+        self._ser.close()
+
+    def _configure(self) -> None:
         self._x_controller.enable()
         self._y_controller.enable()
 
@@ -130,74 +203,7 @@ class Profiler:
             RANGE_20V,
         )
 
-        self._scope.disable_trigger()
-
-    def calibrate(self) -> None:
-        """Run calibration by printing a continuous stream of intensities."""
-        self._scope.set_mode(SCOPE_MODE_SINGLE)
-        self._scope.set_sample_region(0, 4000)
-
-        try:
-            self._scope.disable_trigger_a()
-
-            while True:
-                self._scope.configure_single_capture()
-                self._scope.run_capture()
-
-                reading = self._scope.get_single()
-                intensity_mv = np.mean(reading["intensity_mv"])
-
-                _clear_terminal()
-
-                print(
-                    "Current Intensity (mV):\n"
-                    "\n"
-                    f"{intensity_mv}\n"
-                    "\n"
-                    "Ctrl+C to quit"
-                )
-
-                time.sleep(CALIBRATION_REFRESH_S)
-
-        except KeyboardInterrupt:
-            _clear_terminal()
-            print("\nStopped voltage monitor.")
-
-    def profile(self, port: str, params: ProfilerParams) -> None:
-        """Run profiling with a set of instructions."""
-        self._scope.set_sample_region(
-            params.capture.pretrigger_time_ns,
-            params.capture.posttrigger_time_ns,
-            params.capture.sample_interval_ns,
-        )
-        self._scope.set_mode(SCOPE_MODE_BULK)
-
-        start = time.time()
-
-        while True:
-            if time.time() - start >= PORT_WAIT_TIMEOUT_S:
-                raise PortWaitTimeout("Timed out waiting for port.")
-
-            available_ports = [p.device for p in list_ports.comports()]
-
-            if port in available_ports:
-                break
-
-            time.sleep(PORT_POLL_INTERVAL_S)
-
-        self._ser = serial.Serial(port, BAUD_RATE, timeout=None)
-
-        match params.capture:
-            case PointCountCaptureParams():
-                self._profile_mode_point_count()
-
-            case PointTimeCaptureParams():
-                self._profile_mode_point_count()
-
-            case ContinuousCaptureParams():
-                self._profile_mode_continuous()
-
-        self._ser.close()
+        self._scope.disable_trigger_a()
 
     def _poll_mcu_status(self, timeout_s: float = 10.0) -> dict:
         """Read one status line from the MCU, raising on any error status."""
@@ -217,90 +223,109 @@ class Profiler:
                     f"Invalid JSON from microcontroller: {e}"
                 ) from e
 
-    def _profile_mode_point_count(self, params: ProfilerParams) -> None:
+    def _profile_mode_point_count(
+        self, grid: GridParams, capture: PointCountCaptureParams
+    ) -> None:
         """Profile a beam in `point_count` mode."""
+        self._scope.set_sample_region(
+            capture.pretrigger_time_ns,
+            capture.posttrigger_time_ns,
+            capture.sample_interval_ns,
+        )
+
         _ser_write_newline_terminated(
             self._ser,
             {
                 "mode": "point_count",
-                "x_min": params.grid.x.min,
-                "x_max": params.grid.x.max,
-                "x_unit_nm": params.grid.x.unit_nm,
-                "x_origin_nm": params.grid.x.origin_nm,
-                "y_min": params.grid.y.min,
-                "y_max": params.grid.y.max,
-                "y_unit_nm": params.grid.y.unit_nm,
-                "y_origin_nm": params.grid.y.origin_nm,
-                "num_pulses": params.capture.num_pulses,
+                "x_min": grid.x.min,
+                "x_max": grid.x.max,
+                "x_unit_nm": grid.x.unit_nm,
+                "x_origin_nm": grid.x.origin_nm,
+                "y_min": grid.y.min,
+                "y_max": grid.y.max,
+                "y_unit_nm": grid.y.unit_nm,
+                "y_origin_nm": grid.y.origin_nm,
+                "num_pulses": capture.num_pulses,
                 "posttrigger_time_us": ceil_div(
-                    params.capture.posttrigger_time_ns, 1000
+                    capture.posttrigger_time_ns, 1000
                 ),
             },
         )
 
         if self._poll_mcu_status()["ok"]:
             self._scope.enable_trigger_a()
+            self._scope.configure_bulk_capture(capture.num_pulses)
 
-            for _ in range(params.grid.num_points):
-                self._scope.configure_bulk_capture(
-                    params.capture.num_pulses
-                )
+            for _ in range(grid.num_points):
                 self._scope.run_capture()
 
             self._scope.disable_trigger()
 
-    def _profile_mode_point_time(self, params: ProfilerParams) -> None:
+    def _profile_mode_point_time(
+        self, grid: GridParams, capture: PointCountCaptureParams
+    ) -> None:
         """Profile a beam in `point_time` mode."""
+        self._scope.set_sample_region(
+            capture.pretrigger_time_ns,
+            capture.posttrigger_time_ns,
+            capture.sample_interval_ns,
+        )
+
         _ser_write_newline_terminated(
             self._ser,
             {
                 "mode": "point_time",
-                "x_min": params.grid.x.min,
-                "x_max": params.grid.x.max,
-                "x_unit_nm": params.grid.x.unit_nm,
-                "x_origin_nm": params.grid.x.origin_nm,
-                "y_min": params.grid.y.min,
-                "y_max": params.grid.y.max,
-                "y_unit_nm": params.grid.y.unit_nm,
-                "y_origin_nm": params.grid.y.origin_nm,
-                "wait_time_us": params.capture.wait_time_us,
-                "posttrigger_time_us": ceil_div(
-                    params.capture.posttrigger_time_ns, 1000
-                ),
+                "x_min": grid.x.min,
+                "x_max": grid.x.max,
+                "x_unit_nm": grid.x.unit_nm,
+                "x_origin_nm": grid.x.origin_nm,
+                "y_min": grid.y.min,
+                "y_max": grid.y.max,
+                "y_unit_nm": grid.y.unit_nm,
+                "y_origin_nm": grid.y.origin_nm,
+                "wait_time_us": capture.wait_time_us,
             },
         )
 
         if self._poll_mcu_status()["ok"]:
             self._scope.enable_trigger_a()
+            self._scope.configure_single_capture()
 
-            for _ in range(params.grid.num_points):
-                self._scope.configure_single_capture()
+            for _ in range(grid.num_points):
                 self._scope.run_capture()
 
             self._scope.disable_trigger()
 
-    def _profile_mode_continuous(self, params: ProfilerParams) -> None:
+    def _profile_mode_continuous(
+        self, grid: GridParams, capture: ContinuousCaptureParams
+    ) -> None:
         """Profile a beam in `continuous` mode."""
+        self._scope.set_sample_region(
+            capture.pretrigger_time_ns,
+            capture.posttrigger_time_ns,
+            capture.sample_interval_ns,
+        )
+
         _ser_write_newline_terminated(
             self._ser,
             {
                 "mode": "continuous",
-                "x_min": params.grid.x.min,
-                "x_max": params.grid.x.max,
-                "x_unit_nm": params.grid.x.unit_nm,
-                "x_origin_nm": params.grid.x.origin_nm,
-                "y_min": params.grid.y.min,
-                "y_max": params.grid.y.max,
-                "y_unit_nm": params.grid.y.unit_nm,
-                "y_origin_nm": params.grid.y.origin_nm,
+                "x_min": grid.x.min,
+                "x_max": grid.x.max,
+                "x_unit_nm": grid.x.unit_nm,
+                "x_origin_nm": grid.x.origin_nm,
+                "y_min": grid.y.min,
+                "y_max": grid.y.max,
+                "y_unit_nm": grid.y.unit_nm,
+                "y_origin_nm": grid.y.origin_nm,
             },
         )
 
         if self._poll_mcu_status()["ok"]:
             self._scope.enable_trigger_a()
+            self._scope.configure_single_capture()
 
             while True:
-                self._scope.configure_single_capture()
                 self._scope.run_capture()
 
                 status = self._poll_mcu_status(timeout_s=0.010)
