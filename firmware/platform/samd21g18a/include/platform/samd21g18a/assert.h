@@ -29,15 +29,15 @@ void platform_samd21g18a_assert_fail(char const *expression,
 
 // Assert only for debugging builds.
 #ifdef NDEBUG
-#define PLATFORM_SAMD21G18A_ASSERT(expression) ((void)0)
+#define PLATFORM_SAMD21G18A_ASSERT(condition) ((void)sizeof(condition))
 #else
-#define PLATFORM_SAMD21G18A_ASSERT(expression)                                \
-    do                                                                        \
-    {                                                                         \
-        if (!(expression))                                                    \
-        {                                                                     \
-            platform_samd21g18a_assert_fail(#expression, __FILE__, __LINE__); \
-        }                                                                     \
+#define PLATFORM_SAMD21G18A_ASSERT(condition)                                \
+    do                                                                       \
+    {                                                                        \
+        if (!(condition))                                                    \
+        {                                                                    \
+            platform_samd21g18a_assert_fail(#condition, __FILE__, __LINE__); \
+        }                                                                    \
     } while (0)
 #endif
 

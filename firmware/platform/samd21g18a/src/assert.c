@@ -3,7 +3,7 @@
 
 platform_samd21g18a_assert_data_t volatile platform_samd21g18a_assert_data;
 
-void
+_Noreturn void
 platform_samd21g18a_assert_fail (char const *expression,
                                  char const *file,
                                  int         line)
@@ -14,8 +14,10 @@ platform_samd21g18a_assert_fail (char const *expression,
 
     __disable_irq();
 
+    __BKPT(0);
+
     for (;;)
     {
-        __BKPT(0);
+        __NOP();
     }
 }
