@@ -46,8 +46,6 @@ add_executable("${TARGET_NAME}")
 
 target_sources("${TARGET_NAME}" PRIVATE
   "${PLATFORM_SAMD21G18A_DIR}/src/startup.c"
-  $<TARGET_OBJECTS:platform_samd21g18a>
-  $<TARGET_OBJECTS:app>
 )
 
 target_link_libraries("${TARGET_NAME}" PRIVATE
