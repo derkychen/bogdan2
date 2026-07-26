@@ -14,18 +14,26 @@ typedef struct
     int y;
 } app_path_position_t;
 
+/** @brief Path status codes. */
+typedef enum
+{
+    APP_PATH_STATUS_OK = 0,
+    APP_PATH_STATUS_ERR,
+} app_path_status_t;
+
 /**
  * @brief For storage of the direction of the raster.
  *
+ * The raster direction is parallel to the axis along which most travel occurs.
+ * Thus, a horizontal raster resembles the letter Z, and a vertical raster
+ * resembles the letter N.
+ *
  * NOTE: This is important in the actual geometry of the path as well as the
- * balancing of consecutive travel between the two stages.
+ *       balancing of consecutive travel between the two stages.
  */
 typedef enum
 {
-    /** Raster direction parallel to the x-axis (like the letter Z). */
     APP_PATH_RASTER_DIRECTION_HORIZONTAL = 0,
-
-    /** Raster direction parallel to the y-axis (like the letter N). */
     APP_PATH_RASTER_DIRECTION_VERTICAL,
 } app_path_raster_direction_t;
 
@@ -43,11 +51,12 @@ typedef enum
  * movement of the stages for each grid and balance consecutive travel between
  * the stages.
  */
-app_path_position_t *app_path_modified_raster(
+app_path_status_t app_path_modified_raster(
     app_axis_t const            *x,
     app_axis_t const            *y,
     app_path_raster_direction_t *prev_raster_direction,
     bool                         corners_only,
+    app_path_position_t        **path,
     size_t                      *path_size);
 
 #endif

@@ -5,13 +5,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
+
+#define PATH_BUFFER_CAPACITY (1024u)
+
+static app_path_position_t path_buffer[PATH_BUFFER_CAPACITY];
 
 static int get_anchor_coord(app_axis_t const *axis);
 
 static void append(app_path_position_t *path,
+                   size_t              *path_size,
                    size_t               path_size_capacity,
-                   size_t              *path_size_current,
                    int                  x,
                    int                  y);
 
@@ -28,8 +31,8 @@ static app_path_raster_direction_t choose_raster_direction(
     app_path_raster_direction_t prev_raster_direction);
 
 static void append_local(app_path_position_t *path,
+                         size_t              *path_size,
                          size_t               path_size_capacity,
-                         size_t              *path_size_current,
                          app_axis_t const    *x,
                          app_axis_t const    *y,
                          int                  row,
@@ -37,8 +40,8 @@ static void append_local(app_path_position_t *path,
                          bool                 transposed);
 
 static void append_line(app_path_position_t *path,
+                        size_t              *path_size,
                         size_t               path_size_capacity,
-                        size_t              *path_size_current,
                         app_axis_t const    *x,
                         app_axis_t const    *y,
                         int                  num_points,
@@ -46,8 +49,8 @@ static void append_line(app_path_position_t *path,
                         bool                 transposed);
 
 static void append_even_unrotated_path(app_path_position_t *path,
+                                       size_t              *path_size,
                                        size_t               path_size_capacity,
-                                       size_t              *path_size_current,
                                        app_axis_t const    *x,
                                        app_axis_t const    *y,
                                        int                  rows,
@@ -55,26 +58,26 @@ static void append_even_unrotated_path(app_path_position_t *path,
                                        bool                 transposed);
 
 static void append_odd_unrotated_path(app_path_position_t *path,
+                                      size_t              *path_size,
                                       size_t               path_size_capacity,
-                                      size_t              *path_size_current,
                                       app_axis_t const    *x,
                                       app_axis_t const    *y,
                                       int                  rows,
                                       int                  cols,
                                       bool                 transposed);
 
-static bool corner_at(app_path_position_t const *previous,
-                      app_path_position_t const *current,
+static bool corner_at(app_path_position_t const *prev,
+                      app_path_position_t const *curr,
                       app_path_position_t const *next);
 
-static void shrink_to_corners(app_path_position_t *path,
-                              size_t              *path_size_current);
+static void shrink_to_corners(app_path_position_t *path, size_t *path_size);
 
-app_path_position_t *
+app_path_status_t
 app_path_modified_raster (app_axis_t const            *x,
                           app_axis_t const            *y,
                           app_path_raster_direction_t *prev_raster_direction,
                           bool                         corners_only,
+                          app_path_position_t        **path,
                           size_t                      *path_size)
 {
     PLATFORM_SAMD21G18A_ASSERT(x != NULL);
@@ -88,30 +91,27 @@ app_path_modified_raster (app_axis_t const            *x,
     size_t y_num_points = app_axis_num_points(y);
 
     PLATFORM_SAMD21G18A_ASSERT(x_num_points > 0u);
-    PLATFORM_SAMD21G18A_ASSERT(y_num_points > 0u);
     PLATFORM_SAMD21G18A_ASSERT(x_num_points <= INT_MAX);
+    PLATFORM_SAMD21G18A_ASSERT(y_num_points > 0u);
     PLATFORM_SAMD21G18A_ASSERT(y_num_points <= INT_MAX);
     PLATFORM_SAMD21G18A_ASSERT(x_num_points <= (SIZE_MAX / y_num_points));
 
     size_t grid_num_points = x_num_points * y_num_points;
 
-    PLATFORM_SAMD21G18A_ASSERT(grid_num_points <= (SIZE_MAX - 1u));
-
-    size_t path_size_capacity
-        = (grid_num_points == 1u) ? grid_num_points : grid_num_points + 1u;
-
-    app_path_position_t *path;
-
-    PLATFORM_SAMD21G18A_ASSERT(path_size_capacity <= (SIZE_MAX / sizeof *path));
-
-    path = malloc(path_size_capacity * sizeof *path);
-
-    // NOTE: The only failure mode for path generation should be a failed memory
-    //       allocation.
-    if (path == NULL)
+    if (grid_num_points == 0)
     {
-        return NULL;
+        return APP_PATH_STATUS_ERR;
     }
+
+    size_t path_buffer_capacity = sizeof path_buffer / sizeof path_buffer[0];
+    size_t closing_point_count  = (grid_num_points > 1u) ? 1u : 0u;
+
+    if (path_buffer_capacity < (grid_num_points + closing_point_count))
+    {
+        return APP_PATH_STATUS_ERR;
+    }
+
+    size_t path_size_capacity = grid_num_points + closing_point_count;
 
     int anchor_x = get_anchor_coord(x);
     int anchor_y = get_anchor_coord(y);
@@ -137,9 +137,9 @@ app_path_modified_raster (app_axis_t const            *x,
             transposed = true;
         }
 
-        append_line(path,
-                    path_size_capacity,
+        append_line(path_buffer,
                     path_size,
+                    path_size_capacity,
                     x,
                     y,
                     num_points,
@@ -148,10 +148,12 @@ app_path_modified_raster (app_axis_t const            *x,
 
         if (corners_only)
         {
-            shrink_to_corners(path, path_size);
+            shrink_to_corners(path_buffer, path_size);
         }
 
-        return path;
+        *path = path_buffer;
+
+        return APP_PATH_STATUS_OK;
     }
 
     // Handle two dimensional grid.
@@ -177,13 +179,25 @@ app_path_modified_raster (app_axis_t const            *x,
 
     if ((rows & 1) == 0)
     {
-        append_even_unrotated_path(
-            path, path_size_capacity, path_size, x, y, rows, cols, transposed);
+        append_even_unrotated_path(path_buffer,
+                                   path_size,
+                                   path_size_capacity,
+                                   x,
+                                   y,
+                                   rows,
+                                   cols,
+                                   transposed);
     }
     else if (((rows & 1) == 1) && ((cols & 1) == 1))
     {
-        append_odd_unrotated_path(
-            path, path_size_capacity, path_size, x, y, rows, cols, transposed);
+        append_odd_unrotated_path(path_buffer,
+                                  path_size,
+                                  path_size_capacity,
+                                  x,
+                                  y,
+                                  rows,
+                                  cols,
+                                  transposed);
     }
     else
     {
@@ -193,17 +207,19 @@ app_path_modified_raster (app_axis_t const            *x,
     PLATFORM_SAMD21G18A_ASSERT(*path_size == grid_num_points);
 
     // Rotate the path to start at the anchor.
-    rotate_to_anchor(path, grid_num_points, anchor_x, anchor_y);
+    rotate_to_anchor(path_buffer, grid_num_points, anchor_x, anchor_y);
 
-    path[grid_num_points] = path[0];
-    *path_size            = path_size_capacity;
+    path_buffer[grid_num_points] = path_buffer[0];
+    *path_size                   = path_size_capacity;
 
     if (corners_only)
     {
-        shrink_to_corners(path, path_size);
+        shrink_to_corners(path_buffer, path_size);
     }
 
-    return path;
+    *path = path_buffer;
+
+    return APP_PATH_STATUS_OK;
 }
 
 /**
@@ -234,18 +250,18 @@ get_anchor_coord (app_axis_t const *axis)
 /** @brief Append a point to a path. */
 static void
 append (app_path_position_t *path,
+        size_t              *path_size,
         size_t               path_size_capacity,
-        size_t              *path_size_current,
         int                  x,
         int                  y)
 {
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(*path_size_current < path_size_capacity);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(*path_size < path_size_capacity);
 
-    path[*path_size_current].x = x;
-    path[*path_size_current].y = y;
-    (*path_size_current)++;
+    path[*path_size].x = x;
+    path[*path_size].y = y;
+    (*path_size)++;
 
     return;
 }
@@ -323,6 +339,8 @@ rotate_to_anchor (app_path_position_t *path,
  * direction can be chosen, so the program chooses the opposite of the direction
  * that was last used. Otherwise, the raster direction must be parallel to the
  * odd side.
+ *
+ * NOTE: The direction chosen ensures that the number of local rows is even.
  */
 static app_path_raster_direction_t
 choose_raster_direction (size_t                      x_num_points,
@@ -354,8 +372,8 @@ choose_raster_direction (size_t                      x_num_points,
  */
 static void
 append_local (app_path_position_t *path,
+              size_t              *path_size,
               size_t               path_size_capacity,
-              size_t              *path_size_current,
               app_axis_t const    *x,
               app_axis_t const    *y,
               int                  row,
@@ -363,26 +381,18 @@ append_local (app_path_position_t *path,
               bool                 transposed)
 {
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
     PLATFORM_SAMD21G18A_ASSERT(x != NULL);
     PLATFORM_SAMD21G18A_ASSERT(y != NULL);
 
     if (transposed)
     {
-        append(path,
-               path_size_capacity,
-               path_size_current,
-               x->min + row,
-               y->min + col);
+        append(path, path_size, path_size_capacity, x->min + row, y->min + col);
 
         return;
     }
 
-    append(path,
-           path_size_capacity,
-           path_size_current,
-           x->min + col,
-           y->min + row);
+    append(path, path_size, path_size_capacity, x->min + col, y->min + row);
 
     return;
 }
@@ -395,8 +405,8 @@ append_local (app_path_position_t *path,
  */
 static void
 append_line (app_path_position_t *path,
+             size_t              *path_size,
              size_t               path_size_capacity,
-             size_t              *path_size_current,
              app_axis_t const    *x,
              app_axis_t const    *y,
              int                  num_points,
@@ -404,7 +414,7 @@ append_line (app_path_position_t *path,
              bool                 transposed)
 {
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
     PLATFORM_SAMD21G18A_ASSERT(x != NULL);
     PLATFORM_SAMD21G18A_ASSERT(y != NULL);
 
@@ -415,14 +425,8 @@ append_line (app_path_position_t *path,
     // Handle a single point.
     if (num_points == 1)
     {
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     0,
-                     0,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 0, 0, transposed);
 
         return;
     }
@@ -436,63 +440,33 @@ append_line (app_path_position_t *path,
     {
         for (col = anchor; col >= 0; col--)
         {
-            append_local(path,
-                         path_size_capacity,
-                         path_size_current,
-                         x,
-                         y,
-                         0,
-                         col,
-                         transposed);
+            append_local(
+                path, path_size, path_size_capacity, x, y, 0, col, transposed);
         }
 
         for (col = anchor + 1; col < num_points; col++)
         {
-            append_local(path,
-                         path_size_capacity,
-                         path_size_current,
-                         x,
-                         y,
-                         0,
-                         col,
-                         transposed);
+            append_local(
+                path, path_size, path_size_capacity, x, y, 0, col, transposed);
         }
     }
     else
     {
         for (col = anchor; col < num_points; col++)
         {
-            append_local(path,
-                         path_size_capacity,
-                         path_size_current,
-                         x,
-                         y,
-                         0,
-                         col,
-                         transposed);
+            append_local(
+                path, path_size, path_size_capacity, x, y, 0, col, transposed);
         }
 
         for (col = anchor - 1; col >= 0; col--)
         {
-            append_local(path,
-                         path_size_capacity,
-                         path_size_current,
-                         x,
-                         y,
-                         0,
-                         col,
-                         transposed);
+            append_local(
+                path, path_size, path_size_capacity, x, y, 0, col, transposed);
         }
     }
 
-    append_local(path,
-                 path_size_capacity,
-                 path_size_current,
-                 x,
-                 y,
-                 0,
-                 anchor,
-                 transposed);
+    append_local(
+        path, path_size, path_size_capacity, x, y, 0, anchor, transposed);
 
     return;
 }
@@ -504,8 +478,8 @@ append_line (app_path_position_t *path,
  */
 static void
 append_even_unrotated_path (app_path_position_t *path,
+                            size_t              *path_size,
                             size_t               path_size_capacity,
-                            size_t              *path_size_current,
                             app_axis_t const    *x,
                             app_axis_t const    *y,
                             int                  rows,
@@ -513,7 +487,7 @@ append_even_unrotated_path (app_path_position_t *path,
                             bool                 transposed)
 {
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
     PLATFORM_SAMD21G18A_ASSERT(x != NULL);
     PLATFORM_SAMD21G18A_ASSERT(y != NULL);
 
@@ -525,14 +499,8 @@ append_even_unrotated_path (app_path_position_t *path,
     // Move to the top of the grid.
     for (int row = 0; row < rows; row++)
     {
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     row,
-                     0,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, row, 0, transposed);
     }
 
     // Raster horizontally until the adjacent to the origin.
@@ -543,8 +511,8 @@ append_even_unrotated_path (app_path_position_t *path,
             for (int col = 1; col < cols; col++)
             {
                 append_local(path,
+                             path_size,
                              path_size_capacity,
-                             path_size_current,
                              x,
                              y,
                              row,
@@ -557,8 +525,8 @@ append_even_unrotated_path (app_path_position_t *path,
             for (int col = cols - 1; col >= 1; col--)
             {
                 append_local(path,
+                             path_size,
                              path_size_capacity,
-                             path_size_current,
                              x,
                              y,
                              row,
@@ -570,14 +538,8 @@ append_even_unrotated_path (app_path_position_t *path,
 
     for (int col = cols - 1; col >= 1; col--)
     {
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     0,
-                     col,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 0, col, transposed);
     }
 
     return;
@@ -590,8 +552,8 @@ append_even_unrotated_path (app_path_position_t *path,
  */
 static void
 append_odd_unrotated_path (app_path_position_t *path,
+                           size_t              *path_size,
                            size_t               path_size_capacity,
-                           size_t              *path_size_current,
                            app_axis_t const    *x,
                            app_axis_t const    *y,
                            int                  rows,
@@ -601,7 +563,7 @@ append_odd_unrotated_path (app_path_position_t *path,
     int col;
 
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
     PLATFORM_SAMD21G18A_ASSERT(x != NULL);
     PLATFORM_SAMD21G18A_ASSERT(y != NULL);
 
@@ -614,22 +576,16 @@ append_odd_unrotated_path (app_path_position_t *path,
     // Move to the top of the grid.
     for (int row = 0; row < rows; row++)
     {
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     row,
-                     0,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, row, 0, transposed);
     }
 
     // Raster horizontally until at the right with two rows left.
     for (col = 1; col < cols; col++)
     {
         append_local(path,
+                     path_size,
                      path_size_capacity,
-                     path_size_current,
                      x,
                      y,
                      rows - 1,
@@ -644,8 +600,8 @@ append_odd_unrotated_path (app_path_position_t *path,
             for (col = cols - 1; col >= 1; col--)
             {
                 append_local(path,
+                             path_size,
                              path_size_capacity,
-                             path_size_current,
                              x,
                              y,
                              row,
@@ -658,8 +614,8 @@ append_odd_unrotated_path (app_path_position_t *path,
             for (col = 1; col < cols; col++)
             {
                 append_local(path,
+                             path_size,
                              path_size_capacity,
-                             path_size_current,
                              x,
                              y,
                              row,
@@ -670,97 +626,54 @@ append_odd_unrotated_path (app_path_position_t *path,
     }
 
     // Move diagonally at the bottom-right corner to ensure a cyclic path.
-    append_local(path,
-                 path_size_capacity,
-                 path_size_current,
-                 x,
-                 y,
-                 1,
-                 cols - 1,
-                 transposed);
+    append_local(
+        path, path_size, path_size_capacity, x, y, 1, cols - 1, transposed);
 
-    append_local(path,
-                 path_size_capacity,
-                 path_size_current,
-                 x,
-                 y,
-                 1,
-                 cols - 2,
-                 transposed);
+    append_local(
+        path, path_size, path_size_capacity, x, y, 1, cols - 2, transposed);
 
-    append_local(path,
-                 path_size_capacity,
-                 path_size_current,
-                 x,
-                 y,
-                 0,
-                 cols - 1,
-                 transposed);
+    append_local(
+        path, path_size, path_size_capacity, x, y, 0, cols - 1, transposed);
 
     col = cols - 2;
 
     // Squiggle toward the left until adjacent to the origin.
     while (col >= 2)
     {
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     0,
-                     col,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 0, col, transposed);
 
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     0,
-                     col - 1,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 0, col - 1, transposed);
 
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     1,
-                     col - 1,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 1, col - 1, transposed);
 
-        append_local(path,
-                     path_size_capacity,
-                     path_size_current,
-                     x,
-                     y,
-                     1,
-                     col - 2,
-                     transposed);
+        append_local(
+            path, path_size, path_size_capacity, x, y, 1, col - 2, transposed);
 
         col -= 2;
     }
 
-    append_local(
-        path, path_size_capacity, path_size_current, x, y, 0, 1, transposed);
+    append_local(path, path_size, path_size_capacity, x, y, 0, 1, transposed);
 
     return;
 }
 
 /** @brief Determine whether a path changes direction at a point. */
 static bool
-corner_at (app_path_position_t const *previous,
-           app_path_position_t const *current,
+corner_at (app_path_position_t const *prev,
+           app_path_position_t const *curr,
            app_path_position_t const *next)
 {
-    PLATFORM_SAMD21G18A_ASSERT(previous != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(prev != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(curr != NULL);
     PLATFORM_SAMD21G18A_ASSERT(next != NULL);
 
-    int64_t dx_previous = (int64_t)current->x - previous->x;
-    int64_t dy_previous = (int64_t)current->y - previous->y;
-    int64_t dx_next     = (int64_t)next->x - current->x;
-    int64_t dy_next     = (int64_t)next->y - current->y;
+    int64_t dx_previous = (int64_t)curr->x - prev->x;
+    int64_t dy_previous = (int64_t)curr->y - prev->y;
+    int64_t dx_next     = (int64_t)next->x - curr->x;
+    int64_t dy_next     = (int64_t)next->y - curr->y;
 
     int64_t cross_product = (dx_previous * dy_next) - (dy_previous * dx_next);
     int64_t dot_product   = (dx_previous * dx_next) + (dy_previous * dy_next);
@@ -770,20 +683,19 @@ corner_at (app_path_position_t const *previous,
 
 /** @brief Remove points that do not represent corners in a path. */
 static void
-shrink_to_corners (app_path_position_t *path, size_t *path_size_current)
+shrink_to_corners (app_path_position_t *path, size_t *path_size)
 {
     PLATFORM_SAMD21G18A_ASSERT(path != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(path_size_current != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(path_size != NULL);
 
-    if (*path_size_current <= 2)
+    if (*path_size <= 2)
     {
         return;
     }
 
     size_t write_index = 1;
 
-    for (size_t read_index = 1; read_index + 1 < *path_size_current;
-         read_index++)
+    for (size_t read_index = 1; read_index + 1 < *path_size; read_index++)
     {
         if (corner_at(&path[read_index - 1],
                       &path[read_index],
@@ -794,10 +706,10 @@ shrink_to_corners (app_path_position_t *path, size_t *path_size_current)
         }
     }
 
-    path[write_index] = path[*path_size_current - 1];
+    path[write_index] = path[*path_size - 1];
     write_index++;
 
-    *path_size_current = write_index;
+    *path_size = write_index;
 
     return;
 }
