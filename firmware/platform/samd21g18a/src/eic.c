@@ -8,7 +8,7 @@
 
 #define EXTINT_LINE_COUNT (16u)
 
-static uint8_t const sense_shifts[PLATFORM_SAMD21G18A_EIC_SENSE_COUNT] = {
+static uint8_t const sense_values[PLATFORM_SAMD21G18A_EIC_SENSE_COUNT] = {
     [PLATFORM_SAMD21G18A_EIC_SENSE_RISE] = EIC_CONFIG_SENSE0_RISE_Val,
     [PLATFORM_SAMD21G18A_EIC_SENSE_FALL] = EIC_CONFIG_SENSE0_FALL_Val,
     [PLATFORM_SAMD21G18A_EIC_SENSE_BOTH] = EIC_CONFIG_SENSE0_BOTH_Val,
@@ -77,6 +77,8 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->number
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->sense
+                               < PLATFORM_SAMD21G18A_EIC_SENSE_COUNT);
 
     PortGroup *port = &PORT->Group[cfg->eic_pin->pin->port_group];
 
@@ -114,7 +116,7 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     uint8_t bit_position = (uint8_t)((cfg->eic_pin->line % 8u) * 4u);
 
     uint32_t sense_mask  = 0x7u << bit_position;
-    uint32_t sense_value = ((uint32_t)sense_shifts[cfg->sense] & 0x7u)
+    uint32_t sense_value = ((uint32_t)sense_values[cfg->sense] & 0x7u)
                            << bit_position;
 
     EIC->CONFIG[config_index].reg
