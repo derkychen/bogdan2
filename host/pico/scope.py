@@ -13,6 +13,7 @@ from host.pico.constants import (
     RATIO_MODE_NONE,
     TRIGGER_RISING,
 )
+from host.utils import ceil_div
 
 CHANNEL_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
 CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
@@ -83,7 +84,7 @@ class Scope:
         """Initialize the PicoScope."""
         self._chandle = ctypes.c_int16()
         self._max_adc = ctypes.c_int16()
-        self._timebase = None
+        self._timebase = 1
 
         self._pretrigger_samples = None
         self._posttrigger_samples = None
@@ -144,44 +145,59 @@ class Scope:
         posttrigger_time_ns: int,
         sample_interval_ns: int = 4,
     ) -> None:
-        """Set the sample region of the PicoScope.
+        """Set the PicoScope sample region and corresponding timebase.
 
-        Also sets the corresponding timebase, which is the first PicoScope
-        timebase whose sample interval is greater than or equal to the
-        requested interval.
+        The selected timebase is the first whose sample interval is greater
+        than or equal to the requested interval. Sample counts are calculated
+        from the selected timebase.
         """
-        self._pretrigger_samples = int(pretrigger_time_ns / sample_interval_ns)
-        self._posttrigger_samples = int(
-            posttrigger_time_ns / sample_interval_ns
+        temp_pretrigger_samples = ceil_div(
+            pretrigger_time_ns, sample_interval_ns
         )
-        self._total_samples = (
-            self._pretrigger_samples + self._posttrigger_samples
+        temp_posttrigger_samples = ceil_div(
+            posttrigger_time_ns, sample_interval_ns
         )
+        temp_total_samples = temp_pretrigger_samples + temp_posttrigger_samples
 
-        self._timebase = 1
+        timebase = 1
 
         for _ in range(TIMEBASE_MAX_TRIES):
             dt_ns = ctypes.c_float()
             returned_max_samples = ctypes.c_int32()
 
+            # NOTE: `assert_pico_ok` is not called here as it always reports an
+            #       error. This behaviour is likely a bug.
             ps.ps2000aGetTimebase2(
                 self._chandle,
-                self._timebase,
-                self._total_samples,
+                timebase,
+                temp_total_samples,
                 ctypes.byref(dt_ns),
                 0,
                 ctypes.byref(returned_max_samples),
                 0,
             )
 
-            if dt_ns.value >= sample_interval_ns:
+            actual_interval_ns = float(dt_ns.value)
+
+            if actual_interval_ns >= sample_interval_ns:
+                # Recompute sample region with the selected timebase
+                self._timebase = timebase
+                self._pretrigger_samples = ceil_div(
+                    pretrigger_time_ns, actual_interval_ns
+                )
+                self._posttrigger_samples = ceil_div(
+                    posttrigger_time_ns, actual_interval_ns
+                )
+                self._total_samples = (
+                    self._pretrigger_samples + self._posttrigger_samples
+                )
                 return
 
-            self._timebase += 1
+            timebase += 1
 
         raise CouldNotFindTimebase(
-            f"Could not find timebase with {self._total_samples} total "
-            f"samples and {sample_interval_ns} nanosecond sample interval."
+            f"Could not find a timebase for a requested {sample_interval_ns} "
+            f"ns sample interval."
         )
 
     def disable_trigger_a(self) -> None:
@@ -276,7 +292,7 @@ class Scope:
             channel.name: channel.single_mv() for channel in self._channels
         }
 
-    def get_bulk(self) -> dict[str, np.array]:
+    def get_bulk(self) -> dict[str, np.ndarray]:
         """Receive bulk capture from the PicoScope in millivolts."""
         self._get_bulk_values(self._total_samples)
 
