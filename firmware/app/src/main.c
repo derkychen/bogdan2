@@ -15,11 +15,11 @@ static void init(void);
 static void task(void);
 
 /**
- * @brief Bogdan 2 firmware application entry point.
+ * @brief Beam profiler firmware application entry point.
  *
- * The Pico will poll the serial connection until it receives a set of
- * instructions. It will then control the traversal of the corresponding grid.
- * Once finished, it will resume polling for the next set of instructions.
+ * The microcontroller will poll the serial connection until it receives a set
+ * of instructions. It will then control the traversal of the corresponding
+ * grid. Once finished, it will resume polling for the next set of instructions.
  */
 int
 main (void)
@@ -48,13 +48,7 @@ main (void)
 
     app_profiler_t profiler;
 
-    if (app_profiler_init(
-            &profiler, &x_controller, &y_controller, &receiver, task)
-        != APP_PROFILER_STATUS_OK)
-    {
-        app_serial_write_line(
-            "{\"ok\":false,\"msg\":\"profiler_init_failed\"}");
-    }
+    app_profiler_init(&profiler, &x_controller, &y_controller, &receiver, task);
 
     app_parameters_t parameters = { 0 };
     char             message[APP_SERIAL_READ_BUFFER_SIZE];
