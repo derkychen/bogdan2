@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define READ_CHUNK_SIZE (64U)
-
 static char   line_buffer[APP_SERIAL_READ_BUFFER_SIZE];
 static size_t line_buffer_current_size = 0U;
 
@@ -32,6 +30,7 @@ app_serial_read_line (char *buffer, size_t buffer_size)
     if (tud_cdc_connected() == false)
     {
         line_buffer_reset();
+
         return APP_SERIAL_STATUS_ERR_DISCONNECTED;
     }
 
@@ -127,6 +126,7 @@ line_buffer_copy_to (char *buffer, size_t buffer_size)
     }
 
     memcpy(buffer, line_buffer, copy_size);
+
     buffer[copy_size] = '\0';
 
     line_buffer_reset();
