@@ -35,12 +35,6 @@ typedef struct
     /** Position in nanometres the stage was calibrated to initially. */
     int origin_nm;
 
-    /** State variable for current coordinate on the axis in units. */
-    int current;
-
-    /** State variable for target coordinate on the axis in units. */
-    int target;
-
     /** Pointer to the controller for the corresponding axis. */
     app_controller_t *controller;
 } app_axis_t;

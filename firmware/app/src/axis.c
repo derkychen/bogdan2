@@ -66,8 +66,6 @@ app_axis_init (app_axis_t       *axis,
     axis->max        = max;
     axis->unit_nm    = unit_nm;
     axis->origin_nm  = origin_nm;
-    axis->current    = 0;
-    axis->target     = axis->current;
     axis->controller = controller;
 
     app_controller_configure_trigger_out(axis->controller);
@@ -101,13 +99,6 @@ app_axis_set_target (app_axis_t *axis, int target)
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(target >= axis->min && target <= axis->max);
 
-    axis->target = target;
-
-    if (axis->current == axis->target)
-    {
-        return APP_AXIS_STATUS_TARGET_OK;
-    }
-
     target_nm = target * (int)axis->unit_nm + axis->origin_nm;
 
     // Calculate the analog value of the coordinate.
@@ -130,11 +121,6 @@ app_axis_move_start (app_axis_t *axis)
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
-    if (axis->current == axis->target)
-    {
-        return;
-    }
-
     app_controller_interrupts_enable(axis->controller);
 
     // NOTE: Setting the state of the stage to moving before pulsing the
@@ -153,13 +139,6 @@ app_axis_move_end (app_axis_t *axis)
 {
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
-
-    if (axis->current == axis->target)
-    {
-        return;
-    }
-
-    axis->current = axis->target;
 
     app_controller_interrupts_disable(axis->controller);
 
