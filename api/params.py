@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Final
 
-from utils import ceil_div
+from host.utils import ceil_div
 
 AXIS_MIN_MIN: Final[int] = -1000
 AXIS_MAX_MAX: Final[int] = 1000
@@ -12,7 +12,7 @@ AXIS_STAGE_RANGE_MIN_NM: Final[int] = -6000000
 AXIS_STAGE_RANGE_MAX_NM: Final[int] = 6000000
 AXIS_STAGE_TOLERANCE_NM: Final[int] = 300
 
-GRID_MAX_NUM_POINTS: Final[int] = 10000
+GRID_MAX_NUM_POINTS: Final[int] = 1023
 
 CAPTURE_MAX_SAMPLES: Final[int] = 30000000
 
@@ -33,7 +33,7 @@ class ProfilerParamsInitError(Exception):
     """When the profiling parameters are incorrect."""
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class AxisParams:
     """Define one axis."""
 
@@ -91,12 +91,13 @@ class AxisParams:
                 f"({AXIS_STAGE_RANGE_MIN_NM} to {AXIS_STAGE_RANGE_MAX_NM} nm)."
             )
 
+    @property
     def num_points(self) -> int:
         """Return the number of points on the axis."""
         return self.max - self.min + 1
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class GridParams:
     """Define a grid with an x and y axis."""
 
@@ -117,7 +118,7 @@ class GridParams:
             )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class _BaseCaptureParams:
     """Define a parent configuration for capture."""
 
@@ -125,13 +126,9 @@ class _BaseCaptureParams:
     posttrigger_time_ns: int
     sample_interval_ns: int
 
-    @property
-    def num_captures(self) -> int:
-        raise NotImplementedError
-
     def __post_init__(self) -> None:
         """Validate base capture parameters."""
-        max_samples = self.num_captures() * ceil_div(
+        max_samples = self.num_captures * ceil_div(
             self.pretrigger_time_ns + self.posttrigger_time_ns,
             self.sample_interval_ns,
         )
@@ -142,54 +139,54 @@ class _BaseCaptureParams:
                 f"limit {CAPTURE_MAX_SAMPLES}."
             )
 
+    @property
+    def num_captures(self) -> int:
+        raise NotImplementedError
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+
+@dataclass(frozen=True, kw_only=True)
 class PointCountCaptureParams(_BaseCaptureParams):
     """Define a capture in `point_count` mode."""
 
     num_pulses: int
+
+    def __post_init__(self) -> None:
+        """Validate `point_count` capture parameters."""
+        super().__post_init__()
 
     @property
     def num_captures(self) -> int:
         """Capture once for each pulse."""
         return self.num_pulses
 
-    def __post_init__(self) -> None:
-        """Validate `point_count` capture parameters."""
-        super().__post_init__()
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class PointTimeCaptureParams(_BaseCaptureParams):
     """Define a capture in `point_time` mode."""
 
     wait_time_us: int
 
+    def __post_init__(self) -> None:
+        """Validate `point_time` capture parameters."""
+        super().__post_init__()
+
     @property
     def num_captures(self) -> int:
         """Capture once for each time window."""
         return 1
 
-    def __post_init__(self) -> None:
-        """Validate `point_time` capture parameters."""
-        super().__post_init__()
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class ContinuousCaptureParams(_BaseCaptureParams):
-    """Define a capture in `point_time` mode."""
+    """Define a capture in `continuous` mode."""
 
     @property
     def num_captures(self) -> int:
         """Capture once for each time window."""
         return 1
 
-    def __post_init__(self) -> None:
-        """Validate `point_time` capture parameters."""
-        super().__post_init__()
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class ProfilerParams:
     """Define a full set of profiling parameters."""
 
