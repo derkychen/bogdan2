@@ -38,7 +38,7 @@ void app_pulse_receiver_interrupts_disable(
 void app_pulse_receiver_interrupts_enable(app_pulse_receiver_t const *receiver);
 
 /** @brief Get the current pulse count. */
-uint32_t app_pulse_receiver_get_count(app_pulse_receiver_t *receiver);
+uint32_t app_pulse_receiver_get_count(app_pulse_receiver_t const *receiver);
 
 /** @brief Reset the current pulse count. */
 void app_pulse_receiver_count_reset(app_pulse_receiver_t *receiver);

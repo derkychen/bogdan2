@@ -94,7 +94,7 @@ app_pulse_receiver_interrupts_enable (app_pulse_receiver_t const *receiver)
 }
 
 uint32_t
-app_pulse_receiver_get_count (app_pulse_receiver_t *receiver)
+app_pulse_receiver_get_count (app_pulse_receiver_t const *receiver)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
 
