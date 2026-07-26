@@ -50,6 +50,20 @@
     X("point_time", APP_PARAMETERS_MODE_POINT_TIME)   \
     X("continuous", APP_PARAMETERS_MODE_CONTINUOUS)
 
+#define FIELD_TYPE_C_TYPE_MODE   app_parameters_mode_t
+#define FIELD_TYPE_C_TYPE_INT    int
+#define FIELD_TYPE_C_TYPE_UINT32 uint32_t
+
+#define FIELD_TYPE_MATCHES(id, json_name, member, field_type, requirement) \
+    _Static_assert(_Generic(((app_parameters_t *)0)->member,               \
+                       FIELD_TYPE_C_TYPE_##field_type: 1,                  \
+                       default: 0),                                        \
+                   "Incorrect field type");
+
+PARAMETERS_FIELD_LIST(FIELD_TYPE_MATCHES)
+
+#undef FIELD_TYPE_ASSERT
+
 /** @brief Parsing status codes. */
 typedef enum
 {
@@ -72,7 +86,7 @@ typedef enum
 {
     PARAMETERS_FIELD_LIST(FIELD_INDEX_ENUM)
 
-        FIELD_INDEX_COUNT,
+    FIELD_INDEX_COUNT, // NOLINT
 } field_index_t;
 
 #undef FIELD_INDEX_ENUM
@@ -147,7 +161,8 @@ static parse_status_t token_parse_int(token_t const *token, int *value);
 
 static parse_status_t token_parse_uint32(token_t const *token, uint32_t *value);
 
-static field_spec_t const *token_field_find(token_t const *token);
+static parse_status_t token_field_find(token_t const       *token,
+                                       field_spec_t const **field);
 
 static parse_status_t token_field_set(token_t const      *token,
                                       app_parameters_t   *parameters,
@@ -205,7 +220,10 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
             return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
-        field_spec_t const *field = token_field_find(&token);
+        field_spec_t const *field;
+
+        token_field_find(&token, &field);
+
         token_index++;
 
         if ((token_index >= token_count)
@@ -219,15 +237,18 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
             .json = json,
         };
 
-        if (field != NULL)
+        // Ignore unknown fields.
+        if (field == NULL)
         {
-            if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
-            {
-                return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
-            }
-
-            fields_seen |= field->mask;
+            continue;
         }
+
+        if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
+        {
+            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        fields_seen |= field->mask;
 
         int next_token_index;
 
@@ -391,19 +412,14 @@ token_parse_int (token_t const *token, int *value)
 
     char *end;
 
-    int64_t parsed = strtol(buffer, &end, 10);
+    int parsed = strtol(buffer, &end, 10);
 
     if ((errno != 0) || (end == buffer) || (*end != '\0'))
     {
         return PARSE_STATUS_ERR;
     }
 
-    if ((parsed < (int64_t)INT_MIN) || (parsed > (int64_t)INT_MAX))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    *value = (int)parsed;
+    *value = parsed;
 
     return PARSE_STATUS_OK;
 }
@@ -439,22 +455,8 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
 
     uintmax_t parsed = strtoumax(buffer, &end, 10);
 
-    if ((end == buffer) || (*end != '\0') || (errno == ERANGE)
+    if ((errno != 0) || (end == buffer) || (*end != '\0')
         || (parsed > UINT32_MAX))
-    {
-        return PARSE_STATUS_ERR;
-    }
-    else
-    {
-        *value = (uint32_t)parsed;
-    }
-
-    if ((errno != 0) || (end == buffer) || (*end != '\0'))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    if (parsed > (unsigned long)UINT32_MAX)
     {
         return PARSE_STATUS_ERR;
     }
@@ -464,20 +466,23 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
     return PARSE_STATUS_OK;
 }
 
-static field_spec_t const *
-token_field_find (token_t const *token)
+static parse_status_t
+token_field_find (token_t const *token, field_spec_t const **field)
 {
     PLATFORM_SAMD21G18A_ASSERT(token != NULL);
+
+    *field = NULL;
 
     for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
     {
         if (token_text_equals_str(token, parameters_fields[index].name))
         {
-            return &parameters_fields[index];
+            *field = &parameters_fields[index];
+            return PARSE_STATUS_OK;
         }
     }
 
-    return NULL;
+    return PARSE_STATUS_ERR;
 }
 
 static parse_status_t
