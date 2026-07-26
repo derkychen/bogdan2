@@ -21,7 +21,8 @@ typedef enum
 
 /** @brief Task function
  *
- * This function should be called in long (> 1 millisecond) blocking loops.
+ * This function is called in long (approximately longer than 1 millisecond)
+ * blocking loops.
  */
 typedef void (*app_profiler_task_t)(void);
 
@@ -45,14 +46,14 @@ typedef struct
 } app_profiler_t;
 
 /** @brief Initialize the beam profiler. */
-app_profiler_status_t app_profiler_init(app_profiler_t       *profiler,
-                                        app_controller_t     *x_controller,
-                                        app_controller_t     *y_controller,
-                                        app_pulse_receiver_t *receiver,
-                                        app_profiler_task_t   task);
+void app_profiler_init(app_profiler_t       *profiler,
+                       app_controller_t     *x_controller,
+                       app_controller_t     *y_controller,
+                       app_pulse_receiver_t *receiver,
+                       app_profiler_task_t   task);
 
 /** @brief Profile a beam based on parameters. */
-app_profiler_status_t app_profiler_profile(
-    app_profiler_t *profiler, app_parameters_t const *parameters);
+app_profiler_status_t app_profiler_profile(app_profiler_t         *profiler,
+                                           app_parameters_t const *parameters);
 
 #endif

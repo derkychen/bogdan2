@@ -8,7 +8,6 @@
 #include "platform/samd21g18a/time.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #define TARGET_SET_DEBOUNCE_TIME_USEC (1000u)
 #define AXES_TIMEOUT_MSEC             (10000u)
@@ -23,7 +22,7 @@ static app_profiler_status_t profile_mode_point_time(
 static app_profiler_status_t profile_mode_continuous(
     app_profiler_t *profiler, app_parameters_t const *parameters);
 
-app_profiler_status_t
+void
 app_profiler_init (app_profiler_t       *profiler,
                    app_controller_t     *x_controller,
                    app_controller_t     *y_controller,
@@ -42,11 +41,11 @@ app_profiler_init (app_profiler_t       *profiler,
     profiler->task                  = task;
     profiler->prev_raster_direction = APP_PATH_RASTER_DIRECTION_HORIZONTAL;
 
-    return APP_PROFILER_STATUS_OK;
+    return;
 }
 
 app_profiler_status_t
-app_profiler_profile (app_profiler_t          *profiler,
+app_profiler_profile (app_profiler_t         *profiler,
                       app_parameters_t const *parameters)
 {
     PLATFORM_SAMD21G18A_ASSERT(profiler != NULL);
@@ -78,7 +77,7 @@ app_profiler_profile (app_profiler_t          *profiler,
 
 /** @brief Profile a beam in `POINT_COUNT` mode. */
 static app_profiler_status_t
-profile_mode_point_count (app_profiler_t          *profiler,
+profile_mode_point_count (app_profiler_t         *profiler,
                           app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
@@ -116,12 +115,16 @@ profile_mode_point_count (app_profiler_t          *profiler,
         &tracker, profiler->receiver, APP_PULSE_TRACKER_MODE_RELAY_AND_COUNT);
 
     // Generate the full raster.
-    path = app_path_modified_raster(
-        &x, &y, &(profiler->prev_raster_direction), false, &path_size);
-
-    if (path == NULL)
+    if (app_path_modified_raster(&x,
+                                 &y,
+                                 &(profiler->prev_raster_direction),
+                                 false,
+                                 &path,
+                                 &path_size)
+        == APP_PATH_STATUS_ERR)
     {
-        return APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
+        status = APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
+        goto cleanup;
     }
 
     for (size_t i = 0; i < path_size; i++)
@@ -169,7 +172,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
             profiler->task();
 
             if ((platform_samd21g18a_time_msec() - start_msec)
-                > PULSE_COUNTER_TIMEOUT_MSEC)
+                >= PULSE_COUNTER_TIMEOUT_MSEC)
             {
                 status = APP_PROFILER_STATUS_ERR_PULSE_COUNTER_TIMEOUT;
                 goto cleanup;
@@ -181,7 +184,7 @@ profile_mode_point_count (app_profiler_t          *profiler,
         start_usec = platform_samd21g18a_time_usec();
 
         while (platform_samd21g18a_time_usec() - start_usec
-               <= parameters->posttrigger_time_us)
+               < parameters->posttrigger_time_us)
         {
             profiler->task();
         }
@@ -189,13 +192,13 @@ profile_mode_point_count (app_profiler_t          *profiler,
 
     status = APP_PROFILER_STATUS_OK;
 
+// NOTE: Only idempotent functions should be called here.
 cleanup:
     app_axis_move_end(&x);
     app_axis_move_end(&y);
 
     app_pulse_tracker_end(&tracker);
 
-    free(path);
     path = NULL;
 
     return status;
@@ -203,7 +206,7 @@ cleanup:
 
 /** @brief Profile a beam in `POINT_TIME` mode. */
 static app_profiler_status_t
-profile_mode_point_time (app_profiler_t          *profiler,
+profile_mode_point_time (app_profiler_t         *profiler,
                          app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
@@ -241,8 +244,17 @@ profile_mode_point_time (app_profiler_t          *profiler,
         &tracker, profiler->receiver, APP_PULSE_TRACKER_MODE_LAZY);
 
     // Generate the full raster.
-    path = app_path_modified_raster(
-        &x, &y, &(profiler->prev_raster_direction), false, &path_size);
+    if (app_path_modified_raster(&x,
+                                 &y,
+                                 &(profiler->prev_raster_direction),
+                                 false,
+                                 &path,
+                                 &path_size)
+        == APP_PATH_STATUS_ERR)
+    {
+        status = APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
+        goto cleanup;
+    }
 
     if (path == NULL)
     {
@@ -274,7 +286,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
             profiler->task();
 
             if ((platform_samd21g18a_time_msec() - start_msec)
-                > AXES_TIMEOUT_MSEC)
+                >= AXES_TIMEOUT_MSEC)
             {
                 status = APP_PROFILER_STATUS_ERR_AXES_TIMEOUT;
                 goto cleanup;
@@ -289,7 +301,7 @@ profile_mode_point_time (app_profiler_t          *profiler,
         start_usec = platform_samd21g18a_time_usec();
 
         while (platform_samd21g18a_time_usec() - start_usec
-               <= parameters->wait_time_us)
+               < parameters->wait_time_us)
         {
             profiler->task();
         }
@@ -297,13 +309,11 @@ profile_mode_point_time (app_profiler_t          *profiler,
 
     status = APP_PROFILER_STATUS_OK;
 
+// NOTE: Only idempotent functions should be called here.
 cleanup:
     app_axis_move_end(&x);
     app_axis_move_end(&y);
 
-    app_pulse_tracker_end(&tracker);
-
-    free(path);
     path = NULL;
 
     return status;
@@ -311,7 +321,7 @@ cleanup:
 
 /** @brief Profile a beam in `CONTINUOUS` mode. */
 static app_profiler_status_t
-profile_mode_continuous (app_profiler_t          *profiler,
+profile_mode_continuous (app_profiler_t         *profiler,
                          app_parameters_t const *parameters)
 {
     app_profiler_status_t status = APP_PROFILER_STATUS_ERR;
@@ -349,8 +359,13 @@ profile_mode_continuous (app_profiler_t          *profiler,
         &tracker, profiler->receiver, APP_PULSE_TRACKER_MODE_RELAY);
 
     // Generate only the corners of the raster.
-    path = app_path_modified_raster(
-        &x, &y, &(profiler->prev_raster_direction), true, &path_size);
+    if (app_path_modified_raster(
+            &x, &y, &(profiler->prev_raster_direction), true, &path, &path_size)
+        == APP_PATH_STATUS_ERR)
+    {
+        status = APP_PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
+        goto cleanup;
+    }
 
     if (path == NULL)
     {
@@ -383,7 +398,7 @@ profile_mode_continuous (app_profiler_t          *profiler,
             profiler->task();
 
             if ((platform_samd21g18a_time_msec() - start_msec)
-                > AXES_TIMEOUT_MSEC)
+                >= AXES_TIMEOUT_MSEC)
             {
                 status = APP_PROFILER_STATUS_ERR_AXES_TIMEOUT;
                 goto cleanup;
@@ -398,13 +413,13 @@ profile_mode_continuous (app_profiler_t          *profiler,
 
     status = APP_PROFILER_STATUS_OK;
 
+// NOTE: Only idempotent functions should be called here.
 cleanup:
     app_axis_move_end(&x);
     app_axis_move_end(&y);
 
     app_pulse_tracker_end(&tracker);
 
-    free(path);
     path = NULL;
 
     return status;
