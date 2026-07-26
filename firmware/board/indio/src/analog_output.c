@@ -60,8 +60,12 @@ board_indio_analog_output_write (
     PLATFORM_SAMD21G18A_ASSERT(channel != NULL);
     PLATFORM_SAMD21G18A_ASSERT(value <= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE);
 
+    uint16_t write_value = (value <= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE)
+                               ? value
+                               : BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE;
+
     return mcp4726_status_to_analog_output_status(
-        drivers_mcp4726_write_output(channel, value));
+        drivers_mcp4726_write_output(channel, write_value));
 }
 
 /** @brief Convert a PCA9555 status code to a analog output status code. */
