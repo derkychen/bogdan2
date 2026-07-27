@@ -11,7 +11,8 @@ what is necessary.
 import ctypes
 import os
 import time
-from typing import Final
+from collections.abc import Callable
+from typing import Final, ParamSpec
 
 KINESIS_DIR: Final[str] = r"C:\Program Files\Thorlabs\Kinesis"
 KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
@@ -19,14 +20,18 @@ KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
 ENABLE_SETTLING_TIME_S: Final[float] = 0.500
 TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
+P = ParamSpec("P")
+
 
 class KinesisStatusFailure(Exception):
     """When a Thorlabs C library function fails."""
 
 
-def _check_err_status_code(func, *args) -> None:
+def _check_err_status_code(
+    func: Callable[P, int], *args: P.args, **kwargs: P.kwargs
+) -> None:
     """For Thorlabs C library functions that return status codes."""
-    ret = func(*args)
+    ret = func(*args, **kwargs)
 
     if ret != 0:
         raise KinesisStatusFailure(
@@ -34,9 +39,11 @@ def _check_err_status_code(func, *args) -> None:
         )
 
 
-def _check_err_bool(func, *args) -> None:
+def _check_err_bool(
+    func: Callable[P, int], *args: P.args, **kwargs: P.kwargs
+) -> None:
     """For Thorlabs C library functions that return Booleans."""
-    ret = func(*args)
+    ret = func(*args, **kwargs)
 
     if not ret:
         raise KinesisStatusFailure(f"{func.__name__} failed.")
@@ -149,7 +156,8 @@ class Controller:
         _check_err_status_code(self._lib.PDXC2_Enable, self._serial_num)
         time.sleep(ENABLE_SETTLING_TIME_S)
 
-        print(f"PDXC2 ({self._serial_num.value.decode()}) enabled.")
+        if self._serial_num.value is not None:
+            print(f"PDXC2 ({self._serial_num.value.decode()}) enabled.")
 
     def get_trigger_mode(self) -> int:
         """Get the Trigger Mode."""
