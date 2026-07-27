@@ -1,4 +1,6 @@
 #include "tusb.h" // IWYU pragma: keep
+#include <stddef.h>
+#include <stdint.h>
 
 #define USB_VID (0xCAFEu)
 #define USB_PID (0x4001u)
