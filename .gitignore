@@ -1,15 +1,16 @@
 **/build/
-firmware/compile_commands.json
+**/compile_commands.json
 
-.venv/
+**/.venv/
 **/__pycache__/
 
-*.egg-info/
-*.egg
-.eggs/
+**/*.egg-info/
+**/*.egg
+**/.eggs/
 
 **/.cache/
+**/.mypy_cache/
 **/.ruff_cache/
 
-html/
-latex/
+**/html/
+**/latex/
