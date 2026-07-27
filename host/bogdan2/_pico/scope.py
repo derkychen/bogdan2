@@ -5,15 +5,15 @@ import time
 from typing import Final
 
 import numpy as np
+from bogdan2._utils import ceil_div
 from picosdk.functions import assert_pico_ok
 from picosdk.ps2000a import ps2000a as ps
 
-from host.pico.channel import Channel
-from host.pico.constants import (
+from bogdan2._pico.channel import Channel
+from bogdan2._pico.constants import (
     RATIO_MODE_NONE,
     TRIGGER_RISING,
 )
-from host.utils import ceil_div
 
 CHANNEL_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
 CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]

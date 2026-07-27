@@ -9,7 +9,7 @@ import numpy as np
 from picosdk.functions import adc2mV, assert_pico_ok, mV2adc
 from picosdk.ps2000a import ps2000a as ps
 
-from host.pico.constants import RATIO_MODE_NONE
+from bogdan2._pico.constants import RATIO_MODE_NONE
 
 if TYPE_CHECKING:
     from host.pico.scope import Scope

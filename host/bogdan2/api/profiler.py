@@ -9,26 +9,26 @@ import numpy as np
 import serial
 from serial.tools import list_ports
 
-from api.params import (
+from bogdan2._pdxc2.constants import (
+    ANALOG_IN_GAIN_0_TO_10,
+    ANALOG_IN_OFFSET_0_TO_10,
+    ANALOG_OUT_GAIN_0_TO_10,
+    ANALOG_OUT_OFFSET_0_TO_10,
+)
+from bogdan2._pdxc2.controller import Controller
+from bogdan2._pico.constants import (
+    RANGE_5V,
+    RANGE_20V,
+)
+from bogdan2._pico.scope import Scope
+from bogdan2._utils import ceil_div
+from bogdan2.api.params import (
     ContinuousCaptureParams,
     GridParams,
     PointCountCaptureParams,
     PointTimeCaptureParams,
     ProfilerParams,
 )
-from host.pdxc2.constants import (
-    ANALOG_IN_GAIN_0_TO_10,
-    ANALOG_IN_OFFSET_0_TO_10,
-    ANALOG_OUT_GAIN_0_TO_10,
-    ANALOG_OUT_OFFSET_0_TO_10,
-)
-from host.pdxc2.controller import Controller
-from host.pico.constants import (
-    RANGE_5V,
-    RANGE_20V,
-)
-from host.pico.scope import Scope
-from host.utils import ceil_div
 
 X_PDXC2_SERIAL_NUM: Final[bytes] = b"112547939"
 Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
@@ -169,6 +169,7 @@ class Profiler:
         self._ser.close()
 
     def _configure(self) -> None:
+        """Configure the profiler hardware."""
         self._x_controller.enable()
         self._y_controller.enable()
 
