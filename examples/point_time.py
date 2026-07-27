@@ -1,12 +1,12 @@
 """Example script for profiling a beam in `point_time` mode."""
 
-from api.params import (
+from bogdan2.api.params import (
     AxisParams,
     GridParams,
     PointTimeCaptureParams,
     ProfilerParams,
 )
-from api.profiler import Profiler
+from bogdan2.api.profiler import Profiler
 
 PORT = "COM5"
 
@@ -36,4 +36,6 @@ capture = PointTimeCaptureParams(
 params = ProfilerParams(grid=grid, capture=capture)
 
 with Profiler() as p:
-    p.profile(PORT, params)
+    profile = p.profile(PORT, params)
+
+profile.plot()
