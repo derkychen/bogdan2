@@ -1,4 +1,4 @@
-"""Utility functions for host-side operations."""
+"""Math-related utility functions."""
 
 
 def ceil_div(num: int, denom: int) -> int:
