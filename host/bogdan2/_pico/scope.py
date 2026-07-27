@@ -2,10 +2,10 @@
 
 import ctypes
 import time
+from dataclasses import dataclass
 from typing import Final
 
 import numpy as np
-from bogdan2._utils import ceil_div
 from picosdk.functions import assert_pico_ok
 from picosdk.ps2000a import ps2000a as ps
 
@@ -14,6 +14,7 @@ from bogdan2._pico.constants import (
     RATIO_MODE_NONE,
     TRIGGER_RISING,
 )
+from bogdan2._utils.math import ceil_div
 
 CHANNEL_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
 CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
@@ -27,56 +28,14 @@ class CouldNotFindTimebase(Exception):
     """When searching for a timebase according to sample region fails."""
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ScopeChannelParams:
+    name: str
+    range_id: int
+
+
 class Scope:
     """Abstraction of the PicoScope."""
-
-    def _set_max_adc(self) -> None:
-        """Set the internal maximum ADC value."""
-        assert_pico_ok(
-            ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
-        )
-
-    def _get_single_values(self, samples: int) -> None:
-        """Transfer single capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(samples)
-        overflow = ctypes.c_int16()
-
-        assert_pico_ok(
-            ps.ps2000aGetValues(
-                self._chandle,
-                0,
-                ctypes.byref(samples_u32),
-                1,
-                RATIO_MODE_NONE,
-                0,
-                ctypes.byref(overflow),
-            )
-        )
-
-        # Check if the capture fell outside of signal range.
-        if overflow.value != 0:
-            print("WARNING: ADC overflow detected in capture.")
-
-    def _get_bulk_values(self, samples: int) -> None:
-        """Transfer bulk capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(samples)
-        overflow = (ctypes.c_int16 * self._num_captures)()
-
-        assert_pico_ok(
-            ps.ps2000aGetValuesBulk(
-                self._chandle,
-                ctypes.byref(samples_u32),
-                0,
-                self._num_captures - 1,
-                0,
-                RATIO_MODE_NONE,
-                overflow,
-            )
-        )
-
-        # Check if any captures fell outside of signal range.
-        if any(overflow):
-            print("WARNING: ADC overflow detected in one or more captures.")
 
     def __init__(
         self,
@@ -86,9 +45,9 @@ class Scope:
         self._max_adc = ctypes.c_int16()
         self._timebase = 1
 
-        self._pretrigger_samples = None
-        self._posttrigger_samples = None
-        self._total_samples = None
+        self._pretrigger_samples = 0
+        self._posttrigger_samples = 0
+        self._total_samples = 0
 
         self._num_captures = 1
 
@@ -109,6 +68,14 @@ class Scope:
         """Get the timebase of the PicoScope."""
         return self._timebase
 
+    def get_sample_region(self) -> tuple[float, float, float]:
+        """Get the sample region of the PicoScope."""
+        return (
+            self._pretrigger_samples * self._sample_interval_ns,
+            self._posttrigger_samples * self._sample_interval_ns,
+            self._sample_interval_ns,
+        )
+
     def open(self) -> None:
         """Open the PicoScope and set the internal C handle."""
         assert_pico_ok(ps.ps2000aOpenUnit(ctypes.byref(self._chandle), None))
@@ -122,22 +89,23 @@ class Scope:
 
     def configure_channels(
         self,
-        a_name: str,
-        a_range_id: int,
-        b_name: str,
-        b_range_id: int,
-        c_name: str,
-        c_range_id: int,
-        d_name: str,
-        d_range_id: int,
+        a_params: ScopeChannelParams,
+        b_params: ScopeChannelParams,
+        c_params: ScopeChannelParams,
+        d_params: ScopeChannelParams,
     ) -> None:
         """Configure PicoScope channel names and ranges."""
-        self._a = Channel(self, a_name, CHANNEL_A, a_range_id)
-        self._b = Channel(self, b_name, CHANNEL_B, b_range_id)
-        self._c = Channel(self, c_name, CHANNEL_C, c_range_id)
-        self._d = Channel(self, d_name, CHANNEL_D, d_range_id)
+        self._a = Channel(self, a_params.name, CHANNEL_A, a_params.range_id)
+        self._b = Channel(self, b_params.name, CHANNEL_B, b_params.range_id)
+        self._c = Channel(self, c_params.name, CHANNEL_C, c_params.range_id)
+        self._d = Channel(self, d_params.name, CHANNEL_D, d_params.range_id)
 
-        self._channels = [self._a, self._b, self._c, self._d]
+        self._channels = {
+            a_params.name: self._a,
+            b_params.name: self._b,
+            c_params.name: self._c,
+            d_params.name: self._d,
+        }
 
     def set_sample_region(
         self,
@@ -177,20 +145,22 @@ class Scope:
                 0,
             )
 
-            actual_interval_ns = float(dt_ns.value)
+            self._sample_interval_ns = int(dt_ns.value)
 
-            if actual_interval_ns >= sample_interval_ns:
+            if self._sample_interval_ns >= sample_interval_ns:
                 # Recompute sample region with the selected timebase
                 self._timebase = timebase
+
                 self._pretrigger_samples = ceil_div(
-                    pretrigger_time_ns, actual_interval_ns
+                    pretrigger_time_ns, self._sample_interval_ns
                 )
                 self._posttrigger_samples = ceil_div(
-                    posttrigger_time_ns, actual_interval_ns
+                    posttrigger_time_ns, self._sample_interval_ns
                 )
                 self._total_samples = (
                     self._pretrigger_samples + self._posttrigger_samples
                 )
+
                 return
 
             timebase += 1
@@ -202,10 +172,14 @@ class Scope:
 
     def disable_trigger_a(self) -> None:
         """Disable triggering of the PicoScope."""
+        assert self._a is not None, "Channel not initialized."
+
         self._a.disable_trigger()
 
     def enable_trigger_a(self, threshold_mv: float = 2000.0) -> None:
         """Enable triggering of the PicoScope."""
+        assert self._a is not None, "Channel not initialized."
+
         self._a.set_trigger(TRIGGER_RISING, threshold_mv=threshold_mv)
 
     def configure_single_capture(self) -> None:
@@ -215,7 +189,7 @@ class Scope:
         """
         self._num_captures = 1
 
-        for channel in self._channels:
+        for _, channel in self._channels.items():
             channel.single_buffer_create(self._total_samples)
 
     def configure_bulk_capture(self, num_captures: int) -> None:
@@ -246,7 +220,7 @@ class Scope:
             ps.ps2000aSetNoOfCaptures(self._chandle, self._num_captures)
         )
 
-        for channel in self._channels:
+        for _, channel in self._channels.items():
             channel.bulk_buffer_create(self._total_samples, self._num_captures)
 
     def run_capture(self, timeout_s: float = 10.0) -> None:
@@ -284,21 +258,63 @@ class Scope:
 
             time.sleep(0.001)
 
-    def get_single(self) -> dict[str, float]:
-        """Receive single capture from the PicoScope in millivolts."""
-        self._get_single_values(self._total_samples)
+    def transfer_single_values(self, samples: int) -> None:
+        """Transfer single capture from PicoScope memory to host."""
+        samples_u32 = ctypes.c_uint32(samples)
+        overflow = ctypes.c_int16()
 
-        return {
-            channel.name: channel.single_mv() for channel in self._channels
-        }
+        assert_pico_ok(
+            ps.ps2000aGetValues(
+                self._chandle,
+                0,
+                ctypes.byref(samples_u32),
+                1,
+                RATIO_MODE_NONE,
+                0,
+                ctypes.byref(overflow),
+            )
+        )
 
-    def get_bulk(self) -> dict[str, np.ndarray]:
-        """Receive bulk capture from the PicoScope in millivolts."""
-        self._get_bulk_values(self._total_samples)
+        # Check if the capture fell outside of signal range.
+        if overflow.value != 0:
+            print("WARNING: ADC overflow detected in capture.")
 
-        return {channel.name: channel.bulk_mv() for channel in self._channels}
+    def transfer_bulk_values(self, samples: int) -> None:
+        """Transfer bulk capture from PicoScope memory to host."""
+        samples_u32 = ctypes.c_uint32(samples)
+        overflow = (ctypes.c_int16 * self._num_captures)()
+
+        assert_pico_ok(
+            ps.ps2000aGetValuesBulk(
+                self._chandle,
+                ctypes.byref(samples_u32),
+                0,
+                self._num_captures - 1,
+                0,
+                RATIO_MODE_NONE,
+                overflow,
+            )
+        )
+
+        # Check if any captures fell outside of signal range.
+        if any(overflow):
+            print("WARNING: ADC overflow detected in one or more captures.")
+
+    def channel_single_mv(self, channel_name) -> np.ndarray:
+        """Return single capture from a PicoScope channel in millivolts."""
+        return self._channels[channel_name].single_mv()
+
+    def channel_bulk_mv(self, channel_name: str) -> list[np.ndarray]:
+        """Return bulk capture from a PicoScope channel in millivolts."""
+        return self._channels[channel_name].bulk_mv()
 
     def close(self) -> None:
         """Close the PicoScope."""
         assert_pico_ok(ps.ps2000aStop(self._chandle))
         assert_pico_ok(ps.ps2000aCloseUnit(self._chandle))
+
+    def _set_max_adc(self) -> None:
+        """Set the internal maximum ADC value."""
+        assert_pico_ok(
+            ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
+        )

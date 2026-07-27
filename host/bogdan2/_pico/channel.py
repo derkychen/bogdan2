@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
@@ -12,10 +13,18 @@ from picosdk.ps2000a import ps2000a as ps
 from bogdan2._pico.constants import RATIO_MODE_NONE
 
 if TYPE_CHECKING:
-    from host.pico.scope import Scope
-
+    from bogdan2._pico.scope import Scope
 
 COUPLING_DC: Final[int] = ps.PS2000A_COUPLING["PS2000A_DC"]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ChannelParams:
+    """Store channel parameters."""
+
+    name: str
+    channel_id: int
+    range_id: int
 
 
 class Channel:
@@ -28,14 +37,7 @@ class Channel:
         channel_id: int,
         range_id: int,
     ) -> None:
-        """Initialize a PicoScope channel.
-
-        Args:
-            scope: The PicoScope instance the channel is of.
-            name: The name given to the channel.
-            channel_id: Channel from `ctypes` enumeration.
-            range_id: Channel range from `ctypes` enumeration.
-        """
+        """Initialize a PicoScope channel."""
         self._scope = scope
 
         self.name = name
@@ -51,7 +53,7 @@ class Channel:
                 self._scope.get_chandle(),
                 self._channel_id,
                 1,
-                COUPLING_DC,  # NOTE: Only DC is used.
+                COUPLING_DC,
                 self._range_id,
                 0.0,
             )
@@ -140,15 +142,19 @@ class Channel:
             )
         )
 
-    def bulk_mv(self) -> np.ndarray:
+    def bulk_mv(self) -> list[np.ndarray]:
         """Get an array of readings in millivolts from the channel buffer."""
-        return np.array(
-            [
+        assert self._buffer is not None, (
+            "This function can only be called after the buffer is initialized."
+        )
+
+        return [
+            np.array(
                 adc2mV(
                     adc_sample,
                     self._range_id,
                     self._scope.get_max_adc(),
                 )
-                for adc_sample in self._buffer
-            ]
-        )
+            )
+            for adc_sample in self._buffer
+        ]
