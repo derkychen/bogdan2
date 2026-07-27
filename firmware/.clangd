@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build/samd21g18a-debug
+Documentation:
+  CommentFormat: Doxygen
