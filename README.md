@@ -39,17 +39,21 @@ scripts/firmware.sh -x -b release -p path/to/usb/port
 
 Make sure to replace the port with the actual path to your USB port. On Linux this should be `/dev/tty*`. On macOS it should be `/dev/cu.usbmodem*`. On Windows it should be `COM*`. (`*` means "a sequence of any characters for any length".)
 
-To calibrate the beam profiler to the beam run
+### API
+
+#### Installation
+
+To install the Bogdan 2 API run (ideally in a virtual environment)
 
 ```bash
-bogdan2 calibrate
+uv pip install -e i/put/bogdan2/here/bogdan2 # Replace with actual location
 ```
 
-To profile based on instructions specified in `path/to/instructions.json`, run
+The `-e` flag makes the Bogdan 2 installation is editable. This means if you edit the code in this repository, you do not need to rebuild or reinstall the package.
 
-```bash
-bogdan2 profile -p path/to/usb/port -i path/to/instructions.json
-```
+#### Usage
+
+Refer to `examples/` for scripts you can copy-paste to run.
 
 ## Docs
 
