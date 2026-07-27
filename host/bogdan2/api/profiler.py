@@ -20,15 +20,21 @@ from bogdan2._pico.constants import (
     RANGE_5V,
     RANGE_20V,
 )
-from bogdan2._pico.scope import Scope
-from bogdan2._utils import ceil_div
+from bogdan2._pico.scope import Scope, ScopeChannelParams
+from bogdan2._utils.math import ceil_div
+from bogdan2.api.data import BeamPoint, Position, Profile, Reading
 from bogdan2.api.params import (
+    AXIS_STAGE_RANGE_MAX_NM,
+    AXIS_STAGE_RANGE_MIN_NM,
     ContinuousCaptureParams,
     GridParams,
     PointCountCaptureParams,
     PointTimeCaptureParams,
     ProfilerParams,
 )
+
+ANALOG_OUT_MIN_MV: Final[float] = -100000.0
+ANALOG_OUT_MAX_MV: Final[float] = 10000.0
 
 X_PDXC2_SERIAL_NUM: Final[bytes] = b"112547939"
 Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
@@ -70,27 +76,45 @@ def _ser_write_newline_terminated(ser: serial.Serial, params: dict) -> None:
     ser.write((json.dumps(params) + "\n").encode())
 
 
+def _x_y_mv_to_position(x_mv: Reading, y_mv: Reading) -> Position:
+    """Convert x and y millivolt readings into a position."""
+    x_mm = (
+        (x_mv.mean - ANALOG_OUT_MIN_MV)
+        * (AXIS_STAGE_RANGE_MAX_NM - AXIS_STAGE_RANGE_MIN_NM)
+        / (1000000 * (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV))
+    )
+    y_mm = (
+        (y_mv.mean - ANALOG_OUT_MIN_MV)
+        * (AXIS_STAGE_RANGE_MAX_NM - AXIS_STAGE_RANGE_MIN_NM)
+        / (1000000 * (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV))
+    )
+
+    return Position(x_mm=x_mm, y_mm=y_mm)
+
+
 class Profiler:
     """Profiler class responsible for controlling scope and controllers."""
 
     def __init__(self) -> None:
         """Initialize the profiler. Acquires no hardware."""
-        self._scope = Scope()
-        self._x_controller = Controller(X_PDXC2_SERIAL_NUM)
-        self._y_controller = Controller(Y_PDXC2_SERIAL_NUM)
+        self._stack: ExitStack[bool | None]
+
+        self._scope: Scope = Scope()
+        self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
+        self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
         self._ser: serial.Serial | None = None
 
     def __enter__(self) -> "Profiler":
         """Acquire hardware."""
         with ExitStack() as stack:
             self._x_controller.enable()
-            stack.callback(self._x_controller.close)
+            _ = stack.callback(self._x_controller.close)
 
             self._y_controller.enable()
-            stack.callback(self._y_controller.close)
+            _ = stack.callback(self._y_controller.close)
 
             self._scope.open()
-            stack.callback(self._scope.close)
+            _ = stack.callback(self._scope.close)
 
             self._configure()
 
@@ -134,7 +158,7 @@ class Profiler:
             _clear_terminal()
             print("\nStopped voltage monitor.")
 
-    def profile(self, port: str, params: ProfilerParams) -> None:
+    def profile(self, port: str, params: ProfilerParams) -> Profile:
         """Run profiling with a set of parameters."""
         start = time.time()
 
@@ -151,15 +175,17 @@ class Profiler:
 
         self._ser = serial.Serial(port, BAUD_RATE, timeout=1.0)
 
+        profile = None
+
         match params.capture:
             case PointCountCaptureParams() as capture:
-                self._profile_mode_point_count(params.grid, capture)
+                profile = self._profile_mode_point_count(params.grid, capture)
 
             case PointTimeCaptureParams() as capture:
-                self._profile_mode_point_time(params.grid, capture)
+                profile = self._profile_mode_point_time(params.grid, capture)
 
             case ContinuousCaptureParams() as capture:
-                self._profile_mode_continuous(params.grid, capture)
+                profile = self._profile_mode_continuous(params.grid, capture)
 
             case _:
                 raise InvalidMode(
@@ -167,6 +193,8 @@ class Profiler:
                 )
 
         self._ser.close()
+
+        return profile
 
     def _configure(self) -> None:
         """Configure the profiler hardware."""
@@ -194,14 +222,10 @@ class Profiler:
         self._scope.setup()
 
         self._scope.configure_channels(
-            "trigger_mv",
-            RANGE_5V,
-            "x_mv",
-            RANGE_20V,
-            "y_mv",
-            RANGE_20V,
-            "intensity_mv",
-            RANGE_20V,
+            ScopeChannelParams(name="trigger_mv", range_id=RANGE_5V),
+            ScopeChannelParams(name="x_mv", range_id=RANGE_20V),
+            ScopeChannelParams(name="y_mv", range_id=RANGE_20V),
+            ScopeChannelParams(name="intensity_mv", range_id=RANGE_20V),
         )
 
         self._scope.disable_trigger_a()
@@ -226,12 +250,16 @@ class Profiler:
 
     def _profile_mode_point_count(
         self, grid: GridParams, capture: PointCountCaptureParams
-    ) -> None:
+    ) -> Profile:
         """Profile a beam in `point_count` mode."""
         self._scope.set_sample_region(
             capture.pretrigger_time_ns,
             capture.posttrigger_time_ns,
             capture.sample_interval_ns,
+        )
+
+        _, posttrigger_time_ns, sample_interval_ns = (
+            self._scope.get_sample_region()
         )
 
         _ser_write_newline_terminated(
@@ -247,30 +275,67 @@ class Profiler:
                 "y_unit_nm": grid.y.unit_nm,
                 "y_origin_nm": grid.y.origin_nm,
                 "num_pulses": capture.num_pulses,
-                "posttrigger_time_us": ceil_div(
-                    capture.posttrigger_time_ns, 1000
-                ),
+                "posttrigger_time_us": ceil_div(posttrigger_time_ns, 1000),
             },
         )
 
-        if self._poll_mcu_status()["ok"]:
+        points = []
+
+        status = self._poll_mcu_status()
+
+        if status["ok"]:
             self._scope.enable_trigger_a()
             self._scope.configure_bulk_capture(capture.num_pulses)
 
             for _ in range(grid.num_points):
                 self._scope.run_capture()
+                self._scope.transfer_bulk_values()
+
+                x_mv = Reading(
+                    data=np.concatenate(self._scope.channel_bulk_mv("x_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                y_mv = Reading(
+                    data=np.concatenate(self._scope.channel_bulk_mv("y_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                intensity_mv = Reading(
+                    data=np.concatenate(
+                        self._scope.channel_bulk_mv("intensity_mv")
+                    ),
+                    interval=sample_interval_ns,
+                )
+
+                position = _x_y_mv_to_position(x_mv, y_mv)
+
+                points.append(
+                    BeamPoint(
+                        position=position, intensity_mv=intensity_mv.integral
+                    )
+                )
 
             self._scope.disable_trigger()
 
+            status = self._poll_mcu_status()
+
+            if status["ok"] and status["msg"] == "profile_done":
+                self._scope.disable_trigger()
+
+        return Profile(points)
+
     def _profile_mode_point_time(
         self, grid: GridParams, capture: PointCountCaptureParams
-    ) -> None:
+    ) -> Profile:
         """Profile a beam in `point_time` mode."""
         self._scope.set_sample_region(
             capture.pretrigger_time_ns,
             capture.posttrigger_time_ns,
             capture.sample_interval_ns,
         )
+
+        _, _, sample_interval_ns = self._scope.get_sample_region()
 
         _ser_write_newline_terminated(
             self._ser,
@@ -288,24 +353,61 @@ class Profiler:
             },
         )
 
-        if self._poll_mcu_status()["ok"]:
+        points = []
+
+        status = self._poll_mcu_status()
+
+        if status["ok"]:
             self._scope.enable_trigger_a()
             self._scope.configure_single_capture()
 
             for _ in range(grid.num_points):
                 self._scope.run_capture()
+                self._scope.transfer_single_values()
 
-            self._scope.disable_trigger()
+                x_mv = Reading(
+                    data=np.concatenate(self._scope.channel_single_mv("x_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                y_mv = Reading(
+                    data=np.concatenate(self._scope.channel_single_mv("y_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                intensity_mv = Reading(
+                    data=np.concatenate(
+                        self._scope.channel_single_mv("intensity_mv")
+                    ),
+                    interval=sample_interval_ns,
+                )
+
+                position = _x_y_mv_to_position(x_mv, y_mv)
+
+                points.append(
+                    BeamPoint(
+                        position=position, intensity_mv=intensity_mv.integral
+                    )
+                )
+
+            status = self._poll_mcu_status()
+
+            if status["ok"] and status["msg"] == "profile_done":
+                self._scope.disable_trigger()
+
+        return Profile(points)
 
     def _profile_mode_continuous(
         self, grid: GridParams, capture: ContinuousCaptureParams
-    ) -> None:
+    ) -> Profile:
         """Profile a beam in `continuous` mode."""
         self._scope.set_sample_region(
             capture.pretrigger_time_ns,
             capture.posttrigger_time_ns,
             capture.sample_interval_ns,
         )
+
+        _, _, sample_interval_ns = self._scope.get_sample_region()
 
         _ser_write_newline_terminated(
             self._ser,
@@ -322,12 +424,42 @@ class Profiler:
             },
         )
 
-        if self._poll_mcu_status()["ok"]:
+        points = []
+
+        status = self._poll_mcu_status()
+
+        if status["ok"]:
             self._scope.enable_trigger_a()
             self._scope.configure_single_capture()
 
             while True:
                 self._scope.run_capture()
+                self._scope.transfer_single_values()
+
+                x_mv = Reading(
+                    data=np.concatenate(self._scope.channel_single_mv("x_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                y_mv = Reading(
+                    data=np.concatenate(self._scope.channel_single_mv("y_mv")),
+                    interval=sample_interval_ns,
+                )
+
+                intensity_mv = Reading(
+                    data=np.concatenate(
+                        self._scope.channel_single_mv("intensity_mv")
+                    ),
+                    interval=sample_interval_ns,
+                )
+
+                position = _x_y_mv_to_position(x_mv, y_mv)
+
+                points.append(
+                    BeamPoint(
+                        position=position, intensity_mv=intensity_mv.integral
+                    )
+                )
 
                 status = self._poll_mcu_status(timeout_s=0.010)
 
@@ -338,3 +470,5 @@ class Profiler:
                 elif status["ok"] and status["msg"] == "profile_done":
                     self._scope.disable_trigger()
                     break
+
+        return Profile(points)
