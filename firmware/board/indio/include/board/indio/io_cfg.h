@@ -1,18 +1,18 @@
+/** @brief I/O configurations, directly mirrors wiring.
+ *
+ * NOTE: This module only exposes the handles for I/O used in this project.
+ */
 #ifndef BOARD_INDIO_IO_CFG_H
 #define BOARD_INDIO_IO_CFG_H
 
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/pulse_generator.h"
 
-// NOTE: This module only exposes the handles for pins used in this project.
 /** @brief Handle for the IND.I/O expansion port pin D4/A6 as a digital pin. */
 extern platform_samd21g18a_digital_pin_t const
     board_indio_io_cfg_expansion_d4_digital;
-
-/** @brief Handle for the IND.I/O expansion port pin D7 as a digital pin. */
-extern platform_samd21g18a_digital_pin_t const
-    board_indio_io_cfg_expansion_d7_digital;
 
 /** @brief Handle for the IND.I/O expansion port pin D2/SDA as a digital pin. */
 extern platform_samd21g18a_digital_pin_t const
@@ -26,6 +26,10 @@ extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d6_eic;
 
 /** @brief Handle for the IND.I/O expansion port pin D3/SCL as a EIC pin. */
 extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d16_eic;
+
+/** @brief Handle for the IND.I/O expansion port pin D7 as a pulse generator. */
+extern platform_samd21g18a_pulse_generator_t const
+    board_indio_io_cfg_expansion_d7_pulse_generator;
 
 /** @brief Handle for the IND.I/O analog output CH1. */
 extern board_indio_analog_output_channel_t const

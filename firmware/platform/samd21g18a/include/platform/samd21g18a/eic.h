@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT (16u)
+
 /** @brief Enumeration for interrupt sensing. */
 typedef enum
 {
@@ -53,6 +55,9 @@ typedef struct
     platform_samd21g18a_eic_sense_t sense;
 } platform_samd21g18a_eic_cfg_t;
 
+/** @brief Poll the EIC until it is ready. */
+void platform_samd21g18a_eic_poll_sync(void);
+
 /** @brief Initialize the EIC peripheral. */
 void platform_samd21g18a_eic_init(void);
 
@@ -70,6 +75,24 @@ void platform_samd21g18a_eic_register_callback_entry(
     platform_samd21g18a_eic_extint_line_t line,
     platform_samd21g18a_eic_callback_t    callback,
     void                                 *context);
+
+/**
+ * @brief Enable event-based output for an external interrupt line.
+ *
+ * WARNING: Because EVCTRL is enable-protected, this briefly disables all
+ *          external interrupt lines.
+ */
+void platform_samd21g18a_eic_event_output_enable(
+    platform_samd21g18a_eic_extint_line_t line);
+
+/**
+ * @brief Disable event-based output for an external interrupt line.
+ *
+ * WARNING: Because EVCTRL is enable-protected, this briefly disables all
+ *          external interrupt lines.
+ */
+void platform_samd21g18a_eic_event_output_disable(
+    platform_samd21g18a_eic_extint_line_t line);
 
 /** @brief Disable interrupts on a external interrupt line. */
 void platform_samd21g18a_eic_line_disable(

@@ -4,6 +4,7 @@
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
+#include "platform/samd21g18a/pulse_generator.h"
 
 #if 0
 /**
@@ -63,11 +64,13 @@ static platform_samd21g18a_pin_t const expansion_d6 = {
     .number     = 9u,
 };
 
+#if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D7. */
 static platform_samd21g18a_pin_t const expansion_d7 = {
     .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
     .number     = 4u,
 };
+#endif
 
 #if 0
 /**
@@ -162,9 +165,6 @@ static drivers_mcp4726_device_t const analog_output_mcp4726_ch2 = {
 platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d4_digital
     = expansion_d4;
 
-platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d7_digital
-    = expansion_d7;
-
 platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d15_digital
     = expansion_d15;
 
@@ -172,6 +172,15 @@ platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d5_eic = {
     .pin  = &expansion_d5,
     .line = 10u,
 };
+
+platform_samd21g18a_pulse_generator_t const
+    board_indio_io_cfg_expansion_d7_pulse_generator = {
+        .init          = platform_samd21g18a_pulse_generator_tcc0_init,
+        .event_disable = platform_samd21g18a_pulse_generator_tcc0_event_disable,
+        .event_enable  = platform_samd21g18a_pulse_generator_tcc0_event_enable,
+        .width_set     = platform_samd21g18a_pulse_generator_tcc0_width_set,
+        .retrigger     = platform_samd21g18a_pulse_generator_tcc0_retrigger,
+    };
 
 platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d6_eic = {
     .pin  = &expansion_d6,
@@ -214,11 +223,6 @@ board_indio_io_cfg_init (void)
         &board_indio_io_cfg_expansion_d4_digital);
 
     platform_samd21g18a_digital_pin_cfg_set_output(
-        &board_indio_io_cfg_expansion_d7_digital);
-    platform_samd21g18a_digital_pin_level_set_low(
-        &board_indio_io_cfg_expansion_d7_digital);
-
-    platform_samd21g18a_digital_pin_cfg_set_output(
         &board_indio_io_cfg_expansion_d15_digital);
     platform_samd21g18a_digital_pin_level_set_low(
         &board_indio_io_cfg_expansion_d15_digital);
@@ -226,6 +230,8 @@ board_indio_io_cfg_init (void)
     platform_samd21g18a_eic_configure(&d5_dummy_eic_cfg);
     platform_samd21g18a_eic_configure(&d6_dummy_eic_cfg);
     platform_samd21g18a_eic_configure(&d16_dummy_eic_cfg);
+
+    platform_samd21g18a_pulse_generator_tcc0_init();
 
     platform_samd21g18a_i2c_configure(&board_i2c_bus_cfg);
 

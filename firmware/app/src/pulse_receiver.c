@@ -1,10 +1,12 @@
 #include "app/pulse_receiver.h"
+#include "platform/samd21g18a/pulse_generator.h"
 #include "platform/samd21g18a/assert.h"
-#include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include <stddef.h>
 
-#define RELAY_PULSE_WIDTH_CYCLES (40U)
+// NOTE: This renders it impossible to profile lasers that trigger more
+//       frequently than 10 kilohertz.
+#define RELAY_PULSE_WIDTH_TICKS (4800u)
 
 static void relay_and_count_isr(platform_samd21g18a_eic_extint_line_t line,
                                 void                                 *context);
@@ -13,9 +15,9 @@ static void relay_isr(platform_samd21g18a_eic_extint_line_t line,
                       void                                 *context);
 
 void
-app_pulse_receiver_init (app_pulse_receiver_t                    *receiver,
-                         platform_samd21g18a_eic_pin_t const     *trigger,
-                         platform_samd21g18a_digital_pin_t const *relay)
+app_pulse_receiver_init (app_pulse_receiver_t                        *receiver,
+                         platform_samd21g18a_eic_pin_t const         *trigger,
+                         platform_samd21g18a_pulse_generator_t const *relay)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
     PLATFORM_SAMD21G18A_ASSERT(trigger != NULL);
@@ -25,8 +27,7 @@ app_pulse_receiver_init (app_pulse_receiver_t                    *receiver,
     receiver->relay   = relay;
     receiver->count   = 0;
 
-    platform_samd21g18a_digital_pin_cfg_set_output(relay);
-    platform_samd21g18a_digital_pin_level_set_low(relay);
+    relay->init();
 
     return;
 }
@@ -36,6 +37,7 @@ app_pulse_receiver_configure_relay_and_count (app_pulse_receiver_t *receiver)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
     PLATFORM_SAMD21G18A_ASSERT(receiver->trigger != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay != NULL);
 
     platform_samd21g18a_eic_cfg_t trigger_cfg
         = (platform_samd21g18a_eic_cfg_t) {
@@ -46,9 +48,14 @@ app_pulse_receiver_configure_relay_and_count (app_pulse_receiver_t *receiver)
     platform_samd21g18a_eic_configure(&trigger_cfg);
 
     platform_samd21g18a_eic_register_callback_entry(
-        trigger_cfg.eic_pin->line, relay_and_count_isr, receiver);
+        receiver->trigger->line, relay_and_count_isr, receiver);
 
     platform_samd21g18a_eic_line_disable(receiver->trigger->line);
+
+    receiver->relay->width_set(RELAY_PULSE_WIDTH_TICKS);
+    receiver->relay->event_disable(receiver->trigger->line);
+
+    return;
 }
 
 void
@@ -56,6 +63,7 @@ app_pulse_receiver_configure_relay (app_pulse_receiver_t *receiver)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
     PLATFORM_SAMD21G18A_ASSERT(receiver->trigger != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay != NULL);
 
     platform_samd21g18a_eic_cfg_t trigger_cfg
         = (platform_samd21g18a_eic_cfg_t) {
@@ -69,6 +77,10 @@ app_pulse_receiver_configure_relay (app_pulse_receiver_t *receiver)
         trigger_cfg.eic_pin->line, relay_isr, receiver);
 
     platform_samd21g18a_eic_line_disable(receiver->trigger->line);
+
+    receiver->relay->event_disable(receiver->trigger->line);
+
+    return;
 }
 
 void
@@ -78,6 +90,8 @@ app_pulse_receiver_interrupts_disable (app_pulse_receiver_t const *receiver)
     PLATFORM_SAMD21G18A_ASSERT(receiver->trigger != NULL);
 
     platform_samd21g18a_eic_line_disable(receiver->trigger->line);
+
+    receiver->relay->event_disable(receiver->trigger->line);
 
     return;
 }
@@ -89,6 +103,8 @@ app_pulse_receiver_interrupts_enable (app_pulse_receiver_t const *receiver)
     PLATFORM_SAMD21G18A_ASSERT(receiver->trigger != NULL);
 
     platform_samd21g18a_eic_line_enable(receiver->trigger->line);
+
+    receiver->relay->event_enable(receiver->trigger->line);
 
     return;
 }
@@ -115,17 +131,9 @@ void
 app_pulse_receiver_relay_pulse (app_pulse_receiver_t const *receiver)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay != NULL);
 
-    platform_samd21g18a_digital_pin_level_set_high(receiver->relay);
-
-    // NOTE: The `time` module is not used here, as this delay is too short for
-    //       the `sleep_usec` function to be precise.
-    for (volatile uint32_t i = 0u; i < RELAY_PULSE_WIDTH_CYCLES; i++)
-    {
-        __NOP();
-    }
-
-    platform_samd21g18a_digital_pin_level_set_low(receiver->relay);
+    receiver->relay->retrigger();
 }
 
 /** @brief Increment the counter when triggered when counting is enabled. */

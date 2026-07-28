@@ -6,8 +6,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define EXTINT_LINE_COUNT (16u)
-
 static uint8_t const sense_values[PLATFORM_SAMD21G18A_EIC_SENSE_COUNT] = {
     [PLATFORM_SAMD21G18A_EIC_SENSE_RISE] = EIC_CONFIG_SENSE0_RISE_Val,
     [PLATFORM_SAMD21G18A_EIC_SENSE_FALL] = EIC_CONFIG_SENSE0_FALL_Val,
@@ -27,9 +25,17 @@ typedef struct
 } platform_samd21g18a_eic_callback_entry_t;
 
 static platform_samd21g18a_eic_callback_entry_t
-    callback_entries[EXTINT_LINE_COUNT];
+    callback_entries[PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT];
 
-static inline void eic_poll_sync(void);
+void
+platform_samd21g18a_eic_poll_sync (void)
+{
+    while ((EIC->STATUS.reg & EIC_STATUS_SYNCBUSY) != 0u)
+    {
+    }
+
+    return;
+}
 
 void
 platform_samd21g18a_eic_init (void)
@@ -37,18 +43,16 @@ platform_samd21g18a_eic_init (void)
     // Enable EIC clock and set its source to GCLK0.
     PM->APBAMASK.reg |= PM_APBAMASK_EIC;
 
-    GCLK->CLKCTRL.reg
-        = GCLK_CLKCTRL_ID_EIC | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN;
-
+    platform_samd21g18a_utils_gclk0_enable(GCLK_CLKCTRL_ID_EIC);
     platform_samd21g18a_utils_gclk_poll_sync();
 
     // Reset EIC.
     EIC->CTRL.bit.SWRST = 1u;
-    eic_poll_sync();
+    platform_samd21g18a_eic_poll_sync();
 
     // Clear callback table.
     for (platform_samd21g18a_eic_extint_line_t line = 0u;
-         line < EXTINT_LINE_COUNT;
+         line < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT;
          line++)
     {
         callback_entries[line].callback = NULL;
@@ -57,7 +61,7 @@ platform_samd21g18a_eic_init (void)
 
     // Enable EIC and allow CPU to receive interrupts.
     EIC->CTRL.bit.ENABLE = 1u;
-    eic_poll_sync();
+    platform_samd21g18a_eic_poll_sync();
 
     NVIC_ClearPendingIRQ(EIC_IRQn);
     NVIC_SetPriority(EIC_IRQn, 1u);
@@ -76,7 +80,8 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
                                < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin->number
                                < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
     PLATFORM_SAMD21G18A_ASSERT(cfg->sense
                                < PLATFORM_SAMD21G18A_EIC_SENSE_COUNT);
 
@@ -124,7 +129,8 @@ platform_samd21g18a_eic_register_callback_entry (
     platform_samd21g18a_eic_callback_t    callback,
     void                                 *context)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
 
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
@@ -143,10 +149,63 @@ platform_samd21g18a_eic_register_callback_entry (
 }
 
 void
+platform_samd21g18a_eic_event_output_enable (
+    platform_samd21g18a_eic_extint_line_t line)
+{
+    PLATFORM_SAMD21G18A_ASSERT(line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
+
+    bool was_enabled = EIC->CTRL.bit.ENABLE != 0U;
+
+    if (was_enabled)
+    {
+        EIC->CTRL.bit.ENABLE = 0U;
+        platform_samd21g18a_eic_poll_sync();
+    }
+
+    EIC->EVCTRL.reg |= UINT32_C(1) << (uint32_t)line;
+
+    if (was_enabled)
+    {
+        EIC->CTRL.bit.ENABLE = 1U;
+        platform_samd21g18a_eic_poll_sync();
+    }
+
+    return;
+}
+
+void
+platform_samd21g18a_eic_event_output_disable (
+    platform_samd21g18a_eic_extint_line_t line)
+{
+    PLATFORM_SAMD21G18A_ASSERT(line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
+
+    bool was_enabled = EIC->CTRL.bit.ENABLE != 0U;
+
+    if (was_enabled)
+    {
+        EIC->CTRL.bit.ENABLE = 0U;
+        platform_samd21g18a_eic_poll_sync();
+    }
+
+    EIC->EVCTRL.reg &= ~(UINT32_C(1) << (uint32_t)line);
+
+    if (was_enabled)
+    {
+        EIC->CTRL.bit.ENABLE = 1U;
+        platform_samd21g18a_eic_poll_sync();
+    }
+
+    return;
+}
+
+void
 platform_samd21g18a_eic_line_disable (
     platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
 
     EIC->INTENCLR.reg = (1u << line);
 
@@ -156,7 +215,8 @@ platform_samd21g18a_eic_line_disable (
 void
 platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line < EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(line
+                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
 
     EIC->INTFLAG.reg  = (1u << line);
     EIC->INTENSET.reg = (1u << line);
@@ -188,17 +248,6 @@ EIC_Handler (void)
 
         PLATFORM_SAMD21G18A_ASSERT(entry.callback != NULL);
         entry.callback(line, entry.context);
-    }
-
-    return;
-}
-
-/** @brief Poll the EIC until it is ready. */
-static inline void
-eic_poll_sync (void)
-{
-    while ((EIC->STATUS.reg & EIC_STATUS_SYNCBUSY) != 0u)
-    {
     }
 
     return;

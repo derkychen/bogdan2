@@ -42,6 +42,10 @@ typedef struct
     platform_samd21g18a_pin_number_t number;
 } platform_samd21g18a_pin_t;
 
+/** @brief Disconnect a pin from all peripheral functions and write LOW. */
+void platform_samdreg18a_pin_output_hold_low(
+    platform_samd21g18a_pin_t const *pin);
+
 /** @brief Set the peripheral function of a pin. */
 void platform_samd21g18a_pin_set_peripheral_function(
     platform_samd21g18a_pin_t const              *pin,

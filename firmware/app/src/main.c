@@ -44,7 +44,7 @@ main (void)
 
     app_pulse_receiver_init(&receiver,
                             &board_indio_io_cfg_expansion_d6_eic,
-                            &board_indio_io_cfg_expansion_d7_digital);
+                            &board_indio_io_cfg_expansion_d7_pulse_generator);
 
     app_profiler_t profiler;
 

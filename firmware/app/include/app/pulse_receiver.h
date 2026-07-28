@@ -1,8 +1,8 @@
 #ifndef APP_PULSE_RECEIVER_H
 #define APP_PULSE_RECEIVER_H
 
-#include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/pulse_generator.h"
 #include <stdint.h>
 
 /** @brief Laser pulse receiver. */
@@ -12,16 +12,17 @@ typedef struct
     platform_samd21g18a_eic_pin_t const *trigger;
 
     /** Digital pin used to relay the pulse signal. */
-    platform_samd21g18a_digital_pin_t const *relay;
+    platform_samd21g18a_pulse_generator_t const *relay;
 
     /** The number of pulses detected after the last reset. */
     volatile uint32_t count;
 } app_pulse_receiver_t;
 
 /** @brief Initialize pulse counter. */
-void app_pulse_receiver_init(app_pulse_receiver_t                    *receiver,
-                             platform_samd21g18a_eic_pin_t const     *trigger,
-                             platform_samd21g18a_digital_pin_t const *relay);
+void app_pulse_receiver_init(
+    app_pulse_receiver_t                        *receiver,
+    platform_samd21g18a_eic_pin_t const         *trigger,
+    platform_samd21g18a_pulse_generator_t const *relay);
 
 /** @brief Configure the counting and relay interrupt. */
 void app_pulse_receiver_configure_relay_and_count(

@@ -237,19 +237,6 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
             .json = json,
         };
 
-        // Ignore unknown fields.
-        if (field == NULL)
-        {
-            continue;
-        }
-
-        if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
-        {
-            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
-        }
-
-        fields_seen |= field->mask;
-
         int next_token_index;
 
         if (token_next_index_get(
@@ -257,6 +244,17 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
             != PARSE_STATUS_OK)
         {
             return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        // Unknown fields are ignored.
+        if (field != NULL)
+        {
+            if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
+            {
+                return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+            }
+
+            fields_seen |= field->mask;
         }
 
         token_index = next_token_index;
