@@ -42,4 +42,9 @@ typedef struct
     platform_samd21g18a_pin_number_t number;
 } platform_samd21g18a_pin_t;
 
+/** @brief Set the peripheral function of a pin. */
+void platform_samd21g18a_pin_set_peripheral_function(
+    platform_samd21g18a_pin_t const              *pin,
+    platform_samd21g18a_pin_peripheral_function_t peripheral_function);
+
 #endif

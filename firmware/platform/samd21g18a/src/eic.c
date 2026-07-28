@@ -96,18 +96,8 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     port->PINCFG[pin_number].reg = 0u;
 
     // Configure the pin to the EIC peripheral function (A).
-    uint8_t pmux_index = pin_number / 2u;
-
-    if ((pin_number & 1u) == 0u)
-    {
-        port->PMUX[pmux_index].bit.PMUXE
-            = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
-    }
-    else
-    {
-        port->PMUX[pmux_index].bit.PMUXO
-            = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
-    }
+    platform_samd21g18a_pin_set_peripheral_function(
+        cfg->eic_pin->pin, PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A);
 
     port->PINCFG[pin_number].reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 

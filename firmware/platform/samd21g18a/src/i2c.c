@@ -565,23 +565,13 @@ pin_configure (platform_samd21g18a_i2c_pin_t const *i2c_pin,
     platform_samd21g18a_pin_peripheral_function_t peripheral_function
         = pin_peripheral_function(i2c_pin, master);
 
-    uint8_t pmux_index = i2c_pin->pin->number / 2u;
-
     // NOTE: No pull-up resistor is used because the IND.I/O board has them
     //       built in.
     PORT->Group[i2c_pin->pin->port_group].PINCFG[i2c_pin->pin->number].reg
         = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    if ((i2c_pin->pin->number & 1u) == 0u)
-    {
-        PORT->Group[i2c_pin->pin->port_group].PMUX[pmux_index].bit.PMUXE
-            = (uint8_t)(peripheral_function & 0x0Fu);
-    }
-    else
-    {
-        PORT->Group[i2c_pin->pin->port_group].PMUX[pmux_index].bit.PMUXO
-            = (uint8_t)(peripheral_function & 0x0Fu);
-    }
+    platform_samd21g18a_pin_set_peripheral_function(i2c_pin->pin,
+                                                    peripheral_function);
 
     return;
 }
