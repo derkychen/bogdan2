@@ -174,9 +174,7 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
 
     PM->APBCMASK.reg |= master_get_apbc_mask(cfg->master);
 
-    GCLK->CLKCTRL.reg = master_get_gclk_id(cfg->master) | GCLK_CLKCTRL_GEN_GCLK0
-                        | GCLK_CLKCTRL_CLKEN;
-
+    platform_samd21g18a_utils_gclk0_enable(master_get_gclk_id(cfg->master));
     platform_samd21g18a_utils_gclk_poll_sync();
 
     pin_configure(cfg->sda, cfg->master);
