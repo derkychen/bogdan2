@@ -11,7 +11,7 @@ from scipy import stats
 class Reading:
     """All measured quantities are readings from the PicoScope."""
 
-    data_mv: np.ndarray
+    data: np.ndarray
     interval_s: float
 
     @property

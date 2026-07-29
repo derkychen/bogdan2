@@ -17,6 +17,9 @@ from typing import Final, ParamSpec
 KINESIS_DIR: Final[str] = r"C:\Program Files\Thorlabs\Kinesis"
 KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
 
+TRIGGER_PARAMS_REFRESH_TIMEOUT_S: Final[float] = 2.0
+TRIGGER_PARAMS_POLL_INTERVAL_S: Final[float] = 0.05
+
 ENABLE_SETTLING_TIME_S: Final[float] = 0.500
 TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
@@ -169,19 +172,32 @@ class Controller:
 
     def get_trigger_params(self) -> PDXC2TriggerParams:
         """Get trigger parameters."""
+        sentinel = PDXC2TriggerParams()
+        sentinel_bytes = bytes(sentinel)  # all zeros
+
         _check_err_status_code(
             self._lib.PDXC2_RequestExternalTriggerParams, self._serial_num
         )
 
-        params = PDXC2TriggerParams()
+        deadline = time.monotonic() + TRIGGER_PARAMS_REFRESH_TIMEOUT_S
 
-        _check_err_status_code(
-            self._lib.PDXC2_GetExternalTriggerParams,
-            self._serial_num,
-            ctypes.byref(params),
+        while time.monotonic() < deadline:
+            params = PDXC2TriggerParams()
+            _check_err_status_code(
+                self._lib.PDXC2_GetExternalTriggerParams,
+                self._serial_num,
+                ctypes.byref(params),
+            )
+
+            if bytes(params) != sentinel_bytes:
+                return params
+
+            time.sleep(TRIGGER_PARAMS_POLL_INTERVAL_S)
+
+        raise KinesisStatusFailure(
+            "Device did not return trigger parameters within "
+            + f"{TRIGGER_PARAMS_REFRESH_TIMEOUT_S} s."
         )
-
-        return params
 
     def set_to_analog_rising_trigger_mode(self) -> None:
         """Set Trigger Mode to Analog Rising Edge."""
