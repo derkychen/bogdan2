@@ -25,7 +25,7 @@ bool
 platform_samd21g18a_eic_extint_line_valid (
     platform_samd21g18a_eic_extint_line_t line)
 {
-    return line > EXTINT_LINE_COUNT;
+    return line < EXTINT_LINE_COUNT;
 }
 
 bool
