@@ -17,9 +17,5 @@ platform_samd21g18a_utils_gclk0_enable (uint16_t id)
     GCLK->CLKCTRL.reg
         = (uint16_t)(id | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN);
 
-    while (GCLK->STATUS.bit.SYNCBUSY != 0U)
-    {
-    }
-
     return;
 }
