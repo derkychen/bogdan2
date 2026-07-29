@@ -62,7 +62,7 @@
 
 PARAMETERS_FIELD_LIST(FIELD_TYPE_MATCHES)
 
-#undef FIELD_TYPE_ASSERT
+#undef FIELD_TYPE_MATCHES
 
 /** @brief Parsing status codes. */
 typedef enum
@@ -222,7 +222,10 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
 
         field_spec_t const *field;
 
-        token_field_find(&token, &field);
+        if (token_field_find(&token, &field) != PARSE_STATUS_OK)
+        {
+            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
 
         token_index++;
 
@@ -410,6 +413,7 @@ token_parse_int (token_t const *token, int *value)
 
     char *end;
 
+    // NOTE: This only works because the SAMD21 is ILP32.
     int parsed = strtol(buffer, &end, 10);
 
     if ((errno != 0) || (end == buffer) || (*end != '\0'))
