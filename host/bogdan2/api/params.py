@@ -1,7 +1,7 @@
 """Parameters used in describing a profile."""
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, override
 
 from bogdan2._utils.math import ceil_div
 
@@ -14,6 +14,7 @@ AXIS_STAGE_TOLERANCE_NM: Final[int] = 300
 
 GRID_MAX_NUM_POINTS: Final[int] = 1023
 
+CAPTURE_SAMPLE_INTERVAL_NS_MAX: Final[int] = 10000
 CAPTURE_MAX_SAMPLES: Final[int] = 30000000
 
 
@@ -62,7 +63,7 @@ class AxisParams:
         if self.unit_nm < AXIS_STAGE_TOLERANCE_NM:
             raise AxisParamsInitError(
                 "The unit length is less than the tolerance of the stage "
-                f"({AXIS_STAGE_TOLERANCE_NM} nm)."
+                + f"({AXIS_STAGE_TOLERANCE_NM} nm)."
             )
 
         if self.unit_nm > AXIS_UNIT_MAX_NM:
@@ -75,8 +76,9 @@ class AxisParams:
             or self.origin_nm > AXIS_STAGE_RANGE_MAX_NM
         ):
             raise AxisParamsInitError(
-                "Origin is not within the stage range "
-                f"({AXIS_STAGE_RANGE_MIN_NM} to {AXIS_STAGE_RANGE_MAX_NM} nm)."
+                f"Origin {self.origin_nm} is not within the stage range "
+                + f"({AXIS_STAGE_RANGE_MIN_NM} to {AXIS_STAGE_RANGE_MAX_NM} "
+                + "nm)."
             )
 
         min_nm = self.origin_nm + (self.min * self.unit_nm)
@@ -88,7 +90,8 @@ class AxisParams:
         ):
             raise AxisParamsInitError(
                 "The bounds of the axis are not within the stage range "
-                f"({AXIS_STAGE_RANGE_MIN_NM} to {AXIS_STAGE_RANGE_MAX_NM} nm)."
+                + f"({AXIS_STAGE_RANGE_MIN_NM} to {AXIS_STAGE_RANGE_MAX_NM} "
+                + "nm)."
             )
 
     @property
@@ -104,18 +107,18 @@ class GridParams:
     x: AxisParams
     y: AxisParams
 
-    @property
-    def num_points(self) -> int:
-        """Number of points on the grid."""
-        return self.x.num_points * self.y.num_points
-
     def __post_init__(self):
         """Validate grid parameters."""
         if self.num_points > GRID_MAX_NUM_POINTS:
             raise GridParamsInitError(
                 f"Number of grid points ({self.num_points}) exceeds maximum "
-                f"number of grid points ({GRID_MAX_NUM_POINTS})."
+                + f"number of grid points ({GRID_MAX_NUM_POINTS})."
             )
+
+    @property
+    def num_points(self) -> int:
+        """Number of points on the grid."""
+        return self.x.num_points * self.y.num_points
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -128,6 +131,12 @@ class _BaseCaptureParams:
 
     def __post_init__(self) -> None:
         """Validate base capture parameters."""
+        if self.sample_interval_ns > CAPTURE_SAMPLE_INTERVAL_NS_MAX:
+            raise CaptureParamsInitError(
+                "Sample interval length exceeds maximum sample interval "
+                + f"({CAPTURE_SAMPLE_INTERVAL_NS_MAX})."
+            )
+
         max_samples = self.num_captures * ceil_div(
             self.pretrigger_time_ns + self.posttrigger_time_ns,
             self.sample_interval_ns,
@@ -136,7 +145,7 @@ class _BaseCaptureParams:
         if max_samples > CAPTURE_MAX_SAMPLES:
             raise CaptureParamsInitError(
                 f"Maximum number of samples ({max_samples}) exceeds the "
-                f"limit {CAPTURE_MAX_SAMPLES}."
+                + f"limit {CAPTURE_MAX_SAMPLES}."
             )
 
     @property
@@ -155,6 +164,7 @@ class PointCountCaptureParams(_BaseCaptureParams):
         super().__post_init__()
 
     @property
+    @override
     def num_captures(self) -> int:
         """Capture once for each pulse."""
         return self.num_pulses
@@ -171,6 +181,7 @@ class PointTimeCaptureParams(_BaseCaptureParams):
         super().__post_init__()
 
     @property
+    @override
     def num_captures(self) -> int:
         """Capture once for each time window."""
         return 1
@@ -181,6 +192,7 @@ class ContinuousCaptureParams(_BaseCaptureParams):
     """Define a capture in `continuous` mode."""
 
     @property
+    @override
     def num_captures(self) -> int:
         """Capture once for each time window."""
         return 1

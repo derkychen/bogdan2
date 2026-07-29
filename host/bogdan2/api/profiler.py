@@ -11,9 +11,9 @@ from serial.tools import list_ports
 
 from bogdan2._pdxc2.constants import (
     ANALOG_IN_GAIN_0_TO_10,
-    ANALOG_IN_OFFSET_0_TO_10,
-    ANALOG_OUT_GAIN_0_TO_10,
-    ANALOG_OUT_OFFSET_0_TO_10,
+    ANALOG_IN_OFFSET_MV_0_TO_10,
+    ANALOG_OUT_GAIN_N10_TO_10,
+    ANALOG_OUT_OFFSET_MV_N10_TO_10,
 )
 from bogdan2._pdxc2.controller import Controller
 from bogdan2._pico.constants import (
@@ -206,16 +206,16 @@ class Profiler:
 
         self._x_controller.set_analog_rising_trigger_params(
             ANALOG_IN_GAIN_0_TO_10,
-            ANALOG_IN_OFFSET_0_TO_10,
-            ANALOG_OUT_GAIN_0_TO_10,
-            ANALOG_OUT_OFFSET_0_TO_10,
+            ANALOG_IN_OFFSET_MV_0_TO_10,
+            ANALOG_OUT_GAIN_N10_TO_10,
+            ANALOG_OUT_OFFSET_MV_N10_TO_10,
         )
 
         self._y_controller.set_analog_rising_trigger_params(
             ANALOG_IN_GAIN_0_TO_10,
-            ANALOG_IN_OFFSET_0_TO_10,
-            ANALOG_OUT_GAIN_0_TO_10,
-            ANALOG_OUT_OFFSET_0_TO_10,
+            ANALOG_IN_OFFSET_MV_0_TO_10,
+            ANALOG_OUT_GAIN_N10_TO_10,
+            ANALOG_OUT_OFFSET_MV_N10_TO_10,
         )
 
         self._scope.open()

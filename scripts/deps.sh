@@ -81,7 +81,7 @@ for cmd in "${REQUIRED_CMDS[@]}"; do
   require_cmd "$cmd"
 done
 
-mkdir -p "$EXTERNAL_DIR"
+mkdir -p "$FIRMWARE_DIR/external"
 
 # Dependencies for firmware
 cd "$PROJECT_DIR"
@@ -116,7 +116,7 @@ for git_submodule in "${GIT_SUBMODULES[@]}"; do
 done
 
 # Dependencies for Python virtual environment
-cd "$PROJECT_DIR"
+cd "$HOST_DIR"
 
 if [ ! -d "$PROJECT_DIR/.venv" ]; then
   uv venv

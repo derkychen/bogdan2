@@ -1,3 +1,4 @@
+# ty: ignore[unresolved-attribute]
 """Constants and configurations for importing."""
 
 from typing import Final
@@ -5,6 +6,7 @@ from typing import Final
 from picosdk.ps2000a import ps2000a as ps
 
 RANGE_1V: Final[int] = ps.PS2000A_RANGE["PS2000A_1V"]
+
 RANGE_2V: Final[int] = ps.PS2000A_RANGE["PS2000A_2V"]
 RANGE_5V: Final[int] = ps.PS2000A_RANGE["PS2000A_5V"]
 RANGE_10V: Final[int] = ps.PS2000A_RANGE["PS2000A_10V"]

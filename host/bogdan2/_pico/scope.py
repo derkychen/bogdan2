@@ -41,20 +41,22 @@ class Scope:
         self,
     ) -> None:
         """Initialize the PicoScope."""
-        self._chandle = ctypes.c_int16()
-        self._max_adc = ctypes.c_int16()
-        self._timebase = 1
+        self._chandle: ctypes.c_int16 = ctypes.c_int16()
+        self._max_adc: ctypes.c_int16 = ctypes.c_int16()
+        self._timebase: int = 1
 
-        self._pretrigger_samples = 0
-        self._posttrigger_samples = 0
-        self._total_samples = 0
+        self._pretrigger_samples: int = 0
+        self._posttrigger_samples: int = 0
+        self._total_samples: int = 0
 
-        self._num_captures = 1
+        self._num_captures: int = 1
 
-        self._a = None
-        self._b = None
-        self._c = None
-        self._d = None
+        self._a: Channel
+        self._b: Channel
+        self._c: Channel
+        self._d: Channel
+
+        self._channels: dict[str, Channel]
 
     def get_chandle(self) -> ctypes.c_int16:
         """Get the C handle of the PicoScope."""
@@ -129,12 +131,12 @@ class Scope:
 
         timebase = 1
 
-        for _ in range(TIMEBASE_MAX_TRIES):
+        for timebase in enumerate(TIMEBASE_MAX_TRIES):
             dt_ns = ctypes.c_float()
             returned_max_samples = ctypes.c_int32()
 
             # NOTE: `assert_pico_ok` is not called here as it always reports an
-            #       error. This behaviour is likely a bug.
+            #       error. This behaviour is could be a bug.
             ps.ps2000aGetTimebase2(
                 self._chandle,
                 timebase,
@@ -162,8 +164,6 @@ class Scope:
                 )
 
                 return
-
-            timebase += 1
 
         raise CouldNotFindTimebase(
             f"Could not find a timebase for a requested {sample_interval_ns} "
@@ -258,9 +258,9 @@ class Scope:
 
             time.sleep(0.001)
 
-    def transfer_single_values(self, samples: int) -> None:
+    def transfer_single_values(self) -> None:
         """Transfer single capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(samples)
+        samples_u32 = ctypes.c_uint32(self._total_samples)
         overflow = ctypes.c_int16()
 
         assert_pico_ok(
@@ -279,9 +279,9 @@ class Scope:
         if overflow.value != 0:
             print("WARNING: ADC overflow detected in capture.")
 
-    def transfer_bulk_values(self, samples: int) -> None:
+    def transfer_bulk_values(self) -> None:
         """Transfer bulk capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(samples)
+        samples_u32 = ctypes.c_uint32(self._total_samples)
         overflow = (ctypes.c_int16 * self._num_captures)()
 
         assert_pico_ok(
@@ -300,7 +300,7 @@ class Scope:
         if any(overflow):
             print("WARNING: ADC overflow detected in one or more captures.")
 
-    def channel_single_mv(self, channel_name) -> np.ndarray:
+    def channel_single_mv(self, channel_name: str) -> np.ndarray:
         """Return single capture from a PicoScope channel in millivolts."""
         return self._channels[channel_name].single_mv()
 

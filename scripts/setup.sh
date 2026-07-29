@@ -12,4 +12,4 @@ readonly PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   exit 1
 }
 readonly FIRMWARE_DIR="$PROJECT_DIR/firmware"
-readonly EXTERNAL_DIR="$FIRMWARE_DIR/external"
+readonly HOST_DIR="$PROJECT_DIR/host"

@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from scipy import stats
+from numpy.typing import NDArray
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Reading:
     """All measured quantities are readings from the PicoScope."""
 
-    data: np.ndarray
+    data: NDArray[np.float64]
     interval_s: float
 
     @property
@@ -25,14 +25,11 @@ class Reading:
         return float(np.median(self.data))
 
     @property
-    def mode(self) -> float:
-        """Return the mode of a waveform."""
-        return float(stats.mode(self.data))
-
-    @property
     def integral(self) -> float:
         """Return the integral of a waveform by method of trapezoids."""
-        return float(np.trapz(self.data, x=None, dx=self.interval_s, axis=-1))
+        return float(
+            np.trapezoid(self.data, x=None, dx=self.interval_s, axis=-1)
+        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

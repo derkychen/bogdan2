@@ -12,7 +12,7 @@ import ctypes
 import os
 import time
 from collections.abc import Callable
-from typing import Final, ParamSpec
+from typing import ClassVar, Final, cast
 
 KINESIS_DIR: Final[str] = r"C:\Program Files\Thorlabs\Kinesis"
 KINESIS_DLL_FILE: Final[str] = "Thorlabs.MotionControl.Benchtop.Piezo.dll"
@@ -23,14 +23,12 @@ TRIGGER_PARAMS_POLL_INTERVAL_S: Final[float] = 0.05
 ENABLE_SETTLING_TIME_S: Final[float] = 0.500
 TRIGGER_MODE_ANALOG_RISING: Final[int] = 0x01
 
-P = ParamSpec("P")
-
 
 class KinesisStatusFailure(Exception):
     """When a Thorlabs C library function fails."""
 
 
-def _check_err_status_code(
+def _check_err_status_code[**P](
     func: Callable[P, int], *args: P.args, **kwargs: P.kwargs
 ) -> None:
     """For Thorlabs C library functions that return status codes."""
@@ -42,7 +40,7 @@ def _check_err_status_code(
         )
 
 
-def _check_err_bool(
+def _check_err_bool[**P](
     func: Callable[P, int], *args: P.args, **kwargs: P.kwargs
 ) -> None:
     """For Thorlabs C library functions that return Booleans."""
@@ -55,8 +53,8 @@ def _check_err_bool(
 class PDXC2TriggerParams(ctypes.Structure):
     """Mirrors the PDXC2_TriggerParams structure from the Kinesis C API."""
 
-    _pack_ = 1
-    _fields_ = [
+    _pack_: ClassVar[int] = 1
+    _fields_ = [  # pyright: ignore[reportUnannotatedClassAttribute]
         ("RiseFixedStep", ctypes.c_int32),
         ("FallFixedStep", ctypes.c_int32),
         ("RisePosition1", ctypes.c_int32),
@@ -140,9 +138,9 @@ class Controller:
             serial_num: The serial number in bytes form of the PDXC2, found
                         on the back. It is prefixed with 'SN:'.
         """
-        self._serial_num = ctypes.c_char_p(serial_num)
+        self._serial_num: ctypes.c_char_p = ctypes.c_char_p(serial_num)
 
-        self._lib = ctypes.cdll.LoadLibrary(
+        self._lib: ctypes.CDLL = ctypes.cdll.LoadLibrary(
             os.path.join(KINESIS_DIR, KINESIS_DLL_FILE)
         )
 
@@ -168,7 +166,9 @@ class Controller:
             self._lib.PDXC2_RequestExternalTriggerConfig, self._serial_num
         )
 
-        return self._lib.PDXC2_GetExternalTriggerConfig(self._serial_num)
+        return cast(
+            int, self._lib.PDXC2_GetExternalTriggerConfig(self._serial_num)
+        )
 
     def get_trigger_params(self) -> PDXC2TriggerParams:
         """Get trigger parameters."""

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ctypes
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
@@ -16,15 +15,6 @@ if TYPE_CHECKING:
     from bogdan2._pico.scope import Scope
 
 COUPLING_DC: Final[int] = ps.PS2000A_COUPLING["PS2000A_DC"]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ChannelParams:
-    """Store channel parameters."""
-
-    name: str
-    channel_id: int
-    range_id: int
 
 
 class Channel:
