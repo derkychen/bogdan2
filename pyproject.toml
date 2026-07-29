@@ -13,6 +13,7 @@ dependencies = [
   "numpy",
   "picosdk",
   "pyserial",
+  "scipy",
 ]
 
 [dependency-groups]
