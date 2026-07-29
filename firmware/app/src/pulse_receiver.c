@@ -32,6 +32,9 @@ app_pulse_receiver_configure_relay (app_pulse_receiver_t const *receiver)
 {
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
     PLATFORM_SAMD21G18A_ASSERT(receiver->relay != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay->init != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay->event_disable != NULL);
+    PLATFORM_SAMD21G18A_ASSERT(receiver->relay->width_set != NULL);
 
     receiver->relay->init();
     receiver->relay->event_disable(receiver->trigger->line);

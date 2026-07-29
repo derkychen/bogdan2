@@ -84,7 +84,7 @@ app_pulse_tracker_end (app_pulse_tracker_t const *tracker)
         app_pulse_receiver_count_reset(tracker->receiver);
     }
 
-    app_pulse_receiver_event_enable(tracker->receiver);
+    app_pulse_receiver_event_disable(tracker->receiver);
     app_pulse_receiver_interrupt_disable(tracker->receiver);
 
     return;
