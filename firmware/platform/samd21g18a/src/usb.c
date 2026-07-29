@@ -15,9 +15,7 @@ platform_samd21g18a_usb_init (void)
 
     // Route GCLK0 to USB peripheral. This assumes `SystemInit` configured GCLK0
     // to 48 MHz.
-    GCLK->CLKCTRL.reg
-        = GCLK_CLKCTRL_ID_USB | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN;
-
+    platform_samd21g18a_utils_gclk0_enable(GCLK_CLKCTRL_ID_USB);
     platform_samd21g18a_utils_gclk_poll_sync();
 
     // USB pins (DM: PA24, DP: PA25), peripheral function G.
@@ -37,7 +35,10 @@ platform_samd21g18a_usb_init (void)
     NVIC_SetPriority(USB_IRQn, 0u);
     NVIC_EnableIRQ(USB_IRQn);
 
-    PLATFORM_SAMD21G18A_ASSERT(tusb_init());
+    bool initialized = tusb_init();
+
+    PLATFORM_SAMD21G18A_ASSERT(initialized);
+
     tud_connect();
 }
 
