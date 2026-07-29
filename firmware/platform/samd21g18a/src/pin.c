@@ -90,5 +90,7 @@ platform_samd21g18a_pin_set_peripheral_function (
             = (uint8_t)(peripheral_function & 0x0Fu);
     }
 
+    PORT->Group[pin->port_group].PINCFG[pin->number].bit.PMUXEN = 1u;
+
     return;
 }
