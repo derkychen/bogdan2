@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PLATFORM_SAMD21G18A_PULSE_GENERATOR_TCC0_TICKS_PER_USEC (48u)
-
 /** @brief Initialization of the one-shot pulse timer. */
 typedef void (*platform_samd21g18a_pulse_generator_init_t)(void);
 
@@ -50,9 +48,6 @@ typedef struct
  * NOTE: This should only be run after GCLK0 is configured to 48 megaherts.
  */
 void platform_samd21g18a_pulse_generator_tcc0_init(void);
-
-void platform_samd21g18a_pulse_generator_tcc0_evsys_configure_t(
-    platform_samd21g18a_eic_extint_line_t line);
 
 /** @brief Disable TCC0 one-shot pulsing through EVSYS. */
 void platform_samd21g18a_pulse_generator_tcc0_event_disable(

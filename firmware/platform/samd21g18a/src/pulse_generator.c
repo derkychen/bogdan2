@@ -26,7 +26,7 @@ static void tcc0_evsys_route_enable(platform_samd21g18a_eic_extint_line_t line);
 void
 platform_samd21g18a_pulse_generator_tcc0_init (void)
 {
-    platform_samdreg18a_pin_output_hold_low(&pa04);
+    platform_samd21g18a_pin_output_hold_low(&pa04);
 
     // NOTE: TCC0 and TCC1 use the same generic clock channel.
     PM->APBCMASK.reg |= PM_APBCMASK_TCC0;
@@ -84,8 +84,7 @@ void
 platform_samd21g18a_pulse_generator_tcc0_event_disable (
     platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line
-                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
 
     platform_samd21g18a_eic_event_output_disable(line);
 
@@ -98,8 +97,7 @@ void
 platform_samd21g18a_pulse_generator_tcc0_event_enable (
     platform_samd21g18a_eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(line
-                               < PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
 
     platform_samd21g18a_eic_event_output_enable(line);
 
@@ -171,8 +169,9 @@ tcc0_evsys_route_disable (void)
     EVSYS->USER.reg = EVSYS_USER_USER(EVSYS_ID_USER_TCC0_EV_0)
                       | EVSYS_USER_CHANNEL(TCC0_EVSYS_CHANNEL);
 
-    EVSYS->CHANNEL.reg
-        = EVSYS_CHANNEL_CHANNEL(TCC0_EVSYS_CHANNEL) | EVSYS_CHANNEL_EVGEN(0u);
+    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL(TCC0_EVSYS_CHANNEL)
+                         | EVSYS_CHANNEL_EVGEN(0u)
+                         | EVSYS_CHANNEL_PATH_ASYNCHRONOUS;
 
     return;
 }
