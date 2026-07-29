@@ -204,17 +204,17 @@ board_indio_io_cfg_init (void)
     platform_samd21g18a_eic_cfg_t d5_dummy_eic_cfg
         = (platform_samd21g18a_eic_cfg_t) {
               .eic_pin = &board_indio_io_cfg_expansion_d5_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
+              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
           };
     platform_samd21g18a_eic_cfg_t d6_dummy_eic_cfg
         = (platform_samd21g18a_eic_cfg_t) {
               .eic_pin = &board_indio_io_cfg_expansion_d6_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
+              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
           };
     platform_samd21g18a_eic_cfg_t d16_dummy_eic_cfg
         = (platform_samd21g18a_eic_cfg_t) {
               .eic_pin = &board_indio_io_cfg_expansion_d16_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_RISE,
+              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
           };
 
     platform_samd21g18a_digital_pin_cfg_set_output(
