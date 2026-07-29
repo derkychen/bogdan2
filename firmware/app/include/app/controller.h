@@ -59,10 +59,10 @@ void app_controller_set_stage_moving(app_controller_t *controller,
                                      bool              stage_moving);
 
 /** @brief Disable the controller's interrupt line. */
-void app_controller_interrupts_disable(app_controller_t const *controller);
+void app_controller_interrupt_disable(app_controller_t const *controller);
 
 /** @brief Enable the controller's interrupt line. */
-void app_controller_interrupts_enable(app_controller_t const *controller);
+void app_controller_interrupt_enable(app_controller_t const *controller);
 
 /**
  * @brief Start the stage's movement to its target by pulsing HIGH the

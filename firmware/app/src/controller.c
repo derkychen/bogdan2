@@ -78,7 +78,7 @@ app_controller_set_stage_moving (app_controller_t *controller,
 }
 
 void
-app_controller_interrupts_disable (app_controller_t const *controller)
+app_controller_interrupt_disable (app_controller_t const *controller)
 {
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);
@@ -89,7 +89,7 @@ app_controller_interrupts_disable (app_controller_t const *controller)
 }
 
 void
-app_controller_interrupts_enable (app_controller_t const *controller)
+app_controller_interrupt_enable (app_controller_t const *controller)
 {
     PLATFORM_SAMD21G18A_ASSERT(controller != NULL);
     PLATFORM_SAMD21G18A_ASSERT(controller->trigger_out != NULL);

@@ -121,7 +121,7 @@ app_axis_move_start (app_axis_t *axis)
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
-    app_controller_interrupts_enable(axis->controller);
+    app_controller_interrupt_enable(axis->controller);
 
     // NOTE: Setting the state of the stage to moving before pulsing the
     //       controller Trigger IN is important in ensuring accurate state
@@ -140,7 +140,7 @@ app_axis_move_end (app_axis_t *axis)
     PLATFORM_SAMD21G18A_ASSERT(axis != NULL);
     PLATFORM_SAMD21G18A_ASSERT(axis->controller != NULL);
 
-    app_controller_interrupts_disable(axis->controller);
+    app_controller_interrupt_disable(axis->controller);
 
     return;
 }
