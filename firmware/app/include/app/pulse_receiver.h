@@ -24,19 +24,23 @@ void app_pulse_receiver_init(
     platform_samd21g18a_eic_pin_t const         *trigger,
     platform_samd21g18a_pulse_generator_t const *relay);
 
-/** @brief Configure the counting and relay interrupt. */
-void app_pulse_receiver_configure_relay_and_count(
-    app_pulse_receiver_t *receiver);
+/** @brief Configure the one-shot relay pulse generator. */
+void app_pulse_receiver_configure_relay(app_pulse_receiver_t const *receiver);
 
-/** @brief Configure only the relay interrupt. */
-void app_pulse_receiver_configure_relay(app_pulse_receiver_t *receiver);
+/** @brief Configure the counting interrupt. */
+void app_pulse_receiver_configure_count(app_pulse_receiver_t *receiver);
 
-/** @brief Disable the receiver's interrupt line. */
-void app_pulse_receiver_interrupts_disable(
-    app_pulse_receiver_t const *receiver);
+/** @brief Disable the receiver's event detection. */
+void app_pulse_receiver_event_disable(app_pulse_receiver_t const *receiver);
 
-/** @brief Enable the receiver's interrupt line. */
-void app_pulse_receiver_interrupts_enable(app_pulse_receiver_t const *receiver);
+/** @brief Enable the receiver's event detection. */
+void app_pulse_receiver_event_enable(app_pulse_receiver_t const *receiver);
+
+/** @brief Disable the receiver's interrupt detection. */
+void app_pulse_receiver_interrupt_disable(app_pulse_receiver_t const *receiver);
+
+/** @brief Enable the receiver's interrupt detection. */
+void app_pulse_receiver_interrupt_enable(app_pulse_receiver_t const *receiver);
 
 /** @brief Get the current pulse count. */
 uint32_t app_pulse_receiver_get_count(app_pulse_receiver_t const *receiver);

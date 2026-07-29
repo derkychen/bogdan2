@@ -11,8 +11,6 @@ typedef enum
     APP_PULSE_TRACKER_MODE_RELAY_AND_COUNT = 0,
     APP_PULSE_TRACKER_MODE_RELAY,
     APP_PULSE_TRACKER_MODE_LAZY,
-
-    APP_PULSE_TRACKER_MODE_COUNT,
 } app_pulse_tracker_mode_t;
 
 /** @brief Laser pulse counter. */
@@ -36,10 +34,18 @@ uint32_t app_pulse_tracker_get_count(app_pulse_tracker_t const *tracker);
 /** @brief Pulse the relay pin. */
 void app_pulse_tracker_relay_pulse(app_pulse_tracker_t const *tracker);
 
-/** @brief Enable interrupts from the receiver trigger. */
+/**
+ * @brief Enable interrupts from the receiver trigger.
+ *
+ * NOTE: This function are not called in `LAZY` mode.
+ */
 void app_pulse_tracker_start(app_pulse_tracker_t const *tracker);
 
-/** @brief Disable interrupts from the receiver trigger. */
+/**
+ * @brief Disable interrupts from the receiver trigger.
+ *
+ * NOTE: This function are not called in `LAZY` mode.
+ */
 void app_pulse_tracker_end(app_pulse_tracker_t const *tracker);
 
 #endif

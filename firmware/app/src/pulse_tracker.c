@@ -10,7 +10,6 @@ app_pulse_tracker_init (app_pulse_tracker_t     *tracker,
 {
     PLATFORM_SAMD21G18A_ASSERT(tracker != NULL);
     PLATFORM_SAMD21G18A_ASSERT(receiver != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(mode < APP_PULSE_TRACKER_MODE_COUNT);
 
     tracker->receiver = receiver;
     tracker->mode     = mode;
@@ -18,7 +17,8 @@ app_pulse_tracker_init (app_pulse_tracker_t     *tracker,
     switch (tracker->mode)
     {
         case APP_PULSE_TRACKER_MODE_RELAY_AND_COUNT:
-            app_pulse_receiver_configure_relay_and_count(receiver);
+            app_pulse_receiver_configure_relay(receiver);
+            app_pulse_receiver_configure_count(receiver);
             break;
 
         case APP_PULSE_TRACKER_MODE_RELAY:
@@ -26,10 +26,8 @@ app_pulse_tracker_init (app_pulse_tracker_t     *tracker,
             break;
 
         case APP_PULSE_TRACKER_MODE_LAZY:
+            app_pulse_receiver_configure_relay(receiver);
             break;
-
-        case APP_PULSE_TRACKER_MODE_COUNT:
-            __builtin_unreachable();
 
         default:
             PLATFORM_SAMD21G18A_ASSERT(false);
@@ -69,7 +67,8 @@ app_pulse_tracker_start (app_pulse_tracker_t const *tracker)
         app_pulse_receiver_count_reset(tracker->receiver);
     }
 
-    app_pulse_receiver_interrupts_enable(tracker->receiver);
+    app_pulse_receiver_event_enable(tracker->receiver);
+    app_pulse_receiver_interrupt_enable(tracker->receiver);
 
     return;
 }
@@ -85,7 +84,8 @@ app_pulse_tracker_end (app_pulse_tracker_t const *tracker)
         app_pulse_receiver_count_reset(tracker->receiver);
     }
 
-    app_pulse_receiver_interrupts_disable(tracker->receiver);
+    app_pulse_receiver_event_enable(tracker->receiver);
+    app_pulse_receiver_interrupt_disable(tracker->receiver);
 
     return;
 }
