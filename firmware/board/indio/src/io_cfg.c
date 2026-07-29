@@ -231,7 +231,7 @@ board_indio_io_cfg_init (void)
     platform_samd21g18a_eic_configure(&d6_dummy_eic_cfg);
     platform_samd21g18a_eic_configure(&d16_dummy_eic_cfg);
 
-    platform_samd21g18a_pulse_generator_tcc0_init();
+    board_indio_io_cfg_expansion_d7_pulse_generator.init();
 
     platform_samd21g18a_i2c_configure(&board_i2c_bus_cfg);
 
