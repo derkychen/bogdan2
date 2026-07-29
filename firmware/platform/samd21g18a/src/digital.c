@@ -9,10 +9,10 @@ platform_samd21g18a_digital_pin_cfg_set_output (
     platform_samd21g18a_digital_pin_t const *pin)
 {
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(pin->number));
 
     // Set the pin to an input first.
     PORT->Group[pin->port_group].DIRCLR.reg = (1u << pin->number);
@@ -37,10 +37,10 @@ platform_samd21g18a_digital_pin_cfg_set_input (
     platform_samd21g18a_digital_pin_t const *pin)
 {
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(pin->number));
 
     // Set the pin to an input.
     PORT->Group[pin->port_group].DIRCLR.reg = (1u << pin->number);
@@ -57,10 +57,10 @@ platform_samd21g18a_digital_pin_level_set_low (
     platform_samd21g18a_digital_pin_t const *pin)
 {
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(pin->number));
 
     PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
 
@@ -72,10 +72,10 @@ platform_samd21g18a_digital_pin_level_set_high (
     platform_samd21g18a_digital_pin_t const *pin)
 {
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(pin->number));
 
     PORT->Group[pin->port_group].OUTSET.reg = (1u << pin->number);
 
@@ -87,10 +87,10 @@ platform_samd21g18a_digital_pin_read (
     platform_samd21g18a_digital_pin_t const *pin)
 {
     PLATFORM_SAMD21G18A_ASSERT(pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(pin->number));
 
     // Enable input buffer.
     PORT->Group[pin->port_group].PINCFG[pin->number].bit.INEN = 1u;

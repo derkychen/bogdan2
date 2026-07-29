@@ -555,10 +555,10 @@ pin_configure (platform_samd21g18a_i2c_pin_t const *i2c_pin,
 {
     PLATFORM_SAMD21G18A_ASSERT(i2c_pin != NULL);
     PLATFORM_SAMD21G18A_ASSERT(i2c_pin->pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin->pin->port_group
-                               < PLATFORM_SAMD21G18A_PIN_PORT_GROUP_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin->pin->number
-                               < PLATFORM_SAMD21G18A_PIN_NUMBER_COUNT);
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_port_group_valid(i2c_pin->pin->port_group));
+    PLATFORM_SAMD21G18A_ASSERT(
+        platform_samd21g18a_pin_number_valid(i2c_pin->pin->number));
 
     platform_samd21g18a_pin_peripheral_function_t peripheral_function
         = pin_peripheral_function(i2c_pin, master);
