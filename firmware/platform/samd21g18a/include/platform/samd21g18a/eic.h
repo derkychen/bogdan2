@@ -6,22 +6,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PLATFORM_SAMD21G18A_EIC_EXTINT_LINE_COUNT (16u)
+/** @brief Type for external interrupt line. */
+typedef uint8_t platform_samd21g18a_eic_extint_line_t;
 
 /** @brief Enumeration for interrupt sensing. */
 typedef enum
 {
-    PLATFORM_SAMD21G18A_EIC_SENSE_RISE = 0,
-    PLATFORM_SAMD21G18A_EIC_SENSE_FALL,
-    PLATFORM_SAMD21G18A_EIC_SENSE_BOTH,
-    PLATFORM_SAMD21G18A_EIC_SENSE_HIGH,
-    PLATFORM_SAMD21G18A_EIC_SENSE_LOW,
-
-    PLATFORM_SAMD21G18A_EIC_SENSE_COUNT,
+    PLATFORM_SAMD21G18A_EIC_SENSE_NONE = EIC_CONFIG_SENSE0_NONE_Val,
+    PLATFORM_SAMD21G18A_EIC_SENSE_RISE = EIC_CONFIG_SENSE0_RISE_Val,
+    PLATFORM_SAMD21G18A_EIC_SENSE_FALL = EIC_CONFIG_SENSE0_FALL_Val,
+    PLATFORM_SAMD21G18A_EIC_SENSE_BOTH = EIC_CONFIG_SENSE0_BOTH_Val,
+    PLATFORM_SAMD21G18A_EIC_SENSE_HIGH = EIC_CONFIG_SENSE0_HIGH_Val,
+    PLATFORM_SAMD21G18A_EIC_SENSE_LOW  = EIC_CONFIG_SENSE0_LOW_Val,
 } platform_samd21g18a_eic_sense_t;
-
-/** @brief Type for external interrupt line. */
-typedef uint8_t platform_samd21g18a_eic_extint_line_t;
 
 /**
  * @brief EIC callback format.
@@ -55,6 +52,13 @@ typedef struct
     platform_samd21g18a_eic_sense_t sense;
 } platform_samd21g18a_eic_cfg_t;
 
+/** @brief Check if an external interrupt line is valid. */
+bool platform_samd21g18a_eic_extint_line_valid(
+    platform_samd21g18a_eic_extint_line_t line);
+
+/** @brief Check if a sense value is valid. */
+bool platform_samd21g18a_eic_sense_valid(platform_samd21g18a_eic_sense_t sense);
+
 /** @brief Poll the EIC until it is ready. */
 void platform_samd21g18a_eic_poll_sync(void);
 
@@ -76,21 +80,11 @@ void platform_samd21g18a_eic_register_callback_entry(
     platform_samd21g18a_eic_callback_t    callback,
     void                                 *context);
 
-/**
- * @brief Enable event-based output for an external interrupt line.
- *
- * WARNING: Because EVCTRL is enable-protected, this briefly disables all
- *          external interrupt lines.
- */
+/** @brief Enable event-based output for an external interrupt line. */
 void platform_samd21g18a_eic_event_output_enable(
     platform_samd21g18a_eic_extint_line_t line);
 
-/**
- * @brief Disable event-based output for an external interrupt line.
- *
- * WARNING: Because EVCTRL is enable-protected, this briefly disables all
- *          external interrupt lines.
- */
+/** @brief Disable event-based output for an external interrupt line. */
 void platform_samd21g18a_eic_event_output_disable(
     platform_samd21g18a_eic_extint_line_t line);
 
@@ -100,14 +94,6 @@ void platform_samd21g18a_eic_line_disable(
 
 /** @brief Enable interrupts on a external interrupt line. */
 void platform_samd21g18a_eic_line_enable(
-    platform_samd21g18a_eic_extint_line_t line);
-
-/** @brief Disable hardware event output on a external interrupt line. */
-void platform_samd21g18a_eic_line_event_disable(
-    platform_samd21g18a_eic_extint_line_t line);
-
-/** @brief Enable hardware event output on a external interrupt line. */
-void platform_samd21g18a_eic_line_event_enable(
     platform_samd21g18a_eic_extint_line_t line);
 
 #endif
