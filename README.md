@@ -1,5 +1,12 @@
 # Bogdan 2: Revenge of the Industruino
 
+This repository contains all the code used to set up and operate Bogdan 2, a beam profiler whose concept was conceived by Dr. Sascha Epp, our supervisor. Its purpose was mainly to solve two problems:
+
+1. Difficulty triggering conventional beam profilers for very low frequency pulsed lasers.
+2. Damage on detectors requiring the replacement of the entire beam profiler, which is costly and inefficient.
+
+This beam profiler that translates a photodiode in an $x$-$y$, capturing intensities at different positions through an oscilloscope. It solves Problem 1 by using its own triggering mechanism that detects laser pulses. It constructs the beam profile across many pulses. It solves Problem 2 as the replacement of the photodiode as a detector is much less costly and easier than the replacement of an entire beam profiler.
+
 ## Dependencies:
 
 You must have the following installed in order to set up Bogdan 2.
@@ -37,7 +44,7 @@ To flash the firmware to the Industruino, double press the RST button on the bac
 scripts/firmware.sh -x -b release -p path/to/usb/port
 ```
 
-Make sure to replace the port with the actual path to your USB port. On Linux this should be `/dev/tty*`. On macOS it should be `/dev/cu.usbmodem*`. On Windows it should be `COM*`. (`*` means "a sequence of any characters for any length".)
+Make sure to replace the port with the actual path to your USB port. On Windows it should be `COMx` where `x` is a number.
 
 ### API
 
@@ -53,7 +60,7 @@ The `-e` flag makes the Bogdan 2 installation is editable. This means if you edi
 
 #### Usage
 
-Refer to `examples/` for scripts you can copy-paste to run.
+Refer to `host/examples/` for scripts you can copy-paste to run.
 
 ## Documentation
 

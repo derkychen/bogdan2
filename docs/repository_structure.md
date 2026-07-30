@@ -24,21 +24,21 @@ This directory contains utilities that pertains to the IND.I/O baseboard. The on
 
 This directory contains CMake-related functionality. CMake is used to build the C project into a binary that can be flashed to the IND.I/O. The directory contains primarily wrappers for external dependencies, as well as compiling configurations.
 
-#### external/
+#### `external/`
 
 This directory contains CMake wrappers for external dependencies, which are CMSIS and CMSIS Atmel headers (which define macros used in the code to access registers, peripherals, etc.), JSMN (a JSON parsing utility), and TinyUSB, which provides serial communication functionality.
 
-#### mcu/
+#### `mcu/`
 
 This directory contains compile options for the SAMD21G18A processor, which is the processor on board the IND.I/O.
 
-#### options/
+#### `options/`
 
 This directory contains warning and feature-related compile options. The CMakeLists Files in other locations use the features and warnings to ensure that errors/warnings are largely ignored for external dependencies (since this is code that is not written by us), and tightens checking on code in this repository so that any warning causes compilation to fail.
 
 ### `drivers/`
 
-This directory contains drivers for chips on board the IND.I/O baseboard. These chips are used to control the I$^2$C devices that are responsible for driving the analog outputs on the baseboard.
+This directory contains drivers for chips on board the IND.I/O baseboard. These chips are used to control the I${}^2$C devices that are responsible for driving the analog outputs on the baseboard.
 
 ### `external/`
 
