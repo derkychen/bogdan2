@@ -43,10 +43,10 @@ Make sure to replace the port with the actual path to your USB port. On Linux th
 
 #### Installation
 
-To install the Bogdan 2 API run (ideally in a virtual environment)
+To install the Bogdan 2 host API run (ideally in a virtual environment)
 
 ```bash
-uv pip install -e i/put/bogdan2/here/bogdan2 # Replace with actual location
+uv pip install -e i/put/bogdan2/here/bogdan2/host # Replace with actual location
 ```
 
 The `-e` flag makes the Bogdan 2 installation is editable. This means if you edit the code in this repository, you do not need to rebuild or reinstall the package.
