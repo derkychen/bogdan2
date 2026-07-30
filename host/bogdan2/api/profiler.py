@@ -213,9 +213,6 @@ class Profiler:
 
     def _configure(self) -> None:
         """Configure the profiler hardware."""
-        self._x_controller.enable()
-        self._y_controller.enable()
-
         self._x_controller.set_to_analog_rising_trigger_mode()
         self._y_controller.set_to_analog_rising_trigger_mode()
 
