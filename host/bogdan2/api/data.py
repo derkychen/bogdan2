@@ -41,16 +41,19 @@ class TimeSeries:
     interval: Quantity | None
 
     @property
-    def integral(self) -> float:
+    def integral(self) -> Quantity:
         """The integral of a waveform by trapezoidal method."""
         assert self.interval is not None, (
             "Data interval must be set for integration."
         )
 
-        return float(
-            np.trapezoid(
-                self.data.values, x=None, dx=self.interval.value, axis=-1
-            )
+        return Quantity(
+            value=float(
+                np.trapezoid(
+                    self.data.values, x=None, dx=self.interval.value, axis=-1
+                )
+            ),
+            unit=f"{self.data.unit} * {self.interval.unit}",
         )
 
 
