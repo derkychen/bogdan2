@@ -12,25 +12,23 @@ Enforcement of these conventions was done through the tool `clangd`, which handl
 
 ## Host
 
-The host-side functionality does not adhere to any particular standard. However, it aims to follow best practices for Python.
-
 Google-style Python docstrings are used.
 
 Enforcement of these conventions was done through:
 
-* `ruff`: For formatting and surface-level linting.
-* `basedpyright`: For comprehensive static type-checking.
+* `ruff` for formatting and surface-level linting.
+* `basedpyright` for comprehensive static type-checking.
 
 ## Miscellaneous
 
 ### Shell Scripts
 
-The shell scripts in this project do not adhere to any particular standard. Enforcement of basic rules and formatting was done through `bashls` and `shfmt`.
+Enforcement of basic rules and formatting was done through `bashls` and `shfmt`.
 
 ### Markdown
 
-The markdown files used for documentation in this project do not adhere to any particular standard. Formatting was done through `remark_ls`.
+Formatting was done through `remark_ls`.
 
 ### TOML
 
-The TOML files used for configuration in this project do not adhere to any particular standard. Basic rule-checking and formatting was done through `tombi`.
+Basic rule-checking and formatting was done through `tombi`.
