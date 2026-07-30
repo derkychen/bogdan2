@@ -43,13 +43,14 @@ class Scope:
         """Initialize the PicoScope."""
         self._chandle: ctypes.c_int16 = ctypes.c_int16()
         self._max_adc: ctypes.c_int16 = ctypes.c_int16()
-        self._timebase: int = 1
+        self._timebase: int
 
-        self._pretrigger_samples: int = 0
-        self._posttrigger_samples: int = 0
-        self._total_samples: int = 0
+        self._pretrigger_samples: int
+        self._posttrigger_samples: int
+        self._total_samples: int
 
-        self._num_captures: int = 1
+        self._sample_interval_ns: int
+        self._num_captures: int
 
         self._a: Channel
         self._b: Channel
@@ -57,18 +58,6 @@ class Scope:
         self._d: Channel
 
         self._channels: dict[str, Channel]
-
-    def get_chandle(self) -> ctypes.c_int16:
-        """Get the C handle of the PicoScope."""
-        return self._chandle
-
-    def get_max_adc(self) -> ctypes.c_int16:
-        """Get the maximum ADC value of the PicoScope."""
-        return self._max_adc
-
-    def get_timebase(self) -> int:
-        """Get the timebase of the PicoScope."""
-        return self._timebase
 
     def get_sample_region(self) -> tuple[float, float, float]:
         """Get the sample region of the PicoScope."""
@@ -97,10 +86,34 @@ class Scope:
         d_params: ScopeChannelParams,
     ) -> None:
         """Configure PicoScope channel names and ranges."""
-        self._a = Channel(self, a_params.name, CHANNEL_A, a_params.range_id)
-        self._b = Channel(self, b_params.name, CHANNEL_B, b_params.range_id)
-        self._c = Channel(self, c_params.name, CHANNEL_C, c_params.range_id)
-        self._d = Channel(self, d_params.name, CHANNEL_D, d_params.range_id)
+        self._a = Channel(
+            self._chandle,
+            self._max_adc,
+            a_params.name,
+            CHANNEL_A,
+            a_params.range_id,
+        )
+        self._b = Channel(
+            self._chandle,
+            self._max_adc,
+            b_params.name,
+            CHANNEL_B,
+            b_params.range_id,
+        )
+        self._c = Channel(
+            self._chandle,
+            self._max_adc,
+            c_params.name,
+            CHANNEL_C,
+            c_params.range_id,
+        )
+        self._d = Channel(
+            self._chandle,
+            self._max_adc,
+            d_params.name,
+            CHANNEL_D,
+            d_params.range_id,
+        )
 
         self._channels = {
             a_params.name: self._a,
@@ -129,15 +142,13 @@ class Scope:
         )
         temp_total_samples = temp_pretrigger_samples + temp_posttrigger_samples
 
-        timebase = 1
-
-        for timebase in enumerate(TIMEBASE_MAX_TRIES):
+        for timebase in range(1, TIMEBASE_MAX_TRIES):
             dt_ns = ctypes.c_float()
             returned_max_samples = ctypes.c_int32()
 
             # NOTE: `assert_pico_ok` is not called here as it always reports an
             #       error. This behaviour is could be a bug.
-            ps.ps2000aGetTimebase2(
+            _ = ps.ps2000aGetTimebase2(
                 self._chandle,
                 timebase,
                 temp_total_samples,
@@ -167,7 +178,7 @@ class Scope:
 
         raise CouldNotFindTimebase(
             f"Could not find a timebase for a requested {sample_interval_ns} "
-            f"ns sample interval."
+            + "ns sample interval."
         )
 
     def disable_trigger_a(self) -> None:
@@ -212,8 +223,8 @@ class Scope:
         if self._total_samples > max_samples.value:
             raise ValueError(
                 f"Total number of samples ({self._total_samples}) is larger "
-                f"than the maximum number of samples per acquisition buffer "
-                f"{max_samples.value}."
+                + "than the maximum number of samples per acquisition buffer "
+                + f"{max_samples.value}."
             )
 
         assert_pico_ok(

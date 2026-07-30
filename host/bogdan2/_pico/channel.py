@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import ctypes
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 import numpy as np
 from picosdk.functions import adc2mV, assert_pico_ok, mV2adc
 from picosdk.ps2000a import ps2000a as ps
 
 from bogdan2._pico.constants import RATIO_MODE_NONE
-
-if TYPE_CHECKING:
-    from bogdan2._pico.scope import Scope
 
 COUPLING_DC: Final[int] = ps.PS2000A_COUPLING["PS2000A_DC"]
 
@@ -22,25 +19,27 @@ class Channel:
 
     def __init__(
         self,
-        scope: Scope,
+        chandle: ctypes.c_int16,
+        max_adc: ctypes.c_int16,
         name: str,
         channel_id: int,
         range_id: int,
     ) -> None:
         """Initialize a PicoScope channel."""
-        self._scope = scope
+        self._chandle: ctypes.c_int16 = chandle
+        self._max_adc: ctypes.c_int16 = max_adc
 
-        self.name = name
+        self.name: str = name
 
-        self._channel_id = channel_id
-        self._range_id = range_id
+        self._channel_id: int = channel_id
+        self._range_id: int = range_id
 
-        self._buffer = None
-        self._readings = None
+        self._single_buffer: ctypes.Array[ctypes.c_int16]
+        self._bulk_buffers: list[ctypes.Array[ctypes.c_int16]]
 
         assert_pico_ok(
             ps.ps2000aSetChannel(
-                self._scope.get_chandle(),
+                self._chandle,
                 self._channel_id,
                 1,
                 COUPLING_DC,
@@ -59,13 +58,13 @@ class Channel:
         threshold_mv: float = 2000.0,
     ) -> None:
         """Configure a PicoScope channel as a logical trigger."""
-        trigger_adc = mV2adc(
-            threshold_mv, self._range_id, self._scope.get_max_adc()
+        trigger_adc: ctypes.c_int16 = mV2adc(
+            threshold_mv, self._range_id, self._max_adc
         )
 
         assert_pico_ok(
             ps.ps2000aSetSimpleTrigger(
-                self._scope.get_chandle(),
+                self._chandle,
                 1,
                 self._channel_id,
                 trigger_adc,
@@ -81,7 +80,7 @@ class Channel:
 
         assert_pico_ok(
             ps.ps2000aSetDataBuffers(
-                self._scope.get_chandle(),
+                self._chandle,
                 self._channel_id,
                 buffer,
                 None,
@@ -91,21 +90,21 @@ class Channel:
             )
         )
 
-        self._buffer = buffer
+        self._single_buffer = buffer
 
     def bulk_buffer_create(self, samples: int, captures: int) -> None:
         """Add an acquisition buffer segment to a channel buffer."""
-        buffer = []
-        self._buffer = buffer
+        buffers = []
+        self._bulk_buffers = buffers
 
         for i in range(captures):
             segment = (ctypes.c_int16 * (samples))()
 
-            self._buffer.append(segment)
+            self._bulk_buffers.append(segment)
 
             assert_pico_ok(
                 ps.ps2000aSetDataBuffer(
-                    self._scope.get_chandle(),
+                    self._chandle,
                     self._channel_id,
                     segment,
                     samples,
@@ -117,34 +116,28 @@ class Channel:
     def disable_trigger(self) -> None:
         """Disable a Picoscope channel trigger."""
         assert_pico_ok(
-            ps.ps2000aSetSimpleTrigger(
-                self._scope.get_chandle(), 0, 0, 0, 0, 0, 0
-            )
+            ps.ps2000aSetSimpleTrigger(self._chandle, 0, 0, 0, 0, 0, 0)
         )
 
     def single_mv(self) -> np.ndarray:
         """Get a reading in millivolts from the channel buffer."""
         return np.array(
             adc2mV(
-                self._buffer,
+                self._single_buffer,
                 self._range_id,
-                self._scope.get_max_adc(),
+                self._max_adc,
             )
         )
 
     def bulk_mv(self) -> list[np.ndarray]:
         """Get an array of readings in millivolts from the channel buffer."""
-        assert self._buffer is not None, (
-            "This function can only be called after the buffer is initialized."
-        )
-
         return [
             np.array(
                 adc2mV(
                     adc_sample,
                     self._range_id,
-                    self._scope.get_max_adc(),
+                    self._max_adc,
                 )
             )
-            for adc_sample in self._buffer
+            for adc_sample in self._bulk_buffers
         ]
