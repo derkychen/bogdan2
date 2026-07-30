@@ -69,5 +69,5 @@ dummy-variable-rgx = "^_$"
 convention = "google"
 
 [tool.setuptools.packages.find]
-where = ["bogdan2"]
+where = ["."]
 namespaces = false
