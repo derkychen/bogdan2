@@ -96,7 +96,7 @@ class AxisParams:
 
     @property
     def num_points(self) -> int:
-        """Return the number of points on the axis."""
+        """The number of points on the axis."""
         return self.max - self.min + 1
 
 
@@ -107,7 +107,7 @@ class GridParams:
     x: AxisParams
     y: AxisParams
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate grid parameters."""
         if self.num_points > GRID_MAX_NUM_POINTS:
             raise GridParamsInitError(

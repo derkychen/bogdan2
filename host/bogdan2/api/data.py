@@ -4,31 +4,53 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from numpy.typing import NDArray
+import numpy.typing as npt
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Reading:
-    """All measured quantities are readings from the PicoScope."""
+class Quantity:
+    """Abstraction for quantities."""
 
-    data: NDArray[np.float64]
-    interval_s: float
+    value: float
+    unit: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Sequence:
+    """Abstraction for data (multiple quantities)."""
+
+    values: npt.NDArray[np.float64]
+    unit: str
 
     @property
     def mean(self) -> float:
-        """Return the average of a waveform."""
-        return float(np.mean(self.data))
+        """Mean of a waveform."""
+        return float(np.mean(self.values))
 
     @property
     def median(self) -> float:
-        """Return the median of a waveform."""
-        return float(np.median(self.data))
+        """Median of a waveform."""
+        return float(np.median(self.values))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TimeSeries:
+    """All measured quantities are readings from the PicoScope."""
+
+    data: Sequence
+    interval: Quantity | None
 
     @property
     def integral(self) -> float:
-        """Return the integral of a waveform by method of trapezoids."""
+        """The integral of a waveform by trapezoidal method."""
+        assert self.interval is not None, (
+            "Data interval must be set for integration."
+        )
+
         return float(
-            np.trapezoid(self.data, x=None, dx=self.interval_s, axis=-1)
+            np.trapezoid(
+                self.data.values, x=None, dx=self.interval.value, axis=-1
+            )
         )
 
 
@@ -36,8 +58,8 @@ class Reading:
 class Position:
     """Position of a point on the beam profile."""
 
-    x_mm: float
-    y_mm: float
+    x: TimeSeries
+    y: TimeSeries
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -45,10 +67,10 @@ class BeamPoint:
     """Point on a beam profile."""
 
     position: Position
-    intensity: float
+    intensity: TimeSeries
 
 
-class Profile:
+class BeamProfile:
     """Data processing functionality for beam profiles."""
 
     def __init__(self, points: list[BeamPoint]) -> None:
