@@ -17,9 +17,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "basedpyright",
   "pytest",
   "ruff",
-  "ty",
 ]
 
 [build-system]
