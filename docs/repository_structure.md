@@ -38,7 +38,7 @@ This directory contains warning and feature-related compile options. The CMakeLi
 
 ### `drivers/`
 
-This directory contains drivers for chips on board the IND.I/O baseboard. These chips are used to control the I${}^2$C devices that are responsible for driving the analog outputs on the baseboard.
+This directory contains drivers for chips on board the IND.I/O baseboard. These chips are used to control the I<sup>2</sup>C devices that are responsible for driving the analog outputs on the baseboard.
 
 ### `external/`
 
