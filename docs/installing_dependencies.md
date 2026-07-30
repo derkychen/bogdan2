@@ -1,5 +1,7 @@
 # Installing Dependencies
 
+This document explains the entire process of how to perform the installations (that could not be automated) necessary to run the beam profiler.
+
 ## Windows
 
 ### Git and Git BASH

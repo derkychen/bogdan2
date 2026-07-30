@@ -55,6 +55,6 @@ The `-e` flag makes the Bogdan 2 installation is editable. This means if you edi
 
 Refer to `examples/` for scripts you can copy-paste to run.
 
-## Docs
+## Documentation
 
 Refer to `docs/` for more comprehensive documentation of the code.
