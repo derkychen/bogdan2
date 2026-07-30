@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Final
 
 import numpy as np
+import numpy.typing as npt
 from picosdk.functions import assert_pico_ok
 from picosdk.ps2000a import ps2000a as ps
 
@@ -59,13 +60,17 @@ class Scope:
 
         self._channels: dict[str, Channel]
 
-    def get_sample_region(self) -> tuple[float, float, float]:
-        """Get the sample region of the PicoScope."""
-        return (
-            self._pretrigger_samples * self._sample_interval_ns,
-            self._posttrigger_samples * self._sample_interval_ns,
-            self._sample_interval_ns,
-        )
+    def get_pretrigger_ns(self) -> int:
+        """Get the pre-trigger sample interval of the PicoScope."""
+        return self._posttrigger_samples * self._sample_interval_ns
+
+    def get_posttrigger_ns(self) -> int:
+        """Get the post-trigger sample interval of the PicoScope."""
+        return self._posttrigger_samples * self._sample_interval_ns
+
+    def get_sample_interval_ns(self) -> int:
+        """Get the sample interval of the PicoScope."""
+        return self._sample_interval_ns
 
     def open(self) -> None:
         """Open the PicoScope and set the internal C handle."""
@@ -311,11 +316,13 @@ class Scope:
         if any(overflow):
             print("WARNING: ADC overflow detected in one or more captures.")
 
-    def channel_single_mv(self, channel_name: str) -> np.ndarray:
+    def channel_single_mv(self, channel_name: str) -> npt.NDArray[np.float64]:
         """Return single capture from a PicoScope channel in millivolts."""
         return self._channels[channel_name].single_mv()
 
-    def channel_bulk_mv(self, channel_name: str) -> list[np.ndarray]:
+    def channel_bulk_mv(
+        self, channel_name: str
+    ) -> list[npt.NDArray[np.float64]]:
         """Return bulk capture from a PicoScope channel in millivolts."""
         return self._channels[channel_name].bulk_mv()
 

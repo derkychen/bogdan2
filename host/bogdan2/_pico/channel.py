@@ -6,6 +6,7 @@ import ctypes
 from typing import Final
 
 import numpy as np
+import numpy.typing as npt
 from picosdk.functions import adc2mV, assert_pico_ok, mV2adc
 from picosdk.ps2000a import ps2000a as ps
 
@@ -119,7 +120,7 @@ class Channel:
             ps.ps2000aSetSimpleTrigger(self._chandle, 0, 0, 0, 0, 0, 0)
         )
 
-    def single_mv(self) -> np.ndarray:
+    def single_mv(self) -> npt.NDArray[np.float64]:
         """Get a reading in millivolts from the channel buffer."""
         return np.array(
             adc2mV(
@@ -129,7 +130,7 @@ class Channel:
             )
         )
 
-    def bulk_mv(self) -> list[np.ndarray]:
+    def bulk_mv(self) -> list[npt.NDArray[np.float64]]:
         """Get an array of readings in millivolts from the channel buffer."""
         return [
             np.array(
