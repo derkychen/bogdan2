@@ -1,35 +1,38 @@
+/**
+ * @file path.c
+ * @brief Implementation of the generation of a modified raster.
+ *
+ * NOTE: The static allocation `path_buffer` occupies the majority of all of the
+ *       SRAM available on the processor. As such, if modifications to the rest
+ *       of the program cause errors upon compilation regarding insufficient
+ *       SRAM, decreasing the size of the buffer is likely to be a solution.
+ */
 #include "app/path.h"
 #include "app/axis.h"
 #include "platform/samd21g18a/assert.h"
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
-#define PATH_BUFFER_CAPACITY (1024u)
+#define PATH_BUFFER_CAPACITY (2048u)
 
 static app_path_position_t path_buffer[PATH_BUFFER_CAPACITY];
 
-static int get_anchor_coord(app_axis_t const *axis);
-
+static int  get_anchor_coord(app_axis_t const *axis);
 static void append(app_path_position_t *path,
                    size_t              *path_size,
                    size_t               path_size_capacity,
                    int                  x,
                    int                  y);
-
 static void reverse_path(app_path_position_t *path, size_t low, size_t high);
-
 static void rotate_to_anchor(app_path_position_t *path,
                              size_t               path_size,
                              int                  anchor_x,
                              int                  anchor_y);
-
 static app_path_raster_direction_t choose_raster_direction(
     size_t                      x_num_points,
     size_t                      y_num_points,
     app_path_raster_direction_t prev_raster_direction);
-
 static void append_local(app_path_position_t *path,
                          size_t              *path_size,
                          size_t               path_size_capacity,
@@ -38,7 +41,6 @@ static void append_local(app_path_position_t *path,
                          int                  row,
                          int                  col,
                          bool                 transposed);
-
 static void append_line(app_path_position_t *path,
                         size_t              *path_size,
                         size_t               path_size_capacity,
@@ -47,7 +49,6 @@ static void append_line(app_path_position_t *path,
                         int                  num_points,
                         int                  anchor,
                         bool                 transposed);
-
 static void append_even_unrotated_path(app_path_position_t *path,
                                        size_t              *path_size,
                                        size_t               path_size_capacity,
@@ -56,7 +57,6 @@ static void append_even_unrotated_path(app_path_position_t *path,
                                        int                  rows,
                                        int                  cols,
                                        bool                 transposed);
-
 static void append_odd_unrotated_path(app_path_position_t *path,
                                       size_t              *path_size,
                                       size_t               path_size_capacity,
@@ -65,11 +65,9 @@ static void append_odd_unrotated_path(app_path_position_t *path,
                                       int                  rows,
                                       int                  cols,
                                       bool                 transposed);
-
 static bool corner_at(app_path_position_t const *prev,
                       app_path_position_t const *curr,
                       app_path_position_t const *next);
-
 static void shrink_to_corners(app_path_position_t *path, size_t *path_size);
 
 app_path_status_t

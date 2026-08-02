@@ -2,6 +2,7 @@
 #define APP_PATH_H
 
 #include "app/axis.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 /** @brief Define a point with x and y coordinates. */
