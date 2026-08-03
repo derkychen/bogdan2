@@ -1,11 +1,12 @@
 add_library(warnings INTERFACE)
 
 target_compile_options(warnings INTERFACE
+  $<$<C_COMPILER_ID:GNU>:-Wmaybe-uninitialized>
   -Wall
   -Wconversion
+  -Wdouble-promotion
   -Werror
   -Wextra
-  -Wmaybe-uninitialized
   -Wshadow
   -Wswitch-enum
   -Wunused-but-set-variable
