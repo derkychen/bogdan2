@@ -49,15 +49,15 @@ typedef uint8_t evsys_user_t;
 void evsys_init(void);
 
 /** @brief Set a channel's event generator and path. */
-void evsys_channel_set(evsys_channel_t   channel,
-                       evsys_generator_t generator,
-                       evsys_path_t      path);
+void evsys_channel_set_generator(evsys_channel_t   channel,
+                                 evsys_generator_t generator,
+                                 evsys_path_t      path);
 
 /** @brief Disconnect a channel from an event generator. */
 void evsys_channel_clear(evsys_channel_t channel);
 
 /** @brief Set a user's channel. */
-void evsys_user_set(evsys_user_t user, evsys_channel_t channel);
+void evsys_user_set_channel(evsys_user_t user, evsys_channel_t channel);
 
 /** @brief Disconnect a user from a channel. */
 void evsys_user_clear(evsys_user_t user);
