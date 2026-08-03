@@ -16,9 +16,7 @@ from bogdan2._pdxc2.constants import (
     ANALOG_OUT_OFFSET_MV_N10_TO_10,
 )
 from bogdan2._pdxc2.controller import Controller
-from bogdan2._pico.constants import (
-    RANGE_20V,
-)
+from bogdan2._pico.constants import RANGE_20V
 from bogdan2._pico.scope import Scope, ScopeChannelParams
 from bogdan2._utils.math import ceil_div
 from bogdan2.api.data import (
