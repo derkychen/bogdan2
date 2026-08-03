@@ -1,3 +1,10 @@
+/**
+ * @file serial.h
+ * @brief Serial functionality.
+ *
+ * This module provides serial line reading and writing functionality, allowing
+ * communication with the host.
+ */
 #ifndef APP_SERIAL_H
 #define APP_SERIAL_H
 

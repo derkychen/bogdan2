@@ -1,3 +1,15 @@
+/**
+ * @file assert.h
+ * @brief Asserting functionality.
+ *
+ * This module provides an assertion macro that traps the processor in a
+ * breakpoint if an assertion fails. It records assertion data into a global
+ * variable. This can be accessed if a debugging chip is used.
+ *
+ * NOTE: This macro should only be used for checking conditions that fail if
+ *       there is a programming error. It should not be used for handling errors
+ *       that are expected.
+ */
 #ifndef PLATFORM_SAMD21G18A_ASSERT_H
 #define PLATFORM_SAMD21G18A_ASSERT_H
 

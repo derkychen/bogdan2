@@ -1,3 +1,10 @@
+/**
+ * @file time.h
+ * @brief Timing functionality.
+ *
+ * This module provides bare-bones timing functionality. Waits are usually
+ * blocking, so they should be used carefully.
+ */
 #ifndef PLATFORM_SAMD21G18A_TIME_H
 #define PLATFORM_SAMD21G18A_TIME_H
 

@@ -1,3 +1,7 @@
+/**
+ * @file parameters.c
+ * @brief Implementation of parameter parsing.
+ */
 #include "app/parameters.h"
 #include "jsmn.h"
 #include "platform/samd21g18a/assert.h"

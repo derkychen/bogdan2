@@ -1,3 +1,11 @@
+/**
+ * @file usb.h
+ * @brief USB functionality.
+ *
+ * This module uses TinyUSB to provide USB utilities. The most important one is
+ * `usb_task`, which must be called frequently in the application to avoid
+ * starving the USB connection.
+ */
 #ifndef PLATFORM_SAMD21G18A_USB_H
 #define PLATFORM_SAMD21G18A_USB_H
 

@@ -1,6 +1,6 @@
 /**
  * @file controller.h
- * @brief Controller I/O and state layer module.
+ * @brief Controller I/O and state layer.
  *
  * NOTE: This module will only work as expected if the controllers are in the
  *       closed-loop control mode, with both output analog voltage ranging from

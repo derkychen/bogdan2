@@ -1,3 +1,12 @@
+/**
+ * @file pca9555.h
+ * @brief Driver for the PCA9555 chips on the IND.I/O baseboard.
+ *
+ * This module provides functionality for PCA9555 writing via I2C.
+ *
+ * NOTE: For the purposes of this application, this driver is only used for
+ *       configuring the range of the analog output.
+ */
 #ifndef DRIVERS_PCA9555_H
 #define DRIVERS_PCA9555_H
 

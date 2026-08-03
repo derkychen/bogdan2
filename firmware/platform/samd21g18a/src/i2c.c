@@ -1,3 +1,7 @@
+/**
+ * @file i2c.c
+ * @brief Implemenation of I2C functionality.
+ */
 #include "platform/samd21g18a/i2c.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/pin.h"

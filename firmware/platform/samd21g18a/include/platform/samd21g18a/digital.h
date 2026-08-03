@@ -1,3 +1,13 @@
+/**
+ * @file digital.h
+ * @brief Digital microcontroller I/O.
+ *
+ * This module provides functionality to control SAMD21G18A GPIOs as digital
+ * pins.
+ *
+ * NOTE: The only actually accessible SAMD21G18A pins on the IND.I/O are located
+ *       on the MCU expansion port.
+ */
 #ifndef PLATFORM_SAMD21G18A_DIGITAL_H
 #define PLATFORM_SAMD21G18A_DIGITAL_H
 

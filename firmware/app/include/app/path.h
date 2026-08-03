@@ -1,3 +1,14 @@
+/**
+ * @file path.h
+ * @brief Generates a special path that the beam profiler follows.
+ *
+ * The purpose of this module is the generation of a "modified raster", which is
+ * the path that the beam profiler moves along in the x-y plane. This path is
+ * designed to minimize the amount of travel and time taken while profiling all
+ * points on an arbitrary rectangular grid. It also seeks to balance out
+ * mechanical stresses during usage evenly across both stages that translate the
+ * detector.
+ */
 #ifndef APP_PATH_H
 #define APP_PATH_H
 

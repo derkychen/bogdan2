@@ -1,3 +1,10 @@
+/**
+ * @file evsys.h
+ * @brief EVSYS peripheral functionality.
+ *
+ * This module provides functions to configure event routing through the
+ * SAMD21G18A Event System (EVSYS).
+ */
 #ifndef PLATFORM_SAMD21G18A_EVSYS_H
 #define PLATFORM_SAMD21G18A_EVSYS_H
 
@@ -50,7 +57,7 @@ void evsys_channel_set(evsys_channel_t   channel,
 void evsys_channel_clear(evsys_channel_t channel);
 
 /** @brief Set a user's channel. */
-void evsys_user_configure(evsys_user_t user, evsys_channel_t channel);
+void evsys_user_set(evsys_user_t user, evsys_channel_t channel);
 
 /** @brief Disconnect a user from a channel. */
 void evsys_user_clear(evsys_user_t user);

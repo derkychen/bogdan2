@@ -1,3 +1,10 @@
+/**
+ * @file evsys.c
+ * @brief Implementation of EVSYS functionality.
+ *
+ * EVSYS works by routing a "channel" between users and generators. Users listen
+ * to events that are created by generators.
+ */
 #include "platform/samd21g18a/evsys.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/utils.h"

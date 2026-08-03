@@ -1,5 +1,6 @@
 /**
- * @brief System startup functionality.
+ * @file system.c
+ * @brief System startup.
  *
  * This module just configures the system clock to 48 megahertz. As such,
  * `SystemCoreClockUpdate` only sets SystemCoreClock to 48 000 000 after the
@@ -7,7 +8,6 @@
  * there is no use case for this, if clock frequency is changed elsewhere,
  * `SystemCoreClockUpdate` will have to be rewritten.
  */
-#include "system_samd21.h"
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>

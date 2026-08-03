@@ -1,3 +1,13 @@
+/**
+ * @file mcp4726.h
+ * @brief Driver for the MCP4726 chips on the IND.I/O baseboard.
+ *
+ * This module provides functionality for DAC conversions via I2C for the
+ * MCP4726 chips, which are responsible for analog outputs.
+ *
+ * NOTE: If the range of analog outputs is not configured with using the PCA9555
+ *       drivers, analog functionality from this module alone will not work.
+ */
 #ifndef DRIVERS_MCP4726_H
 #define DRIVERS_MCP4726_H
 
@@ -28,8 +38,8 @@ typedef struct
 } mcp4726_device_t;
 
 /** @brief Write a 12-bit digital value to the MCP4726 device. */
-mcp4726_status_t mcp4726_write_output(
-    mcp4726_device_t const *device, uint16_t value);
+mcp4726_status_t mcp4726_write_output(mcp4726_device_t const *device,
+                                      uint16_t                value);
 
 /**
  * @brief Write a 12-bit digital value to the MCP4726 device EEPROM.
@@ -37,7 +47,7 @@ mcp4726_status_t mcp4726_write_output(
  * This function will likely not be used. The purpose of EEPROM is to store the
  * output even when the board is powered off. We have no use case for this.
  */
-mcp4726_status_t mcp4726_write_output_ee(
-    mcp4726_device_t const *device, uint16_t value);
+mcp4726_status_t mcp4726_write_output_ee(mcp4726_device_t const *device,
+                                         uint16_t                value);
 
 #endif

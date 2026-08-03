@@ -1,3 +1,9 @@
+/**
+ * @file usb.c
+ * @brief Implementation of USB functionality.
+ *
+ * NOTE: This overrides the vector table function `USB_Handler`.
+ */
 #include "platform/samd21g18a/usb.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/pin.h"

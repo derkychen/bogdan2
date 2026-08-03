@@ -1,3 +1,11 @@
+/**
+ * @file eic.h
+ * @brief SAMD21G18A EIC-related functionality.
+ *
+ * This module initializes the EIC peripheral and provides functions to
+ * configure, enable, and disable interrupts as well as the EIC's event
+ * generation.
+ */
 #ifndef PLATFORM_SAMD21G18A_EIC_H
 #define PLATFORM_SAMD21G18A_EIC_H
 
@@ -76,6 +84,6 @@ void eic_event_disable(eic_extint_line_t line);
 void eic_event_enable(eic_extint_line_t line);
 
 /** @brief Get the event generator for an external interrupt line. */
-evsys_generator_t eic_line_event_generator(eic_extint_line_t line);
+evsys_generator_t eic_event_generator(eic_extint_line_t line);
 
 #endif

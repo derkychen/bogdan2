@@ -1,3 +1,16 @@
+/**
+ * @file relay.h
+ * @brief Tracking and relaying laser trigger pulses.
+ *
+ * This module configures interrupts and events in order to realize pulse
+ * counting and relaying functionality. It does pulse counting through
+ * interrupts, but does pulse relaying through hardware timers and the event
+ * system, which minimizes jitter for more timing-critical tasks.
+ *
+ * NOTE: The pulse width defined by this module is limits the frequency of the
+ *       laser that can be profiled by modes where the oscilloscope is triggered
+ *       on every pulse.
+ */
 #ifndef APP_RELAY_H
 #define APP_RELAY_H
 

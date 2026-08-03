@@ -1,3 +1,7 @@
+/**
+ * @file profiler.c
+ * @brief Implementation of core profiling logic.
+ */
 #include "app/profiler.h"
 #include "app/axis.h"
 #include "app/parameters.h"
@@ -14,10 +18,8 @@
 
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
-
 static profiler_status_t profile_mode_point_time(
     profiler_t *profiler, parameters_t const *parameters);
-
 static profiler_status_t profile_mode_continuous(
     profiler_t *profiler, parameters_t const *parameters);
 

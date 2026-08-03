@@ -1,3 +1,12 @@
+/**
+ * @file eic.c
+ * @brief Implementation of EIC functionality.
+ *
+ * This implementation stores an internal array of callbacks. When an external
+ * interrupt line fires, it passes the `context` pointer into the callback,
+ * enabling those who register interrupts to pass context, allowing for
+ * interrupts to access the data they are supposed to.
+ */
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/evsys.h"
@@ -28,12 +37,10 @@ typedef struct
     void *context;
 } eic_callback_entry_t;
 
-static eic_callback_entry_t
-    callback_entries[EXTINT_LINE_COUNT];
+static eic_callback_entry_t callback_entries[EXTINT_LINE_COUNT];
 
 bool
-eic_extint_line_valid (
-    eic_extint_line_t line)
+eic_extint_line_valid (eic_extint_line_t line)
 {
     return line < EXTINT_LINE_COUNT;
 }
@@ -68,9 +75,7 @@ eic_init (void)
     eic_poll_sync();
 
     // Clear callback table.
-    for (eic_extint_line_t line = 0u;
-         line < EXTINT_LINE_COUNT;
-         line++)
+    for (eic_extint_line_t line = 0u; line < EXTINT_LINE_COUNT; line++)
     {
         callback_entries[line].callback = NULL;
         callback_entries[line].context  = NULL;
@@ -88,17 +93,13 @@ eic_init (void)
 }
 
 void
-eic_configure (eic_pin_t const *eic_pin,
-                                   eic_sense_t      sense)
+eic_configure (eic_pin_t const *eic_pin, eic_sense_t sense)
 {
     ASSERT(eic_pin != NULL);
     ASSERT(eic_pin->pin != NULL);
-    ASSERT(
-        pin_port_group_valid(eic_pin->pin->port_group));
-    ASSERT(
-        pin_number_valid(eic_pin->pin->number));
-    ASSERT(
-        eic_extint_line_valid(eic_pin->line));
+    ASSERT(pin_port_group_valid(eic_pin->pin->port_group));
+    ASSERT(pin_number_valid(eic_pin->pin->number));
+    ASSERT(eic_extint_line_valid(eic_pin->line));
     ASSERT(eic_sense_valid(sense));
 
     // Disable the interrupt line and clear flags.
@@ -118,8 +119,7 @@ eic_configure (eic_pin_t const *eic_pin,
     port->PINCFG[pin_number].reg = 0u;
 
     // Configure the pin to the EIC peripheral function (A).
-    pin_set_peripheral_function(
-        eic_pin->pin, PIN_PERIPHERAL_FUNCTION_A);
+    pin_set_peripheral_function(eic_pin->pin, PIN_PERIPHERAL_FUNCTION_A);
 
     port->PINCFG[pin_number].reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
@@ -147,10 +147,9 @@ eic_configure (eic_pin_t const *eic_pin,
 }
 
 void
-eic_register_callback_entry (
-    eic_extint_line_t line,
-    eic_callback_t    callback,
-    void                                 *context)
+eic_register_callback_entry (eic_extint_line_t line,
+                             eic_callback_t    callback,
+                             void             *context)
 {
     ASSERT(eic_extint_line_valid(line));
 
@@ -171,8 +170,7 @@ eic_register_callback_entry (
 }
 
 void
-eic_interrupt_disable (
-    eic_extint_line_t line)
+eic_interrupt_disable (eic_extint_line_t line)
 {
     ASSERT(eic_extint_line_valid(line));
 
@@ -193,8 +191,7 @@ eic_interrupt_enable (eic_extint_line_t line)
 }
 
 void
-eic_event_enable (
-    eic_extint_line_t line)
+eic_event_enable (eic_extint_line_t line)
 {
     ASSERT(eic_extint_line_valid(line));
 
@@ -204,8 +201,7 @@ eic_event_enable (
 }
 
 void
-eic_event_disable (
-    eic_extint_line_t line)
+eic_event_disable (eic_extint_line_t line)
 {
     ASSERT(eic_extint_line_valid(line));
 
@@ -238,8 +234,7 @@ EIC_Handler (void)
         eic_extint_line_t const line
             = (eic_extint_line_t)__builtin_ctz(pending);
 
-        eic_callback_entry_t const entry
-            = callback_entries[line];
+        eic_callback_entry_t const entry = callback_entries[line];
 
         // Remove least-significant set bit.
         pending &= pending - 1u;

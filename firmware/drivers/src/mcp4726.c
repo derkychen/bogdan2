@@ -1,3 +1,7 @@
+/**
+ * @file mcp4726.c
+ * @brief Implementation of MCP4726 functionality.
+ */
 #include "drivers/mcp4726.h"
 #include "platform/samd21g18a/assert.h"
 #include <stddef.h>
@@ -6,17 +10,13 @@
 #define REG_DAC    (0x40u)
 #define REG_DAC_EE (0x60u)
 
-static mcp4726_status_t i2c_status_to_mcp4726_status(
-    i2c_status_t status);
-
-static mcp4726_status_t mcp4726_write(
-    mcp4726_device_t const *device,
-    mcp4726_reg_t           reg,
-    uint16_t                        value);
+static mcp4726_status_t i2c_status_to_mcp4726_status(i2c_status_t status);
+static mcp4726_status_t mcp4726_write(mcp4726_device_t const *device,
+                                      mcp4726_reg_t           reg,
+                                      uint16_t                value);
 
 mcp4726_status_t
-mcp4726_write_output (mcp4726_device_t const *device,
-                              uint16_t                        value)
+mcp4726_write_output (mcp4726_device_t const *device, uint16_t value)
 {
     ASSERT(device != NULL);
     ASSERT(value <= MCP4726_MAX_VALUE);
@@ -25,8 +25,7 @@ mcp4726_write_output (mcp4726_device_t const *device,
 }
 
 mcp4726_status_t
-mcp4726_write_output_ee (mcp4726_device_t const *device,
-                                 uint16_t                        value)
+mcp4726_write_output_ee (mcp4726_device_t const *device, uint16_t value)
 {
     ASSERT(device != NULL);
     ASSERT(value <= MCP4726_MAX_VALUE);
@@ -54,7 +53,7 @@ i2c_status_to_mcp4726_status (i2c_status_t status)
 static mcp4726_status_t
 mcp4726_write (mcp4726_device_t const *device,
                mcp4726_reg_t           reg,
-               uint16_t                        value)
+               uint16_t                value)
 {
     ASSERT(device != NULL);
     ASSERT(value <= MCP4726_MAX_VALUE);

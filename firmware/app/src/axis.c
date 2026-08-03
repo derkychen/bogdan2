@@ -1,3 +1,7 @@
+/**
+ * @file axis.c
+ * @brief Implementation of coordinate system abstraction.
+ */
 #include "app/axis.h"
 #include "app/controller.h"
 #include "platform/samd21g18a/assert.h"

@@ -1,3 +1,7 @@
+/**
+ * @file serial.c
+ * @brief Implementation of serial functionality.
+ */
 #include "app/serial.h"
 #include "platform/samd21g18a/assert.h"
 #include "tusb.h" // IWYU pragma: keep
@@ -10,7 +14,6 @@ static char   line_buffer[SERIAL_READ_BUFFER_SIZE];
 static size_t line_buffer_current_size = 0U;
 
 static void line_buffer_reset(void);
-
 static void line_buffer_copy_to(char *buffer, size_t buffer_size);
 
 void

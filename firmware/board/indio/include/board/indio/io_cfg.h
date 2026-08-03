@@ -30,7 +30,7 @@ extern eic_pin_t const io_cfg_expansion_d6_eic;
 /** @brief Handle for the IND.I/O expansion port pin D3/SCL as a EIC pin. */
 extern eic_pin_t const io_cfg_expansion_d16_eic;
 
-/** @brief Handle for the IND.I/O expansion port pin D7 as a pulse generator. */
+/** @brief Handle for the IND.I/O expansion port pin D7 as a pulser. */
 extern pulser_t const io_cfg_expansion_d7_pulser;
 
 /** @brief Handle for the IND.I/O analog output CH1. */

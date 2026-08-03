@@ -1,3 +1,10 @@
+/**
+ * @file pin.h
+ * @brief SAMD21G18A GPIO general functionality.
+ *
+ * This module provides utilites for configuring and validating SAMD21G18A GPIO
+ * pins.
+ */
 #ifndef PLATFORM_SAMD21G18A_PIN_H
 #define PLATFORM_SAMD21G18A_PIN_H
 

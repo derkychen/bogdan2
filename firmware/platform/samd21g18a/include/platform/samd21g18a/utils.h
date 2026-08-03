@@ -1,3 +1,7 @@
+/**
+ * @file utils.h
+ * @brief Miscellaneous utilities functions.
+ */
 #ifndef PLATFORM_SAMD21G18A_UTILS_H
 #define PLATFORM_SAMD21G18A_UTILS_H
 

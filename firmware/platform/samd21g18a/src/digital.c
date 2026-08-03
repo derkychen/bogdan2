@@ -1,3 +1,7 @@
+/**
+ * @file digital.c
+ * @brief Implementation of digital pin functionality.
+ */
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/pin.h"

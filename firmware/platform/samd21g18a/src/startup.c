@@ -1,3 +1,10 @@
+/**
+ * @file startup.c
+ * @brief Startup functionality.
+ *
+ * This implements vector table functions (mostly through dummy handlers) in the
+ * SAMD21G18A that define startup behaviour).
+ */
 #include "sam.h" // IWYU pragma: keep
 #include <stddef.h>
 #include <stdint.h>

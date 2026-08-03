@@ -1,9 +1,11 @@
 /**
  * @file pulser.h
- * @brief This module provides functionality for firing one-shot pulses.
+ * @brief Firing one-shot pulses.
  *
- * The purpose of this module is to trigger other components. It uses the SAMD21
- * event system as well as onboard hardware timers.
+ * The purpose of this module is to trigger other components. It uses the
+ * SAMD21G18A event system as well as onboard hardware timers. It aims to be as
+ * generic as possible, but currently only supports a pulser on MCU expansion
+ * port D7.
  *
  * NOTE: If the pulser output is HIGH when an event fires or a software
  *       re-trigger is called, the pulse is restarted. If the pulser is used to
@@ -49,9 +51,7 @@ typedef struct
  *
  * NOTE: GCLK0 must already be configured to 48 megahertz.
  */
-void pulser_init(pulser_t              *pulser,
-                 pulser_output_t const *output,
-                 pulser_timer_t         timer);
+void pulser_configure(pulser_t const *pulser);
 
 /**
  * @brief Configure the pulse width.

@@ -1,3 +1,12 @@
+/**
+ * @file i2c.h
+ * @brief I2C communication.
+ *
+ * This module provides functionality for I2C communication. It is aims to be as
+ * generic as possible, though currently it only supports an I2C bus on PA16 and
+ * PA17, which is the bus required to communicate with the IND.I/O baseboard
+ * I/O.
+ */
 #ifndef PLATFORM_SAMD21G18A_I2C_H
 #define PLATFORM_SAMD21G18A_I2C_H
 

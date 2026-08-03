@@ -1,8 +1,18 @@
+/**
+ * @file relay.c
+ * @brief Implementation of relay functionality.
+ *
+ * NOTE: The interrupt service routine is only required for counting, as the
+ *       event system does not go through `EIC_Handler`.
+ */
 #include "app/relay.h"
-#include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/evsys.h"
 #include "platform/samd21g18a/pulser.h"
 #include <stddef.h>
+
+#define PULSE_WIDTH_TICKS (4800u)
 
 static void count_isr(eic_extint_line_t line, void *context);
 
@@ -17,9 +27,18 @@ relay_init (relay_t *relay, pulser_t const *out, eic_pin_t const *in)
     relay->in    = in;
     relay->count = 0;
 
-    eic_configure(in, EIC_SENSE_RISE);
-    eic_register_callback_entry(in->line, count_isr, relay);
-    eic_interrupt_disable(in->line);
+    pulser_configure(relay->out);
+
+    eic_configure(relay->in, EIC_SENSE_RISE);
+    eic_register_callback_entry(relay->in->line, count_isr, relay);
+    eic_interrupt_disable(relay->in->line);
+
+    evsys_channel_set(EVSYS_CHANNEL_0,
+                      eic_event_generator(relay->in->line),
+                      EVSYS_PATH_ASYNCHRONOUS);
+    evsys_user_set(pulser_event_user(relay->out), EVSYS_CHANNEL_0);
+
+    pulser_width_set(relay->out, PULSE_WIDTH_TICKS);
 }
 
 void

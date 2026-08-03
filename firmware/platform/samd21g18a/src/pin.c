@@ -1,3 +1,7 @@
+/**
+ * @file pin.c
+ * @brief Implementation of general GPIO functionality.
+ */
 #include "platform/samd21g18a/pin.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>

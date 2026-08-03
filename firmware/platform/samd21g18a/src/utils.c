@@ -1,3 +1,7 @@
+/**
+ * @file utils.c
+ * @brief Implementation of miscellaneous utility functions.
+ */
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
 

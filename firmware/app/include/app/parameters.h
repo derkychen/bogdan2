@@ -1,3 +1,11 @@
+/**
+ * @file parameters.h
+ * @brief Parameters of the beam profiler.
+ *
+ * The purpose of this module is to provide a function that parses a JSON sent
+ * from the host into a set of parameters according to which the beam profiler
+ * will move.
+ */
 #ifndef APP_PARAMETERS_H
 #define APP_PARAMETERS_H
 
@@ -80,6 +88,6 @@ typedef struct
 
 /** @brief Parse the JSON parameters sent through serial. */
 parameters_status_t parameters_parse_json(parameters_t *parameters,
-                                                  char const       *json);
+                                          char const   *json);
 
 #endif

@@ -1,3 +1,12 @@
+/**
+ * @file profiler.h
+ * @brief Main logical entry point.
+ *
+ * This module contains the main logical sequence of events when profiling a
+ * beam. It contains functions to profile a beam in all three supported modes.
+ * It provides a structure that is initialized each time a beam is to be
+ * profiled.
+ */
 #ifndef APP_PROFILER_H
 #define APP_PROFILER_H
 

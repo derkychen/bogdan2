@@ -1,3 +1,9 @@
+/**
+ * @file pulser.c
+ * @brief Implementation of the one-shot pulse generating module.
+ *
+ * NOTE: This implementation only supports TCC timers.
+ */
 #include "platform/samd21g18a/pulser.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/pin.h"
@@ -85,18 +91,13 @@ static pin_peripheral_function_t output_get_timer_peripheral_function(
     pulser_output_t const *output, pulser_timer_t timer);
 
 void
-pulser_init (pulser_t              *pulser,
-             pulser_output_t const *output,
-             pulser_timer_t         timer)
+pulser_configure (pulser_t const *pulser)
 {
     ASSERT(pulser != NULL);
-    ASSERT(output != NULL);
-    ASSERT(pin_port_group_valid(output->port_group));
-    ASSERT(pin_number_valid(output->number));
-    ASSERT(timer_valid(timer));
-
-    pulser->output = output;
-    pulser->timer  = timer;
+    ASSERT(pulser->output != NULL);
+    ASSERT(pin_port_group_valid(pulser->output->port_group));
+    ASSERT(pin_number_valid(pulser->output->number));
+    ASSERT(timer_valid(pulser->timer));
 
     // Hold the pin LOW to safely configure it.
     pin_output_hold_low(pulser->output);
@@ -152,7 +153,7 @@ pulser_init (pulser_t              *pulser,
     }
 
     pin_set_peripheral_function(
-        output,
+        pulser->output,
         output_get_timer_peripheral_function(pulser->output, pulser->timer));
 
     return;

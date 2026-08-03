@@ -1,6 +1,6 @@
 /**
  * @file axis.h
- * @brief Module that maps coordinate system to controllers.
+ * @brief Maps coordinate system to controllers.
  *
  * Each axis serves as an interface between application behaviour and controller
  * I/O. For example, starting stage movement maps to pulsing Trigger IN, and

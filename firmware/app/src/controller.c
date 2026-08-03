@@ -1,3 +1,11 @@
+/**
+ * @file controller.c
+ * @brief Implementation of the controller I/O and state layer.
+ *
+ * NOTE: The usage of "in" and "out" when referring to the controller I/O is
+ *       relative to the controller. For example, Trigger OUT is received by the
+ *       microcontroller, while Analog IN outputted from the microcontroller.
+ */
 #include "app/controller.h"
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/assert.h"
