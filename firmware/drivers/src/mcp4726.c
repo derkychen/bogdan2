@@ -6,58 +6,58 @@
 #define REG_DAC    (0x40u)
 #define REG_DAC_EE (0x60u)
 
-static drivers_mcp4726_status_t i2c_status_to_mcp4726_status(
-    platform_samd21g18a_i2c_status_t status);
+static mcp4726_status_t i2c_status_to_mcp4726_status(
+    i2c_status_t status);
 
-static drivers_mcp4726_status_t mcp4726_write(
-    drivers_mcp4726_device_t const *device,
-    drivers_mcp4726_reg_t           reg,
+static mcp4726_status_t mcp4726_write(
+    mcp4726_device_t const *device,
+    mcp4726_reg_t           reg,
     uint16_t                        value);
 
-drivers_mcp4726_status_t
-drivers_mcp4726_write_output (drivers_mcp4726_device_t const *device,
+mcp4726_status_t
+mcp4726_write_output (mcp4726_device_t const *device,
                               uint16_t                        value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(device != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+    ASSERT(device != NULL);
+    ASSERT(value <= MCP4726_MAX_VALUE);
 
     return mcp4726_write(device, REG_DAC, value);
 }
 
-drivers_mcp4726_status_t
-drivers_mcp4726_write_output_ee (drivers_mcp4726_device_t const *device,
+mcp4726_status_t
+mcp4726_write_output_ee (mcp4726_device_t const *device,
                                  uint16_t                        value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(device != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+    ASSERT(device != NULL);
+    ASSERT(value <= MCP4726_MAX_VALUE);
 
     return mcp4726_write(device, REG_DAC_EE, value);
 }
 
 /** @brief Convert an I2C status code to a MCP4726 status code. */
-static drivers_mcp4726_status_t
-i2c_status_to_mcp4726_status (platform_samd21g18a_i2c_status_t status)
+static mcp4726_status_t
+i2c_status_to_mcp4726_status (i2c_status_t status)
 {
     switch (status)
     {
-        case PLATFORM_SAMD21G18A_I2C_STATUS_OK:
-            return DRIVERS_MCP4726_STATUS_OK;
-        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS:
-        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_NACK:
-        case PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT:
+        case I2C_STATUS_OK:
+            return MCP4726_STATUS_OK;
+        case I2C_STATUS_ERR_BUS:
+        case I2C_STATUS_ERR_NACK:
+        case I2C_STATUS_ERR_TIMEOUT:
         default:
-            return DRIVERS_MCP4726_STATUS_ERR;
+            return MCP4726_STATUS_ERR;
     }
 }
 
 /** @brief Write 16 bits (maximum 4095) to the MCP4726 over I2C. */
-static drivers_mcp4726_status_t
-mcp4726_write (drivers_mcp4726_device_t const *device,
-               drivers_mcp4726_reg_t           reg,
+static mcp4726_status_t
+mcp4726_write (mcp4726_device_t const *device,
+               mcp4726_reg_t           reg,
                uint16_t                        value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(device != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value <= DRIVERS_MCP4726_MAX_VALUE);
+    ASSERT(device != NULL);
+    ASSERT(value <= MCP4726_MAX_VALUE);
 
     uint8_t data[3];
 
@@ -65,6 +65,6 @@ mcp4726_write (drivers_mcp4726_device_t const *device,
     data[1] = (uint8_t)(value >> 4u);
     data[2] = (uint8_t)((value & 0x0Fu) << 4u);
 
-    return i2c_status_to_mcp4726_status(platform_samd21g18a_i2c_write(
-        device->master, device->address, data, sizeof(data)));
+    return i2c_status_to_mcp4726_status(
+        i2c_write(device->master, device->address, data, sizeof(data)));
 }

@@ -8,15 +8,12 @@
 #include <stdint.h>
 
 #define SCL_LATENCY_CYCLES (10u)
-#define SCL_FREQUENCY_HZ   (PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_STANDARD_HZ)
-#define SCL_RISE_NSEC      (PLATFORM_SAMD21G18A_I2C_SCL_RISE_STANDARD_NSEC)
-
-#define COMMAND_CONTINUE (2u)
-#define COMMAND_STOP     (3u)
-
-#define TIMEOUT_COUNT (100000u)
-
-#define MAX_ADDRESS (0x7Fu)
+#define SCL_FREQUENCY_HZ   (I2C_SCL_FREQUENCY_STANDARD_HZ)
+#define SCL_RISE_NSEC      (I2C_SCL_RISE_STANDARD_NSEC)
+#define COMMAND_CONTINUE   (2u)
+#define COMMAND_STOP       (3u)
+#define TIMEOUT_COUNT      (100000u)
+#define MAX_ADDRESS        (0x7Fu)
 
 /** @brief Internal baud values structure. */
 typedef struct
@@ -37,20 +34,20 @@ typedef struct
 typedef struct
 {
     /** Pin port group. */
-    platform_samd21g18a_pin_port_group_t port_group;
+    pin_port_group_t pin_port_group;
 
     /** Pin number. */
-    platform_samd21g18a_pin_number_t pin_number;
+    pin_number_t pin_number;
 
     /** Peripheral function for I2C. */
-    platform_samd21g18a_pin_peripheral_function_t peripheral_function;
+    pin_peripheral_function_t pin_peripheral_function;
 
     /** I2C master. */
-    platform_samd21g18a_i2c_master_t master;
+    i2c_master_t master;
 
     /** SERCOM pad. */
-    platform_samd21g18a_i2c_sercom_pad_t pad;
-} i2c_route_t;
+    i2c_sercom_pad_t pad;
+} route_t;
 
 /**
  * @brief Internal SERCOM structure.
@@ -69,50 +66,50 @@ typedef struct
     uint16_t gclk_id;
 } master_data_t;
 
-static i2c_route_t const i2c_routes[] = {
+static route_t const routes[] = {
     {
-        .port_group          = 0u,
-        .pin_number          = 16u,
-        .peripheral_function = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_C,
-        .master              = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-        .pad                 = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD0,
+        .pin_port_group          = 0u,
+        .pin_number              = 16u,
+        .pin_peripheral_function = PIN_PERIPHERAL_FUNCTION_C,
+        .master                  = I2C_MASTER_SERCOM1,
+        .pad                     = I2C_SERCOM_PAD0,
     },
     {
-        .port_group          = 0u,
-        .pin_number          = 17u,
-        .peripheral_function = PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_C,
-        .master              = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-        .pad                 = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD1,
+        .pin_port_group          = 0u,
+        .pin_number              = 17u,
+        .pin_peripheral_function = PIN_PERIPHERAL_FUNCTION_C,
+        .master                  = I2C_MASTER_SERCOM1,
+        .pad                     = I2C_SERCOM_PAD1,
     },
 };
 
-static master_data_t const master_data[PLATFORM_SAMD21G18A_I2C_SERCOM_COUNT] = {
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM0] = {
+static master_data_t const master_data[I2C_SERCOM_COUNT] = {
+    [I2C_MASTER_SERCOM0] = {
         .sercom    = SERCOM0,
         .apbc_mask = PM_APBCMASK_SERCOM0,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM0_CORE,
     },
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1] = {
+    [I2C_MASTER_SERCOM1] = {
         .sercom    = SERCOM1,
         .apbc_mask = PM_APBCMASK_SERCOM1,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM1_CORE,
     },
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM2] = {
+    [I2C_MASTER_SERCOM2] = {
         .sercom    = SERCOM2,
         .apbc_mask = PM_APBCMASK_SERCOM2,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM2_CORE,
     },
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM3] = {
+    [I2C_MASTER_SERCOM3] = {
         .sercom    = SERCOM3,
         .apbc_mask = PM_APBCMASK_SERCOM3,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM3_CORE,
     },
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM4] = {
+    [I2C_MASTER_SERCOM4] = {
         .sercom    = SERCOM4,
         .apbc_mask = PM_APBCMASK_SERCOM4,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM4_CORE,
     },
-    [PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM5] = {
+    [I2C_MASTER_SERCOM5] = {
         .sercom    = SERCOM5,
         .apbc_mask = PM_APBCMASK_SERCOM5,
         .gclk_id   = GCLK_CLKCTRL_ID_SERCOM5_CORE,
@@ -120,67 +117,49 @@ static master_data_t const master_data[PLATFORM_SAMD21G18A_I2C_SERCOM_COUNT] = {
 };
 
 static inline uint32_t ceiling_divide(uint64_t numerator, uint32_t denominator);
-
-static inline Sercom *master_get_sercom(
-    platform_samd21g18a_i2c_master_t master);
-
-static inline uint32_t master_get_apbc_mask(
-    platform_samd21g18a_i2c_master_t master);
-
-static inline uint16_t master_get_gclk_id(
-    platform_samd21g18a_i2c_master_t master);
-
-static void baud_calculate(baud_t  *baud,
-                           uint32_t clock_frequency_hz,
-                           uint32_t scl_frequency_hz,
-                           uint32_t scl_rise_ns);
-
-static inline void sercom_poll_sync_mask(Sercom *sercom, uint32_t mask);
-
-static inline void sercom_set_command(Sercom *sercom, uint32_t command);
-
-static platform_samd21g18a_i2c_status_t sercom_poll_master_ready(
-    Sercom *sercom);
-
-static platform_samd21g18a_i2c_status_t sercom_poll_slave_ready(Sercom *sercom);
-
-static void sercom_send_stop(Sercom *sercom);
-
-static platform_samd21g18a_i2c_status_t sercom_read_bytes(Sercom  *sercom,
-                                                          uint8_t *data,
-                                                          size_t   data_size);
-
-static platform_samd21g18a_pin_peripheral_function_t pin_peripheral_function(
-    platform_samd21g18a_i2c_pin_t const *i2c_pin,
-    platform_samd21g18a_i2c_master_t     master);
-
-static void pin_configure(platform_samd21g18a_i2c_pin_t const *i2c_pin,
-                          platform_samd21g18a_i2c_master_t     master);
+static inline Sercom  *master_get_sercom(i2c_master_t master);
+static void            baud_calculate(baud_t  *baud,
+                                      uint32_t clock_frequency_hz,
+                                      uint32_t scl_frequency_hz,
+                                      uint32_t scl_rise_ns);
+static inline void     sercom_poll_sync_mask(Sercom *sercom, uint32_t mask);
+static inline void     sercom_set_command(Sercom *sercom, uint32_t command);
+static i2c_status_t    sercom_poll_master_ready(Sercom *sercom);
+static i2c_status_t    sercom_poll_slave_ready(Sercom *sercom);
+static void            sercom_send_stop(Sercom *sercom);
+static i2c_status_t    sercom_read_bytes(Sercom  *sercom,
+                                         uint8_t *data,
+                                         size_t   data_size);
+static pin_peripheral_function_t pin_peripheral_function(
+    i2c_pin_t const *i2c_pin, i2c_master_t master);
+static void pin_configure(i2c_pin_t const *i2c_pin, i2c_master_t master);
 
 void
-platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
+i2c_configure (i2c_master_t     master,
+               i2c_pin_t const *sda,
+               i2c_pin_t const *scl,
+               uint32_t         scl_frequency_hz,
+               uint32_t         scl_rise_nsec)
 {
-    PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->master
-                               < PLATFORM_SAMD21G18A_I2C_SERCOM_COUNT);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->sda != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->scl != NULL);
+    ASSERT(master < I2C_SERCOM_COUNT);
+    ASSERT(sda != NULL);
+    ASSERT(scl != NULL);
 
-    uint32_t frequency_hz = SCL_FREQUENCY_HZ;
-    uint32_t rise_nsec    = SCL_RISE_NSEC;
+    uint32_t frequency_hz = scl_frequency_hz;
+    uint32_t rise_nsec    = scl_rise_nsec;
 
     baud_t baud;
     baud_calculate(&baud, SystemCoreClock, frequency_hz, rise_nsec);
 
-    PM->APBCMASK.reg |= master_get_apbc_mask(cfg->master);
+    PM->APBCMASK.reg |= master_data[master].apbc_mask;
 
-    platform_samd21g18a_utils_gclk0_enable(master_get_gclk_id(cfg->master));
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk0_enable(master_data[master].gclk_id);
+    utils_gclk_poll_sync();
 
-    pin_configure(cfg->sda, cfg->master);
-    pin_configure(cfg->scl, cfg->master);
+    pin_configure(sda, master);
+    pin_configure(scl, master);
 
-    Sercom *sercom = master_get_sercom(cfg->master);
+    Sercom *sercom = master_get_sercom(master);
 
     sercom->I2CM.CTRLA.bit.SWRST = 1u;
 
@@ -212,23 +191,22 @@ platform_samd21g18a_i2c_configure (platform_samd21g18a_i2c_cfg_t const *cfg)
     return;
 }
 
-platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_write (
-    platform_samd21g18a_i2c_master_t        master,
-    platform_samd21g18a_i2c_slave_address_t slave_address,
-    uint8_t const                          *data,
-    size_t                                  data_size)
+i2c_status_t
+i2c_write (i2c_master_t        master,
+           i2c_slave_address_t slave_address,
+           uint8_t const      *data,
+           size_t              data_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0u));
+    ASSERT(slave_address <= MAX_ADDRESS);
+    ASSERT((data != NULL) || (data_size == 0u));
 
     Sercom *sercom = master_get_sercom(master);
 
     sercom->I2CM.ADDR.reg = (uint32_t)((slave_address) << 1u);
 
-    platform_samd21g18a_i2c_status_t status = sercom_poll_master_ready(sercom);
+    i2c_status_t status = sercom_poll_master_ready(sercom);
 
-    if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
+    if (status != I2C_STATUS_OK)
     {
         sercom_send_stop(sercom);
         return status;
@@ -240,7 +218,7 @@ platform_samd21g18a_i2c_write (
 
         status = sercom_poll_master_ready(sercom);
 
-        if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
+        if (status != I2C_STATUS_OK)
         {
             sercom_send_stop(sercom);
 
@@ -250,22 +228,21 @@ platform_samd21g18a_i2c_write (
 
     sercom_send_stop(sercom);
 
-    return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+    return I2C_STATUS_OK;
 }
 
-platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_read (
-    platform_samd21g18a_i2c_master_t        master,
-    platform_samd21g18a_i2c_slave_address_t slave_address,
-    uint8_t                                *data,
-    size_t                                  data_size)
+i2c_status_t
+i2c_read (i2c_master_t        master,
+          i2c_slave_address_t slave_address,
+          uint8_t            *data,
+          size_t              data_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((data != NULL) || (data_size == 0u));
+    ASSERT(slave_address <= MAX_ADDRESS);
+    ASSERT((data != NULL) || (data_size == 0u));
 
     if (data_size == 0u)
     {
-        return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+        return I2C_STATUS_OK;
     }
 
     Sercom *sercom = master_get_sercom(master);
@@ -276,23 +253,21 @@ platform_samd21g18a_i2c_read (
     return sercom_read_bytes(sercom, data, data_size);
 }
 
-platform_samd21g18a_i2c_status_t
-platform_samd21g18a_i2c_write_read (
-    platform_samd21g18a_i2c_master_t        master,
-    platform_samd21g18a_i2c_slave_address_t slave_address,
-    uint8_t const                          *write_data,
-    size_t                                  write_data_size,
-    uint8_t                                *read_data,
-    size_t                                  read_data_size)
+i2c_status_t
+i2c_write_read (i2c_master_t        master,
+                i2c_slave_address_t slave_address,
+                uint8_t const      *write_data,
+                size_t              write_data_size,
+                uint8_t            *read_data,
+                size_t              read_data_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(slave_address <= MAX_ADDRESS);
-    PLATFORM_SAMD21G18A_ASSERT((write_data != NULL) || (write_data_size == 0u));
-    PLATFORM_SAMD21G18A_ASSERT((read_data != NULL) || (read_data_size == 0u));
+    ASSERT(slave_address <= MAX_ADDRESS);
+    ASSERT((write_data != NULL) || (write_data_size == 0u));
+    ASSERT((read_data != NULL) || (read_data_size == 0u));
 
     if (read_data_size == 0u)
     {
-        return platform_samd21g18a_i2c_write(
-            master, slave_address, write_data, write_data_size);
+        return i2c_write(master, slave_address, write_data, write_data_size);
     }
 
     Sercom *sercom = master_get_sercom(master);
@@ -300,9 +275,9 @@ platform_samd21g18a_i2c_write_read (
     // First phase: START and REPEATED START.
     sercom->I2CM.ADDR.reg = (uint32_t)((slave_address) << 1u);
 
-    platform_samd21g18a_i2c_status_t status = sercom_poll_master_ready(sercom);
+    i2c_status_t status = sercom_poll_master_ready(sercom);
 
-    if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
+    if (status != I2C_STATUS_OK)
     {
         sercom_send_stop(sercom);
         return status;
@@ -314,7 +289,7 @@ platform_samd21g18a_i2c_write_read (
 
         status = sercom_poll_master_ready(sercom);
 
-        if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
+        if (status != I2C_STATUS_OK)
         {
             sercom_send_stop(sercom);
             return status;
@@ -338,23 +313,9 @@ ceiling_divide (uint64_t numerator, uint32_t denominator)
 
 /** @brief Get the SERCOM registers for an I2C master. */
 static inline Sercom *
-master_get_sercom (platform_samd21g18a_i2c_master_t master)
+master_get_sercom (i2c_master_t master)
 {
     return master_data[master].sercom;
-}
-
-/** @brief Get the APBC mask for an I2C master. */
-static inline uint32_t
-master_get_apbc_mask (platform_samd21g18a_i2c_master_t master)
-{
-    return master_data[master].apbc_mask;
-}
-
-/** @brief Get the APBC mask for an I2C master. */
-static inline uint16_t
-master_get_gclk_id (platform_samd21g18a_i2c_master_t master)
-{
-    return master_data[master].gclk_id;
 }
 
 /** @brief Calculate BAUD and BAUDLOW. */
@@ -364,22 +325,20 @@ baud_calculate (baud_t  *baud,
                 uint32_t scl_frequency_hz,
                 uint32_t scl_rise_ns)
 {
-    PLATFORM_SAMD21G18A_ASSERT(baud != NULL);
-    PLATFORM_SAMD21G18A_ASSERT((clock_frequency_hz != 0u)
-                               && (scl_frequency_hz != 0u));
+    ASSERT(baud != NULL);
+    ASSERT((clock_frequency_hz != 0u) && (scl_frequency_hz != 0u));
 
     uint32_t scl_period_cycles
         = ceiling_divide(clock_frequency_hz, scl_frequency_hz);
     uint32_t scl_rise_cycles = ceiling_divide(
         (uint64_t)clock_frequency_hz * (uint64_t)scl_rise_ns, 1000000000u);
 
-    PLATFORM_SAMD21G18A_ASSERT(scl_period_cycles
-                               > (scl_rise_cycles + SCL_LATENCY_CYCLES));
+    ASSERT(scl_period_cycles > (scl_rise_cycles + SCL_LATENCY_CYCLES));
 
     uint32_t programmable_cycles
         = scl_period_cycles - scl_rise_cycles - SCL_LATENCY_CYCLES;
 
-    PLATFORM_SAMD21G18A_ASSERT(programmable_cycles <= 510u);
+    ASSERT(programmable_cycles <= 510u);
 
     baud->baud    = (uint8_t)(programmable_cycles / 2u);
     baud->baudlow = (uint8_t)(programmable_cycles - baud->baud);
@@ -391,6 +350,8 @@ baud_calculate (baud_t  *baud,
 static inline void
 sercom_poll_sync_mask (Sercom *sercom, uint32_t mask)
 {
+    ASSERT(sercom != NULL);
+
     while ((sercom->I2CM.SYNCBUSY.reg & mask) != 0u)
     {
     }
@@ -402,6 +363,8 @@ sercom_poll_sync_mask (Sercom *sercom, uint32_t mask)
 static inline void
 sercom_set_command (Sercom *sercom, uint32_t command)
 {
+    ASSERT(sercom != NULL);
+
     sercom->I2CM.CTRLB.reg
         = (sercom->I2CM.CTRLB.reg & ~SERCOM_I2CM_CTRLB_CMD_Msk)
           | SERCOM_I2CM_CTRLB_CMD(command);
@@ -412,21 +375,23 @@ sercom_set_command (Sercom *sercom, uint32_t command)
 }
 
 /** @brief Poll until the master is on the bus (ready for next command/byte). */
-static platform_samd21g18a_i2c_status_t
+static i2c_status_t
 sercom_poll_master_ready (Sercom *sercom)
 {
+    ASSERT(sercom != NULL);
+
     uint32_t timeout = TIMEOUT_COUNT;
 
     while ((sercom->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_MB) == 0u)
     {
         if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS;
+            return I2C_STATUS_ERR_BUS;
         }
 
         if (timeout == 0u)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT;
+            return I2C_STATUS_ERR_TIMEOUT;
         }
 
         timeout--;
@@ -434,65 +399,70 @@ sercom_poll_master_ready (Sercom *sercom)
 
     if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_RXNACK) != 0u)
     {
-        return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_NACK;
+        return I2C_STATUS_ERR_NACK;
     }
 
-    return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+    return I2C_STATUS_OK;
 }
 
 /** @brief Poll until the slave is on the bus (ready for send byte). */
-static platform_samd21g18a_i2c_status_t
+static i2c_status_t
 sercom_poll_slave_ready (Sercom *sercom)
 {
+    ASSERT(sercom != NULL);
+
     uint32_t timeout = TIMEOUT_COUNT;
 
     while ((sercom->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_SB) == 0u)
     {
         if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_BUS;
+            return I2C_STATUS_ERR_BUS;
         }
 
         if (timeout == 0u)
         {
-            return PLATFORM_SAMD21G18A_I2C_STATUS_ERR_TIMEOUT;
+            return I2C_STATUS_ERR_TIMEOUT;
         }
 
         timeout--;
     }
 
-    return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+    return I2C_STATUS_OK;
 }
 
 /** @brief Terminate the message. */
 static void
 sercom_send_stop (Sercom *sercom)
 {
-    sercom_set_command(sercom, COMMAND_STOP);
+    ASSERT(sercom != NULL);
 
+    sercom_set_command(sercom, COMMAND_STOP);
     sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
     return;
 }
 
-static platform_samd21g18a_i2c_status_t
+static i2c_status_t
 sercom_read_bytes (Sercom *sercom, uint8_t *data, size_t data_size)
 {
+    ASSERT(sercom != NULL);
+
     if (data_size == 0u)
     {
-        return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+        return I2C_STATUS_OK;
     }
 
     sercom->I2CM.CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
     sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
-    platform_samd21g18a_i2c_status_t status;
+    i2c_status_t status;
 
     for (size_t index = 0u; index < data_size; index++)
     {
         status = sercom_poll_slave_ready(sercom);
 
-        if (status != PLATFORM_SAMD21G18A_I2C_STATUS_OK)
+        if (status != I2C_STATUS_OK)
         {
             sercom_send_stop(sercom);
             return status;
@@ -521,46 +491,41 @@ sercom_read_bytes (Sercom *sercom, uint8_t *data, size_t data_size)
 
     sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
-    return PLATFORM_SAMD21G18A_I2C_STATUS_OK;
+    return I2C_STATUS_OK;
 }
 
 /** @brief Resolve an I2C pin route to a PORT peripheral function. */
-static platform_samd21g18a_pin_peripheral_function_t
-pin_peripheral_function (platform_samd21g18a_i2c_pin_t const *i2c_pin,
-                         platform_samd21g18a_i2c_master_t     master)
+static pin_peripheral_function_t
+pin_peripheral_function (i2c_pin_t const *i2c_pin, i2c_master_t master)
 {
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin->pin != NULL);
+    ASSERT(i2c_pin != NULL);
+    ASSERT(i2c_pin->pin != NULL);
 
-    for (size_t i = 0u; i < sizeof(i2c_routes) / sizeof(i2c_routes[0]); i++)
+    for (size_t i = 0u; i < sizeof(routes) / sizeof(routes[0]); i++)
     {
-        if ((i2c_routes[i].port_group == i2c_pin->pin->port_group)
-            && (i2c_routes[i].pin_number == i2c_pin->pin->number)
-            && (i2c_routes[i].master == master)
-            && (i2c_routes[i].pad == i2c_pin->pad))
+        if ((routes[i].pin_port_group == i2c_pin->pin->port_group)
+            && (routes[i].pin_number == i2c_pin->pin->number)
+            && (routes[i].master == master) && (routes[i].pad == i2c_pin->pad))
         {
-            return i2c_routes[i].peripheral_function;
+            return routes[i].pin_peripheral_function;
         }
     }
 
-    PLATFORM_SAMD21G18A_ASSERT(false);
+    ASSERT(false);
 
-    return PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A;
+    return PIN_PERIPHERAL_FUNCTION_A;
 }
 
 /** @brief Configure an I2C pin. */
 static void
-pin_configure (platform_samd21g18a_i2c_pin_t const *i2c_pin,
-               platform_samd21g18a_i2c_master_t     master)
+pin_configure (i2c_pin_t const *i2c_pin, i2c_master_t master)
 {
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(i2c_pin->pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(
-        platform_samd21g18a_pin_port_group_valid(i2c_pin->pin->port_group));
-    PLATFORM_SAMD21G18A_ASSERT(
-        platform_samd21g18a_pin_number_valid(i2c_pin->pin->number));
+    ASSERT(i2c_pin != NULL);
+    ASSERT(i2c_pin->pin != NULL);
+    ASSERT(pin_port_group_valid(i2c_pin->pin->port_group));
+    ASSERT(pin_number_valid(i2c_pin->pin->number));
 
-    platform_samd21g18a_pin_peripheral_function_t peripheral_function
+    pin_peripheral_function_t peripheral_function
         = pin_peripheral_function(i2c_pin, master);
 
     // NOTE: No pull-up resistor is used because the IND.I/O board has them
@@ -568,8 +533,7 @@ pin_configure (platform_samd21g18a_i2c_pin_t const *i2c_pin,
     PORT->Group[i2c_pin->pin->port_group].PINCFG[i2c_pin->pin->number].reg
         = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
-    platform_samd21g18a_pin_set_peripheral_function(i2c_pin->pin,
-                                                    peripheral_function);
+    pin_set_peripheral_function(i2c_pin->pin, peripheral_function);
 
     return;
 }

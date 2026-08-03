@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 void
-platform_samd21g18a_usb_init (void)
+usb_init (void)
 {
     // Enable USB peripheral bus clocks.
     PM->AHBMASK.reg |= PM_AHBMASK_USB;
@@ -15,16 +15,14 @@ platform_samd21g18a_usb_init (void)
 
     // Route GCLK0 to USB peripheral. This assumes `SystemInit` configured GCLK0
     // to 48 MHz.
-    platform_samd21g18a_utils_gclk0_enable(GCLK_CLKCTRL_ID_USB);
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk0_enable(GCLK_CLKCTRL_ID_USB);
+    utils_gclk_poll_sync();
 
     // USB pins (DM: PA24, DP: PA25), peripheral function G.
-    PORT->Group[PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A].PINCFG[24].reg
-        = PORT_PINCFG_PMUXEN;
-    PORT->Group[PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A].PINCFG[25].reg
-        = PORT_PINCFG_PMUXEN;
+    PORT->Group[PIN_PORT_GROUP_A].PINCFG[24].reg = PORT_PINCFG_PMUXEN;
+    PORT->Group[PIN_PORT_GROUP_A].PINCFG[25].reg = PORT_PINCFG_PMUXEN;
 
-    PORT->Group[PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A].PMUX[12].reg
+    PORT->Group[PIN_PORT_GROUP_A].PMUX[12].reg
         = PORT_PMUX_PMUXE_G | PORT_PMUX_PMUXO_G;
 
     // USB QoS.
@@ -37,13 +35,15 @@ platform_samd21g18a_usb_init (void)
 
     bool initialized = tusb_init();
 
-    PLATFORM_SAMD21G18A_ASSERT(initialized);
+    ASSERT(initialized);
 
     tud_connect();
+
+    return;
 }
 
 void
-platform_samd21g18a_usb_task (void)
+usb_task (void)
 {
     tud_task();
 
@@ -51,7 +51,7 @@ platform_samd21g18a_usb_task (void)
 }
 
 bool
-platform_samd21g18a_usb_is_mounted (void)
+usb_is_mounted (void)
 {
     return tud_mounted();
 }

@@ -7,10 +7,10 @@
 /** @brief Instruction status codes. */
 typedef enum
 {
-    APP_PARAMETERS_STATUS_OK_PARSED = 0,
-    APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
-    APP_PARAMETERS_STATUS_ERR_JSON_PARSE,
-} app_parameters_status_t;
+    PARAMETERS_STATUS_OK_PARSED = 0,
+    PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
+    PARAMETERS_STATUS_ERR_JSON_PARSE,
+} parameters_status_t;
 
 /**
  * @brief Instruction mode enumeration.
@@ -21,12 +21,12 @@ typedef enum
  */
 typedef enum
 {
-    APP_PARAMETERS_MODE_POINT_COUNT = 0,
-    APP_PARAMETERS_MODE_POINT_TIME,
-    APP_PARAMETERS_MODE_CONTINUOUS,
+    PARAMETERS_MODE_POINT_COUNT = 0,
+    PARAMETERS_MODE_POINT_TIME,
+    PARAMETERS_MODE_CONTINUOUS,
 
-    APP_PARAMETERS_MODE_COUNT,
-} app_parameters_mode_t;
+    PARAMETERS_MODE_COUNT,
+} parameters_mode_t;
 
 /**
  * @brief Microcontroller-specific parameters received from the host.
@@ -42,7 +42,7 @@ typedef enum
 typedef struct
 {
     /** Mode of the profiler. */
-    app_parameters_mode_t mode;
+    parameters_mode_t mode;
 
     /** Minimum coordinate on the x-axis in units. */
     int x_min;
@@ -76,10 +76,10 @@ typedef struct
 
     /** The delay after the triggering of the PicoScope, in microseconds. */
     uint32_t posttrigger_time_us;
-} app_parameters_t;
+} parameters_t;
 
 /** @brief Parse the JSON parameters sent through serial. */
-app_parameters_status_t app_parameters_parse_json(app_parameters_t *parameters,
+parameters_status_t parameters_parse_json(parameters_t *parameters,
                                                   char const       *json);
 
 #endif

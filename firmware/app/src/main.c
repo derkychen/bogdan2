@@ -1,7 +1,13 @@
+/**
+ * @file main.c
+ * @brief Application program entry point.
+ *
+ * Implementation of the initialization of hardware and loop that polls the host
+ * for beam profiling parameters.
+ */
 #include "app/controller.h"
 #include "app/parameters.h"
 #include "app/profiler.h"
-#include "app/pulse_receiver.h"
 #include "app/serial.h"
 #include "board/indio/io_cfg.h"
 #include "platform/samd21g18a/eic.h"
@@ -10,8 +16,14 @@
 
 #define MAIN_LOOP_DELAY_USEC (100u)
 
-static void init(void);
+static controller_t x_controller;
+static controller_t y_controller;
+static relay_t      relay;
+static profiler_t   profiler;
+static parameters_t parameters = { 0 };
+static char         message[SERIAL_READ_BUFFER_SIZE];
 
+static void init(void);
 static void task(void);
 
 /**
@@ -26,62 +38,34 @@ main (void)
 {
     init();
 
-    app_controller_t x_controller;
-
-    app_controller_init(&x_controller,
-                        &board_indio_io_cfg_expansion_d4_digital,
-                        &board_indio_io_cfg_expansion_d5_eic,
-                        &board_indio_io_cfg_analog_output_ch1);
-
-    app_controller_t y_controller;
-
-    app_controller_init(&y_controller,
-                        &board_indio_io_cfg_expansion_d15_digital,
-                        &board_indio_io_cfg_expansion_d16_eic,
-                        &board_indio_io_cfg_analog_output_ch2);
-
-    app_pulse_receiver_t receiver;
-
-    app_pulse_receiver_init(&receiver,
-                            &board_indio_io_cfg_expansion_d6_eic,
-                            &board_indio_io_cfg_expansion_d7_pulse_generator);
-
-    app_profiler_t profiler;
-
-    app_profiler_init(&profiler, &x_controller, &y_controller, &receiver, task);
-
-    app_parameters_t parameters = { 0 };
-    char             message[APP_SERIAL_READ_BUFFER_SIZE];
-
     for (;;)
     {
         task();
-        platform_samd21g18a_time_sleep_usec(MAIN_LOOP_DELAY_USEC);
+        time_sleep_usec(MAIN_LOOP_DELAY_USEC);
 
-        if (app_serial_read_line(message, sizeof(message))
-            == APP_SERIAL_STATUS_OK_LINE_RECEIVED)
+        if (serial_read_line(message, sizeof(message))
+            == SERIAL_STATUS_OK_LINE_RECEIVED)
         {
-            if (app_parameters_parse_json(&parameters, message)
-                == APP_PARAMETERS_STATUS_OK_PARSED)
+            if (parameters_parse_json(&parameters, message)
+                == PARAMETERS_STATUS_OK_PARSED)
             {
-                app_serial_write_line(
+                serial_write_line(
                     "{\"ok\":true,\"msg\":\"instructions_received\"}");
 
-                if (app_profiler_profile(&profiler, &parameters)
-                    == APP_PROFILER_STATUS_OK)
+                if (profiler_profile(&profiler, &parameters)
+                    == PROFILER_STATUS_OK)
                 {
-                    app_serial_write_line(
-                        "{\"ok\":true,\"msg\":\"profile_done\"}");
+                    serial_write_line("{\"ok\":true,\"msg\":\"profile_done\"}");
                 }
                 else
                 {
-                    app_serial_write_line(
+                    serial_write_line(
                         "{\"ok\":false,\"msg\":\"profile_failed\"}");
                 }
             }
             else
             {
-                app_serial_write_line(
+                serial_write_line(
                     "{\"ok\":false,\"msg\":\"instruction_parse_failed\"}");
             }
         }
@@ -94,20 +78,38 @@ init (void)
 {
     // NOTE: Platform initialization functions must be called before any other
     //       functionality.
-    platform_samd21g18a_eic_init();
-    platform_samd21g18a_time_init();
-    platform_samd21g18a_usb_init();
+    eic_init();
+    evsys_init();
+    time_init();
+    usb_init();
 
-    // Initialize I/O to safe states and defaults.
-    board_indio_io_cfg_init();
+    // Initialize baseboard capabilities
+    io_cfg_init();
 
-    // Initialize serial.
-    app_serial_init();
+    // Initialize the beam profiler.
+    //
+    // NOTE: These functions configure the I/O to safe defaults.
+    controller_init(&x_controller,
+                    &io_cfg_expansion_d4_digital,
+                    &io_cfg_expansion_d5_eic,
+                    &io_cfg_analog_output_ch1);
+
+    controller_init(&y_controller,
+                    &io_cfg_expansion_d15_digital,
+                    &io_cfg_expansion_d16_eic,
+                    &io_cfg_analog_output_ch2);
+
+    relay_init(&relay, &io_cfg_expansion_d7_pulser, &io_cfg_expansion_d6_eic);
+
+    profiler_init(&profiler, &x_controller, &y_controller, &relay, task);
+
+    // Initialize serial connection.
+    serial_init();
 }
 
 /** @brief Task function that should be called repeatedly in the `main` loop. */
 static void
 task (void)
 {
-    platform_samd21g18a_usb_task();
+    usb_task();
 }

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
-static char   line_buffer[APP_SERIAL_READ_BUFFER_SIZE];
+static char   line_buffer[SERIAL_READ_BUFFER_SIZE];
 static size_t line_buffer_current_size = 0U;
 
 static void line_buffer_reset(void);
@@ -14,24 +14,24 @@ static void line_buffer_reset(void);
 static void line_buffer_copy_to(char *buffer, size_t buffer_size);
 
 void
-app_serial_init (void)
+serial_init (void)
 {
     line_buffer_reset();
 
     return;
 }
 
-app_serial_status_t
-app_serial_read_line (char *buffer, size_t buffer_size)
+serial_status_t
+serial_read_line (char *buffer, size_t buffer_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(buffer != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(buffer_size > 0U);
+    ASSERT(buffer != NULL);
+    ASSERT(buffer_size > 0U);
 
     if (tud_cdc_connected() == false)
     {
         line_buffer_reset();
 
-        return APP_SERIAL_STATUS_ERR_DISCONNECTED;
+        return SERIAL_STATUS_ERR_DISCONNECTED;
     }
 
     while (tud_cdc_available() != 0u)
@@ -42,7 +42,7 @@ app_serial_read_line (char *buffer, size_t buffer_size)
 
         if (count != 1u)
         {
-            return APP_SERIAL_STATUS_OK_LINE_PENDING;
+            return SERIAL_STATUS_OK_LINE_PENDING;
         }
 
         if (byte == '\r')
@@ -53,10 +53,10 @@ app_serial_read_line (char *buffer, size_t buffer_size)
         if (byte == '\n')
         {
             line_buffer_copy_to(buffer, buffer_size);
-            return APP_SERIAL_STATUS_OK_LINE_RECEIVED;
+            return SERIAL_STATUS_OK_LINE_RECEIVED;
         }
 
-        if (line_buffer_current_size < (APP_SERIAL_READ_BUFFER_SIZE - 1u))
+        if (line_buffer_current_size < (SERIAL_READ_BUFFER_SIZE - 1u))
         {
             line_buffer[line_buffer_current_size] = (char)byte;
             line_buffer_current_size++;
@@ -65,21 +65,21 @@ app_serial_read_line (char *buffer, size_t buffer_size)
         else
         {
             line_buffer_reset();
-            return APP_SERIAL_STATUS_ERR_LINE_BUFFER_OVERFLOW;
+            return SERIAL_STATUS_ERR_LINE_BUFFER_OVERFLOW;
         }
     }
 
-    return APP_SERIAL_STATUS_OK_LINE_PENDING;
+    return SERIAL_STATUS_OK_LINE_PENDING;
 }
 
-app_serial_status_t
-app_serial_write_line (char const *message)
+serial_status_t
+serial_write_line (char const *message)
 {
-    PLATFORM_SAMD21G18A_ASSERT(message != NULL);
+    ASSERT(message != NULL);
 
     if (tud_cdc_connected() == false)
     {
-        return APP_SERIAL_STATUS_ERR_DISCONNECTED;
+        return SERIAL_STATUS_ERR_DISCONNECTED;
     }
 
     size_t message_size = strlen(message);
@@ -89,7 +89,7 @@ app_serial_write_line (char const *message)
     if (written != message_size)
     {
         tud_cdc_write_flush();
-        return APP_SERIAL_STATUS_ERR_LINE_WRITE_FAILED;
+        return SERIAL_STATUS_ERR_LINE_WRITE_FAILED;
     }
 
     written = tud_cdc_write("\r\n", 2u);
@@ -98,10 +98,10 @@ app_serial_write_line (char const *message)
 
     if (written == 2u)
     {
-        return APP_SERIAL_STATUS_OK;
+        return SERIAL_STATUS_OK;
     }
 
-    return APP_SERIAL_STATUS_ERR;
+    return SERIAL_STATUS_ERR;
 }
 
 /** @brief Reset the line buffer. */

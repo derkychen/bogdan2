@@ -1,10 +1,16 @@
+/**
+ * @file io_cfg.c
+ * @brief Implementation of I/O configurations.
+ *
+ * NOTE: All MCU expansion port pins and analog output pins are defined. The
+ *       ones that are unused are commented out.
+ */
 #include "board/indio/io_cfg.h"
 #include "board/indio/analog_output.h"
 #include "drivers/mcp4726.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
-#include "platform/samd21g18a/pulse_generator.h"
 
 #if 0
 /**
@@ -12,8 +18,8 @@
  *
  * WARNING: The current module for MCU digital I/O does not support this pin.
  */
-static platform_samd21g18a_pin_t const expansion_d0 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d0 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 19u,
 };
 #endif
@@ -24,53 +30,51 @@ static platform_samd21g18a_pin_t const expansion_d0 = {
  *
  * WARNING: The current module for MCU digital I/O does not support this pin.
  */
-static platform_samd21g18a_pin_t const expansion_d1 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d1 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 18u,
 };
 #endif
 
 #if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D2/SDA. */
-static platform_samd21g18a_pin_t const expansion_d2 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d2 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 16u,
 };
 #endif
 
 #if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D3/SCL. */
-static platform_samd21g18a_pin_t const expansion_d3 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d3 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 17u,
 };
 #endif
 
 /** @brief Internal handle for the IND.I/O expansion port pin D4/A6. */
-static platform_samd21g18a_pin_t const expansion_d4 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_B,
+static pin_t const expansion_d4 = {
+    .port_group = PIN_PORT_GROUP_B,
     .number     = 8u,
 };
 
 /** @brief Internal handle for the IND.I/O expansion port pin D5/PWM. */
-static platform_samd21g18a_pin_t const expansion_d5 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d5 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 10u,
 };
 
 /** @brief Internal handle for the IND.I/O expansion port pin D6/A7. */
-static platform_samd21g18a_pin_t const expansion_d6 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_B,
+static pin_t const expansion_d6 = {
+    .port_group = PIN_PORT_GROUP_B,
     .number     = 9u,
 };
 
-#if 0
 /** @brief Internal handle for the IND.I/O expansion port pin D7. */
-static platform_samd21g18a_pin_t const expansion_d7 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d7 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 4u,
 };
-#endif
 
 #if 0
 /**
@@ -78,29 +82,29 @@ static platform_samd21g18a_pin_t const expansion_d7 = {
  *
  * WARNING: The current module for MCU digital I/O does not support this pin.
  */
-static platform_samd21g18a_pin_t const expansion_d10 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d10 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 7u,
 };
 #endif
 
 #if 0
 /** @brief Internal handle for the IND.I/O expansion port pin MISO/D14. */
-static platform_samd21g18a_pin_t const expansion_d14 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_B,
+static pin_t const expansion_d14 = {
+    .port_group = PIN_PORT_GROUP_B,
     .number     = 22u,
 };
 #endif
 
 /** @brief Internal handle for the IND.I/O expansion port pin SCLK/D15. */
-static platform_samd21g18a_pin_t const expansion_d15 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const expansion_d15 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 23u,
 };
 
 /** @brief Internal handle for the IND.I/O expansion port pin MOSI/D16. */
-static platform_samd21g18a_pin_t const expansion_d16 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_B,
+static pin_t const expansion_d16 = {
+    .port_group = PIN_PORT_GROUP_B,
     .number     = 23u,
 };
 
@@ -109,8 +113,8 @@ static platform_samd21g18a_pin_t const expansion_d16 = {
  *
  * NOTE: This is the same pin as D2/SDA on the expansion port.
  */
-static platform_samd21g18a_pin_t const pa16 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const pa16 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 16u,
 };
 
@@ -118,8 +122,8 @@ static platform_samd21g18a_pin_t const pa16 = {
  *
  * NOTE: This is the same pin as D3/SCL on the expansion port.
  */
-static platform_samd21g18a_pin_t const pa17 = {
-    .port_group = PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A,
+static pin_t const pa17 = {
+    .port_group = PIN_PORT_GROUP_A,
     .number     = 17u,
 };
 
@@ -127,117 +131,71 @@ static platform_samd21g18a_pin_t const pa17 = {
  * @brief Internal handle for the SAMD21G18A pin corresponding to the I2C SDA on
  *        the IND.I/O.
  */
-static platform_samd21g18a_i2c_pin_t const board_i2c_bus_sda = {
+static i2c_pin_t const board_i2c_bus_sda = {
     .pin = &pa16,
-    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD0,
+    .pad = I2C_SERCOM_PAD0,
 };
 
 /**
  * @brief Internal handle for the SAMD21G18A pin corresponding to the I2C SCL on
  *        the IND.I/O.
  */
-static platform_samd21g18a_i2c_pin_t const board_i2c_bus_scl = {
+static i2c_pin_t const board_i2c_bus_scl = {
     .pin = &pa17,
-    .pad = PLATFORM_SAMD21G18A_I2C_SERCOM_PAD1,
+    .pad = I2C_SERCOM_PAD1,
 };
 
 /** @brief Internal handle for I2C configuration of the IND.I/O. */
-static platform_samd21g18a_i2c_cfg_t const board_i2c_bus_cfg = {
-    .master           = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-    .sda              = &board_i2c_bus_sda,
-    .scl              = &board_i2c_bus_scl,
-    .scl_frequency_hz = PLATFORM_SAMD21G18A_I2C_SCL_FREQUENCY_FAST_HZ,
-    .scl_rise_nsec    = PLATFORM_SAMD21G18A_I2C_SCL_RISE_FAST_NSEC,
-};
 
 /** @brief Internal MCP4726 that controls all analog output CH1. */
-static drivers_mcp4726_device_t const analog_output_mcp4726_ch1 = {
-    .master  = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-    .address = BOARD_INDIO_ANALOG_OUTPUT_CH1_MCP4726_ADDRESS,
+static mcp4726_device_t const analog_output_mcp4726_ch1 = {
+    .master  = I2C_MASTER_SERCOM1,
+    .address = ANALOG_OUTPUT_CH1_MCP4726_ADDRESS,
 };
 
 /** @brief Internal MCP4726 that controls all analog output CH2. */
-static drivers_mcp4726_device_t const analog_output_mcp4726_ch2 = {
-    .master  = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
-    .address = BOARD_INDIO_ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
+static mcp4726_device_t const analog_output_mcp4726_ch2 = {
+    .master  = I2C_MASTER_SERCOM1,
+    .address = ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
 };
 
-platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d4_digital
-    = expansion_d4;
+digital_pin_t const io_cfg_expansion_d4_digital = expansion_d4;
 
-platform_samd21g18a_digital_pin_t const board_indio_io_cfg_expansion_d15_digital
-    = expansion_d15;
+digital_pin_t const io_cfg_expansion_d15_digital = expansion_d15;
 
-platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d5_eic = {
+eic_pin_t const io_cfg_expansion_d5_eic = {
     .pin  = &expansion_d5,
     .line = 10u,
 };
 
-platform_samd21g18a_pulse_generator_t const
-    board_indio_io_cfg_expansion_d7_pulse_generator = {
-        .init          = platform_samd21g18a_pulse_generator_tcc0_init,
-        .event_disable = platform_samd21g18a_pulse_generator_tcc0_event_disable,
-        .event_enable  = platform_samd21g18a_pulse_generator_tcc0_event_enable,
-        .width_set     = platform_samd21g18a_pulse_generator_tcc0_width_set,
-        .retrigger     = platform_samd21g18a_pulse_generator_tcc0_retrigger,
-    };
-
-platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d6_eic = {
+eic_pin_t const io_cfg_expansion_d6_eic = {
     .pin  = &expansion_d6,
     .line = 9u,
 };
 
-platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d16_eic = {
+eic_pin_t const io_cfg_expansion_d16_eic = {
     .pin  = &expansion_d16,
     .line = 7u,
 };
 
-board_indio_analog_output_channel_t const board_indio_io_cfg_analog_output_ch1
+pulser_t const io_cfg_expansion_d7_pulser = {
+    .output = &expansion_d7,
+    .timer  = PULSER_TIMER_TCC0,
+};
+
+analog_output_channel_t const io_cfg_analog_output_ch1
     = analog_output_mcp4726_ch1;
 
-board_indio_analog_output_channel_t const board_indio_io_cfg_analog_output_ch2
+analog_output_channel_t const io_cfg_analog_output_ch2
     = analog_output_mcp4726_ch2;
 
 void
-board_indio_io_cfg_init (void)
+io_cfg_init (void)
 {
-    platform_samd21g18a_eic_cfg_t d5_dummy_eic_cfg
-        = (platform_samd21g18a_eic_cfg_t) {
-              .eic_pin = &board_indio_io_cfg_expansion_d5_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
-          };
-    platform_samd21g18a_eic_cfg_t d6_dummy_eic_cfg
-        = (platform_samd21g18a_eic_cfg_t) {
-              .eic_pin = &board_indio_io_cfg_expansion_d6_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
-          };
-    platform_samd21g18a_eic_cfg_t d16_dummy_eic_cfg
-        = (platform_samd21g18a_eic_cfg_t) {
-              .eic_pin = &board_indio_io_cfg_expansion_d16_eic,
-              .sense   = PLATFORM_SAMD21G18A_EIC_SENSE_NONE,
-          };
-
-    platform_samd21g18a_digital_pin_cfg_set_output(
-        &board_indio_io_cfg_expansion_d4_digital);
-    platform_samd21g18a_digital_pin_level_set_low(
-        &board_indio_io_cfg_expansion_d4_digital);
-
-    platform_samd21g18a_digital_pin_cfg_set_output(
-        &board_indio_io_cfg_expansion_d15_digital);
-    platform_samd21g18a_digital_pin_level_set_low(
-        &board_indio_io_cfg_expansion_d15_digital);
-
-    platform_samd21g18a_eic_configure(&d5_dummy_eic_cfg);
-    platform_samd21g18a_eic_configure(&d6_dummy_eic_cfg);
-    platform_samd21g18a_eic_configure(&d16_dummy_eic_cfg);
-
-    board_indio_io_cfg_expansion_d7_pulse_generator.init();
-
-    platform_samd21g18a_i2c_configure(&board_i2c_bus_cfg);
-
-    (void)board_indio_analog_output_configure_v10();
-    (void)board_indio_analog_output_write(&board_indio_io_cfg_analog_output_ch1,
-                                          0u);
-    (void)board_indio_analog_output_write(&board_indio_io_cfg_analog_output_ch2,
-                                          0u);
+    i2c_configure(I2C_MASTER_SERCOM1,
+                  &board_i2c_bus_sda,
+                  &board_i2c_bus_scl,
+                  I2C_SCL_FREQUENCY_FAST_HZ,
+                  I2C_SCL_RISE_FAST_NSEC);
+    (void)analog_output_configure_v10();
 }

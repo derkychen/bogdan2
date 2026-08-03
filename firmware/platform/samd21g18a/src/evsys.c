@@ -1,0 +1,125 @@
+#include "platform/samd21g18a/evsys.h"
+#include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/utils.h"
+#include "sam.h" // IWYU pragma: keep
+#include <stdbool.h>
+#include <stdint.h>
+
+static uint32_t const path_reg_values[EVSYS_PATH_COUNT] = {
+    [EVSYS_PATH_SYNCHRONOUS]    = EVSYS_CHANNEL_PATH_SYNCHRONOUS,
+    [EVSYS_PATH_RESYNCHRONIZED] = EVSYS_CHANNEL_PATH_RESYNCHRONIZED,
+    [EVSYS_PATH_ASYNCHRONOUS]   = EVSYS_CHANNEL_PATH_ASYNCHRONOUS,
+};
+
+static uint16_t const channel_gclk_ids[EVSYS_CHANNEL_COUNT] = {
+    [EVSYS_CHANNEL_0]  = GCLK_CLKCTRL_ID_EVSYS_0,
+    [EVSYS_CHANNEL_1]  = GCLK_CLKCTRL_ID_EVSYS_1,
+    [EVSYS_CHANNEL_2]  = GCLK_CLKCTRL_ID_EVSYS_2,
+    [EVSYS_CHANNEL_3]  = GCLK_CLKCTRL_ID_EVSYS_3,
+    [EVSYS_CHANNEL_4]  = GCLK_CLKCTRL_ID_EVSYS_4,
+    [EVSYS_CHANNEL_5]  = GCLK_CLKCTRL_ID_EVSYS_5,
+    [EVSYS_CHANNEL_6]  = GCLK_CLKCTRL_ID_EVSYS_6,
+    [EVSYS_CHANNEL_7]  = GCLK_CLKCTRL_ID_EVSYS_7,
+    [EVSYS_CHANNEL_8]  = GCLK_CLKCTRL_ID_EVSYS_8,
+    [EVSYS_CHANNEL_9]  = GCLK_CLKCTRL_ID_EVSYS_9,
+    [EVSYS_CHANNEL_10] = GCLK_CLKCTRL_ID_EVSYS_10,
+    [EVSYS_CHANNEL_11] = GCLK_CLKCTRL_ID_EVSYS_11,
+};
+
+static inline bool     channel_valid(evsys_channel_t channel);
+static inline bool     path_valid(evsys_path_t path);
+static inline uint32_t path_reg_value(evsys_path_t path);
+static inline uint16_t channel_gclk_id(evsys_channel_t channel);
+
+void
+evsys_init (void)
+{
+    PM->APBCMASK.reg |= PM_APBCMASK_EVSYS;
+
+    EVSYS->CTRL.reg = EVSYS_CTRL_SWRST;
+
+    return;
+}
+
+void
+evsys_channel_set (evsys_channel_t   channel,
+                   evsys_generator_t generator,
+                   evsys_path_t      path)
+{
+    ASSERT(channel_valid(channel));
+    ASSERT(path_valid(path));
+    ASSERT(generator != 0u);
+
+    if (path != EVSYS_PATH_ASYNCHRONOUS)
+    {
+        utils_gclk0_enable(channel_gclk_id(channel));
+        utils_gclk_poll_sync();
+    }
+
+    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL((uint32_t)channel)
+                         | EVSYS_CHANNEL_EVGEN((uint32_t)generator)
+                         | path_reg_value(path);
+
+    return;
+}
+
+void
+evsys_channel_clear (evsys_channel_t channel)
+{
+    ASSERT(channel_valid(channel));
+
+    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL((uint32_t)channel);
+
+    return;
+}
+
+void
+evsys_user_set (evsys_user_t user, evsys_channel_t channel)
+{
+    ASSERT(channel_valid(channel));
+
+    EVSYS->USER.reg = EVSYS_USER_USER((uint32_t)user)
+                      | EVSYS_USER_CHANNEL((uint32_t)channel + 1u);
+
+    return;
+}
+
+void
+evsys_user_clear (evsys_user_t user)
+{
+    EVSYS->USER.reg = EVSYS_USER_USER((uint32_t)user);
+
+    return;
+}
+
+/** @brief Check whether a channel is valid. */
+static inline bool
+channel_valid (evsys_channel_t channel)
+{
+    return channel < EVSYS_CHANNEL_COUNT;
+}
+
+/** @brief Check whether a path is valid. */
+static inline bool
+path_valid (evsys_path_t path)
+{
+    return path < EVSYS_PATH_COUNT;
+}
+
+/** @brief Convert a path to its register value. */
+static inline uint32_t
+path_reg_value (evsys_path_t path)
+{
+    ASSERT(path_valid(path));
+
+    return path_reg_values[path];
+}
+
+/** @brief Get the GCLK ID for a channel. */
+static inline uint16_t
+channel_gclk_id (evsys_channel_t channel)
+{
+    ASSERT(channel_valid(channel));
+
+    return channel_gclk_ids[channel];
+}

@@ -1,4 +1,9 @@
-/** @brief I/O configurations, directly mirrors wiring.
+/**
+ * @file io_cfg.h
+ * @brief I/O configurations, directly mirrors wiring.
+ *
+ * This module exposes global handles for I/O through `extern` declarations that
+ * can be passed into initialization functions.
  *
  * NOTE: This module only exposes the handles for I/O used in this project.
  */
@@ -8,38 +13,33 @@
 #include "board/indio/analog_output.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
-#include "platform/samd21g18a/pulse_generator.h"
+#include "platform/samd21g18a/pulser.h"
 
 /** @brief Handle for the IND.I/O expansion port pin D4/A6 as a digital pin. */
-extern platform_samd21g18a_digital_pin_t const
-    board_indio_io_cfg_expansion_d4_digital;
+extern digital_pin_t const io_cfg_expansion_d4_digital;
 
 /** @brief Handle for the IND.I/O expansion port pin D2/SDA as a digital pin. */
-extern platform_samd21g18a_digital_pin_t const
-    board_indio_io_cfg_expansion_d15_digital;
+extern digital_pin_t const io_cfg_expansion_d15_digital;
 
 /** @brief Handle for the IND.I/O expansion port pin D5/PWM as an EIC pin. */
-extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d5_eic;
+extern eic_pin_t const io_cfg_expansion_d5_eic;
 
 /** @brief Handle for the IND.I/O expansion port pin D6/A7 as a EIC pin. */
-extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d6_eic;
+extern eic_pin_t const io_cfg_expansion_d6_eic;
 
 /** @brief Handle for the IND.I/O expansion port pin D3/SCL as a EIC pin. */
-extern platform_samd21g18a_eic_pin_t const board_indio_io_cfg_expansion_d16_eic;
+extern eic_pin_t const io_cfg_expansion_d16_eic;
 
 /** @brief Handle for the IND.I/O expansion port pin D7 as a pulse generator. */
-extern platform_samd21g18a_pulse_generator_t const
-    board_indio_io_cfg_expansion_d7_pulse_generator;
+extern pulser_t const io_cfg_expansion_d7_pulser;
 
 /** @brief Handle for the IND.I/O analog output CH1. */
-extern board_indio_analog_output_channel_t const
-    board_indio_io_cfg_analog_output_ch1;
+extern analog_output_channel_t const io_cfg_analog_output_ch1;
 
 /** @brief Handle for the IND.I/O analog output CH2. */
-extern board_indio_analog_output_channel_t const
-    board_indio_io_cfg_analog_output_ch2;
+extern analog_output_channel_t const io_cfg_analog_output_ch2;
 
-/** @brief Initialize the IND.I/O I/O to safe states. */
-void board_indio_io_cfg_init(void);
+/** @brief Initialize the IND.I/O baseboard capabilities. */
+void io_cfg_init(void);
 
 #endif

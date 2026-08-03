@@ -1,5 +1,6 @@
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/evsys.h"
 #include "platform/samd21g18a/pin.h"
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
@@ -8,51 +9,43 @@
 
 #define EXTINT_LINE_COUNT (16u)
 
+static uint16_t const sense_values[EIC_SENSE_COUNT] = {
+    [EIC_SENSE_NONE] = EIC_CONFIG_SENSE0_NONE_Val,
+    [EIC_SENSE_RISE] = EIC_CONFIG_SENSE0_RISE_Val,
+    [EIC_SENSE_FALL] = EIC_CONFIG_SENSE0_FALL_Val,
+    [EIC_SENSE_BOTH] = EIC_CONFIG_SENSE0_BOTH_Val,
+    [EIC_SENSE_HIGH] = EIC_CONFIG_SENSE0_HIGH_Val,
+    [EIC_SENSE_LOW]  = EIC_CONFIG_SENSE0_LOW_Val,
+};
+
 /** @brief EIC callback entry format. */
 typedef struct
 {
     /** The callback that runs on an interrupt. */
-    platform_samd21g18a_eic_callback_t callback;
+    eic_callback_t callback;
 
     /** Context pointer passed to the callback. */
     void *context;
-} platform_samd21g18a_eic_callback_entry_t;
+} eic_callback_entry_t;
 
-static platform_samd21g18a_eic_callback_entry_t
+static eic_callback_entry_t
     callback_entries[EXTINT_LINE_COUNT];
 
 bool
-platform_samd21g18a_eic_extint_line_valid (
-    platform_samd21g18a_eic_extint_line_t line)
+eic_extint_line_valid (
+    eic_extint_line_t line)
 {
     return line < EXTINT_LINE_COUNT;
 }
 
 bool
-platform_samd21g18a_eic_sense_valid (platform_samd21g18a_eic_sense_t sense)
+eic_sense_valid (eic_sense_t sense)
 {
-    bool valid;
-
-    switch (sense)
-    {
-        case PLATFORM_SAMD21G18A_EIC_SENSE_NONE:
-        case PLATFORM_SAMD21G18A_EIC_SENSE_RISE:
-        case PLATFORM_SAMD21G18A_EIC_SENSE_FALL:
-        case PLATFORM_SAMD21G18A_EIC_SENSE_BOTH:
-        case PLATFORM_SAMD21G18A_EIC_SENSE_HIGH:
-        case PLATFORM_SAMD21G18A_EIC_SENSE_LOW:
-            valid = true;
-            break;
-        default:
-            valid = false;
-            break;
-    }
-
-    return valid;
+    return sense < EIC_SENSE_COUNT;
 }
 
 void
-platform_samd21g18a_eic_poll_sync (void)
+eic_poll_sync (void)
 {
     while ((EIC->STATUS.reg & EIC_STATUS_SYNCBUSY) != 0u)
     {
@@ -62,20 +55,20 @@ platform_samd21g18a_eic_poll_sync (void)
 }
 
 void
-platform_samd21g18a_eic_init (void)
+eic_init (void)
 {
     // Enable EIC clock and set its source to GCLK0.
     PM->APBAMASK.reg |= PM_APBAMASK_EIC;
 
-    platform_samd21g18a_utils_gclk0_enable(GCLK_CLKCTRL_ID_EIC);
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk0_enable(GCLK_CLKCTRL_ID_EIC);
+    utils_gclk_poll_sync();
 
     // Reset EIC.
     EIC->CTRL.bit.SWRST = 1u;
-    platform_samd21g18a_eic_poll_sync();
+    eic_poll_sync();
 
     // Clear callback table.
-    for (platform_samd21g18a_eic_extint_line_t line = 0u;
+    for (eic_extint_line_t line = 0u;
          line < EXTINT_LINE_COUNT;
          line++)
     {
@@ -85,7 +78,7 @@ platform_samd21g18a_eic_init (void)
 
     // Enable EIC and allow CPU to receive interrupts.
     EIC->CTRL.bit.ENABLE = 1u;
-    platform_samd21g18a_eic_poll_sync();
+    eic_poll_sync();
 
     NVIC_ClearPendingIRQ(EIC_IRQn);
     NVIC_SetPriority(EIC_IRQn, 1u);
@@ -95,46 +88,48 @@ platform_samd21g18a_eic_init (void)
 }
 
 void
-platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
+eic_configure (eic_pin_t const *eic_pin,
+                                   eic_sense_t      sense)
 {
-    PLATFORM_SAMD21G18A_ASSERT(cfg != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(cfg->eic_pin->pin != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_pin_port_group_valid(
-        cfg->eic_pin->pin->port_group));
-    PLATFORM_SAMD21G18A_ASSERT(
-        platform_samd21g18a_pin_number_valid(cfg->eic_pin->pin->number));
-    PLATFORM_SAMD21G18A_ASSERT(
-        platform_samd21g18a_eic_extint_line_valid(cfg->eic_pin->line));
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_sense_valid(cfg->sense));
-
-    PortGroup *port = &PORT->Group[cfg->eic_pin->pin->port_group];
-
-    uint8_t  pin_number = cfg->eic_pin->pin->number;
-    uint32_t pin_mask   = 1u << pin_number;
-    uint32_t line_mask  = 1u << cfg->eic_pin->line;
+    ASSERT(eic_pin != NULL);
+    ASSERT(eic_pin->pin != NULL);
+    ASSERT(
+        pin_port_group_valid(eic_pin->pin->port_group));
+    ASSERT(
+        pin_number_valid(eic_pin->pin->number));
+    ASSERT(
+        eic_extint_line_valid(eic_pin->line));
+    ASSERT(eic_sense_valid(sense));
 
     // Disable the interrupt line and clear flags.
+    uint32_t line_mask = 1u << eic_pin->line;
+    bool     enabled   = EIC->INTENSET.reg & line_mask;
+
     EIC->INTENCLR.reg = line_mask;
     EIC->INTFLAG.reg  = line_mask;
 
     // Prevent contention with external output by setting the pin to an input
     // with high impedance.
+    PortGroup *port       = &PORT->Group[eic_pin->pin->port_group];
+    uint8_t    pin_number = eic_pin->pin->number;
+    uint32_t   pin_mask   = 1u << pin_number;
+
     port->DIRCLR.reg             = pin_mask;
     port->PINCFG[pin_number].reg = 0u;
 
     // Configure the pin to the EIC peripheral function (A).
-    platform_samd21g18a_pin_set_peripheral_function(
-        cfg->eic_pin->pin, PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A);
+    pin_set_peripheral_function(
+        eic_pin->pin, PIN_PERIPHERAL_FUNCTION_A);
 
     port->PINCFG[pin_number].reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
     // Configure the pin's sense.
-    uint8_t config_index = cfg->eic_pin->line / 8u;
-    uint8_t bit_position = (uint8_t)((cfg->eic_pin->line % 8u) * 4u);
+    uint8_t config_index = eic_pin->line / 8u;
+    uint8_t bit_position = (uint8_t)((eic_pin->line % 8u) * 4u);
 
     uint32_t sense_mask  = 0x7u << bit_position;
-    uint32_t sense_value = ((uint32_t)cfg->sense & 0x7u) << bit_position;
+    uint32_t sense_value = ((uint32_t)sense_values[sense] & 0x7u)
+                           << bit_position;
 
     EIC->CONFIG[config_index].reg
         = (EIC->CONFIG[config_index].reg & ~sense_mask) | sense_value;
@@ -142,21 +137,27 @@ platform_samd21g18a_eic_configure (platform_samd21g18a_eic_cfg_t const *cfg)
     // Clear flags.
     EIC->INTFLAG.reg = line_mask;
 
+    // Enable the line if it was previously disabled.
+    if (enabled)
+    {
+        EIC->INTENSET.reg = line_mask;
+    }
+
     return;
 }
 
 void
-platform_samd21g18a_eic_register_callback_entry (
-    platform_samd21g18a_eic_extint_line_t line,
-    platform_samd21g18a_eic_callback_t    callback,
+eic_register_callback_entry (
+    eic_extint_line_t line,
+    eic_callback_t    callback,
     void                                 *context)
 {
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
+    ASSERT(eic_extint_line_valid(line));
 
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
 
-    callback_entries[line] = (platform_samd21g18a_eic_callback_entry_t) {
+    callback_entries[line] = (eic_callback_entry_t) {
         .callback = callback,
         .context  = context,
     };
@@ -170,32 +171,10 @@ platform_samd21g18a_eic_register_callback_entry (
 }
 
 void
-platform_samd21g18a_eic_event_output_enable (
-    platform_samd21g18a_eic_extint_line_t line)
+eic_interrupt_disable (
+    eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
-
-    EIC->EVCTRL.reg |= (1u << line);
-
-    return;
-}
-
-void
-platform_samd21g18a_eic_event_output_disable (
-    platform_samd21g18a_eic_extint_line_t line)
-{
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
-
-    EIC->EVCTRL.reg &= ~(1u << line);
-
-    return;
-}
-
-void
-platform_samd21g18a_eic_line_disable (
-    platform_samd21g18a_eic_extint_line_t line)
-{
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
+    ASSERT(eic_extint_line_valid(line));
 
     EIC->INTENCLR.reg = (1u << line);
 
@@ -203,14 +182,44 @@ platform_samd21g18a_eic_line_disable (
 }
 
 void
-platform_samd21g18a_eic_line_enable (platform_samd21g18a_eic_extint_line_t line)
+eic_interrupt_enable (eic_extint_line_t line)
 {
-    PLATFORM_SAMD21G18A_ASSERT(platform_samd21g18a_eic_extint_line_valid(line));
+    ASSERT(eic_extint_line_valid(line));
 
     EIC->INTFLAG.reg  = (1u << line);
     EIC->INTENSET.reg = (1u << line);
 
     return;
+}
+
+void
+eic_event_enable (
+    eic_extint_line_t line)
+{
+    ASSERT(eic_extint_line_valid(line));
+
+    EIC->EVCTRL.reg |= (1u << line);
+
+    return;
+}
+
+void
+eic_event_disable (
+    eic_extint_line_t line)
+{
+    ASSERT(eic_extint_line_valid(line));
+
+    EIC->EVCTRL.reg &= ~(1u << line);
+
+    return;
+}
+
+evsys_generator_t
+eic_event_generator (eic_extint_line_t line)
+{
+    ASSERT(eic_extint_line_valid(line));
+
+    return (evsys_generator_t)(EVSYS_ID_GEN_EIC_EXTINT_0 + (uint32_t)line);
 }
 
 /** @brief Overrides the EIC_Handler function in the vector table. */
@@ -226,16 +235,16 @@ EIC_Handler (void)
 
     while (pending != 0u)
     {
-        platform_samd21g18a_eic_extint_line_t const line
-            = (platform_samd21g18a_eic_extint_line_t)__builtin_ctz(pending);
+        eic_extint_line_t const line
+            = (eic_extint_line_t)__builtin_ctz(pending);
 
-        platform_samd21g18a_eic_callback_entry_t const entry
+        eic_callback_entry_t const entry
             = callback_entries[line];
 
         // Remove least-significant set bit.
         pending &= pending - 1u;
 
-        PLATFORM_SAMD21G18A_ASSERT(entry.callback != NULL);
+        ASSERT(entry.callback != NULL);
         entry.callback(line, entry.context);
     }
 

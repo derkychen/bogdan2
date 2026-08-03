@@ -6,15 +6,14 @@
 
 /** @brief Check the validity of a pin port group. */
 bool
-platform_samd21g18a_pin_port_group_valid (
-    platform_samd21g18a_pin_port_group_t group)
+pin_port_group_valid (pin_port_group_t group)
 {
     bool valid;
 
     switch (group)
     {
-        case PLATFORM_SAMD21G18A_PIN_PORT_GROUP_A:
-        case PLATFORM_SAMD21G18A_PIN_PORT_GROUP_B:
+        case PIN_PORT_GROUP_A:
+        case PIN_PORT_GROUP_B:
             valid = true;
             break;
         default:
@@ -27,28 +26,27 @@ platform_samd21g18a_pin_port_group_valid (
 
 /** @brief Check the validity of a pin port group. */
 bool
-platform_samd21g18a_pin_number_valid (platform_samd21g18a_pin_number_t number)
+pin_number_valid (pin_number_t number)
 {
     return number < PIN_NUMBER_COUNT;
 }
 
 /** @brief Check the validity of a pin port group. */
 bool
-platform_samd21g18a_pin_peripheral_function_valid (
-    platform_samd21g18a_pin_peripheral_function_t function)
+pin_peripheral_function_valid (pin_peripheral_function_t function)
 {
     bool valid;
 
     switch (function)
     {
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_A:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_B:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_C:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_D:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_E:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_F:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_G:
-        case PLATFORM_SAMD21G18A_PIN_PERIPHERAL_FUNCTION_H:
+        case PIN_PERIPHERAL_FUNCTION_A:
+        case PIN_PERIPHERAL_FUNCTION_B:
+        case PIN_PERIPHERAL_FUNCTION_C:
+        case PIN_PERIPHERAL_FUNCTION_D:
+        case PIN_PERIPHERAL_FUNCTION_E:
+        case PIN_PERIPHERAL_FUNCTION_F:
+        case PIN_PERIPHERAL_FUNCTION_G:
+        case PIN_PERIPHERAL_FUNCTION_H:
             valid = true;
             break;
         default:
@@ -60,7 +58,7 @@ platform_samd21g18a_pin_peripheral_function_valid (
 }
 
 void
-platform_samd21g18a_pin_output_hold_low (platform_samd21g18a_pin_t const *pin)
+pin_output_hold_low (pin_t const *pin)
 {
     // Keep the pin disconnected from any peripherals.
     PORT->Group[pin->port_group].PINCFG[pin->number].bit.PMUXEN = 0U;
@@ -73,9 +71,8 @@ platform_samd21g18a_pin_output_hold_low (platform_samd21g18a_pin_t const *pin)
 }
 
 void
-platform_samd21g18a_pin_set_peripheral_function (
-    platform_samd21g18a_pin_t const              *pin,
-    platform_samd21g18a_pin_peripheral_function_t peripheral_function)
+pin_set_peripheral_function (pin_t const              *pin,
+                             pin_peripheral_function_t peripheral_function)
 {
     uint8_t pmux_index = pin->number / 2u;
 

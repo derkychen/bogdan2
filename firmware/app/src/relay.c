@@ -1,0 +1,105 @@
+#include "app/relay.h"
+#include "platform/samd21g18a/eic.h"
+#include "platform/samd21g18a/assert.h"
+#include "platform/samd21g18a/pulser.h"
+#include <stddef.h>
+
+static void count_isr(eic_extint_line_t line, void *context);
+
+void
+relay_init (relay_t *relay, pulser_t const *out, eic_pin_t const *in)
+{
+    ASSERT(relay != NULL);
+    ASSERT(in != NULL);
+    ASSERT(out != NULL);
+
+    relay->out   = out;
+    relay->in    = in;
+    relay->count = 0;
+
+    eic_configure(in, EIC_SENSE_RISE);
+    eic_register_callback_entry(in->line, count_isr, relay);
+    eic_interrupt_disable(in->line);
+}
+
+void
+relay_count_start (relay_t *relay)
+{
+    ASSERT(relay != NULL);
+    ASSERT(relay->in != NULL);
+
+    relay->count = 0;
+
+    eic_interrupt_enable(relay->in->line);
+
+    return;
+}
+
+uint32_t
+relay_count_get (relay_t const *relay)
+{
+    ASSERT(relay != NULL);
+
+    return relay->count;
+}
+
+void
+relay_count_end (relay_t *relay)
+{
+    ASSERT(relay != NULL);
+    ASSERT(relay->in != NULL);
+
+    relay->count = 0;
+
+    eic_interrupt_disable(relay->in->line);
+
+    return;
+}
+
+void
+relay_pulser_event_start (relay_t *relay)
+{
+    ASSERT(relay != NULL);
+    ASSERT(relay->in != NULL);
+
+    eic_event_enable(relay->in->line);
+
+    return;
+}
+
+void
+relay_pulser_event_end (relay_t *relay)
+{
+    ASSERT(relay != NULL);
+    ASSERT(relay->in != NULL);
+
+    eic_event_disable(relay->in->line);
+
+    return;
+}
+
+void
+relay_pulser_retrigger (relay_t const *relay)
+{
+    ASSERT(relay != NULL);
+    ASSERT(relay->out != NULL);
+
+    pulser_retrigger(relay->out);
+
+    return;
+}
+
+/** @brief Increment the counter when triggered. */
+static void
+count_isr (eic_extint_line_t line, void *context)
+{
+    ASSERT(context != NULL);
+
+    (void)line;
+
+    relay_t *relay = (relay_t *)context;
+
+    relay->count++;
+
+    return;
+}

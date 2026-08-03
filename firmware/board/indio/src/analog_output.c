@@ -1,3 +1,11 @@
+/**
+ * @file analog_output.c
+ * @brief Implementation of analog output functionality for the IND.I/O.
+ *
+ * NOTE: The MCP4726 is the chip used to actually perform DAC conversions.
+ *       However, the PCA9555 driver is still needed in the configuration of the
+ *       output voltage range to 0 to 10 volts.
+ */
 #include "board/indio/analog_output.h"
 #include "drivers/mcp4726.h"
 #include "drivers/pca9555.h"
@@ -10,89 +18,84 @@
 #define MODE_OUTPUTS_DEFAULT  (0x0000u)
 #define MODE_OUTPUTS_MASK     (MODE_CH1_MASK | MODE_CH2_MASK)
 
-static drivers_pca9555_device_t const analog_mode_expander = {
-    .master  = PLATFORM_SAMD21G18A_I2C_MASTER_SERCOM1,
+static pca9555_device_t const analog_mode_expander = {
+    .master  = I2C_MASTER_SERCOM1,
     .address = MODE_EXPANDER_ADDRESS,
 };
 
-static drivers_pca9555_cfgs_t    mode_cfgs_shadow    = MODE_CFGS_DEFAULT;
-static drivers_pca9555_outputs_t mode_outputs_shadow = MODE_OUTPUTS_DEFAULT;
+static pca9555_cfgs_t    mode_cfgs_shadow    = MODE_CFGS_DEFAULT;
+static pca9555_outputs_t mode_outputs_shadow = MODE_OUTPUTS_DEFAULT;
 
-static board_indio_analog_output_status_t
-pca9555_status_to_analog_output_status(drivers_pca9555_status_t status);
+static analog_output_status_t
+pca9555_status_to_analog_output_status(pca9555_status_t status);
 
-static board_indio_analog_output_status_t
-mcp4726_status_to_analog_output_status(drivers_mcp4726_status_t status);
+static analog_output_status_t
+mcp4726_status_to_analog_output_status(mcp4726_status_t status);
 
-board_indio_analog_output_status_t
-board_indio_analog_output_configure_v10 (void)
+analog_output_status_t
+analog_output_configure_v10 (void)
 {
-    drivers_pca9555_status_t status;
+    pca9555_status_t status;
 
     // Set mode configurations for both channels to be outputs.
-    mode_cfgs_shadow
-        = (drivers_pca9555_cfgs_t)(mode_cfgs_shadow
-                                   & (drivers_pca9555_cfgs_t)(~MODE_OUTPUTS_MASK));
+    mode_cfgs_shadow = (pca9555_cfgs_t)(mode_cfgs_shadow
+                                        & (pca9555_cfgs_t)(~MODE_OUTPUTS_MASK));
 
-    status
-        = drivers_pca9555_write_cfgs(&analog_mode_expander, mode_cfgs_shadow);
+    status = pca9555_write_cfgs(&analog_mode_expander, mode_cfgs_shadow);
 
-    if (status != DRIVERS_PCA9555_STATUS_OK)
+    if (status != PCA9555_STATUS_OK)
     {
         return pca9555_status_to_analog_output_status(status);
     }
 
     // Clear mode expander output bits for voltage mode.
     mode_outputs_shadow
-        = (drivers_pca9555_outputs_t)(mode_outputs_shadow
-                                      & (drivers_pca9555_outputs_t)(~MODE_OUTPUTS_MASK));
+        = (pca9555_outputs_t)(mode_outputs_shadow
+                              & (pca9555_outputs_t)(~MODE_OUTPUTS_MASK));
 
-    status = drivers_pca9555_write_outputs(&analog_mode_expander,
-                                           mode_outputs_shadow);
+    status = pca9555_write_outputs(&analog_mode_expander, mode_outputs_shadow);
 
     return pca9555_status_to_analog_output_status(status);
 }
 
-board_indio_analog_output_status_t
-board_indio_analog_output_write (
-    board_indio_analog_output_channel_t const *channel, uint16_t value)
+analog_output_status_t
+analog_output_write (
+    analog_output_channel_t const *channel, uint16_t value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(channel != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value <= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE);
+    ASSERT(channel != NULL);
+    ASSERT(value <= ANALOG_OUTPUT_MAX_VALUE);
 
-    uint16_t write_value = (value <= BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE)
-                               ? value
-                               : BOARD_INDIO_ANALOG_OUTPUT_MAX_VALUE;
+    uint16_t write_value = (value & ANALOG_OUTPUT_MAX_VALUE);
 
     return mcp4726_status_to_analog_output_status(
-        drivers_mcp4726_write_output(channel, write_value));
+        mcp4726_write_output(channel, write_value));
 }
 
 /** @brief Convert a PCA9555 status code to a analog output status code. */
-static board_indio_analog_output_status_t
-pca9555_status_to_analog_output_status (drivers_pca9555_status_t status)
+static analog_output_status_t
+pca9555_status_to_analog_output_status (pca9555_status_t status)
 {
     switch (status)
     {
-        case DRIVERS_PCA9555_STATUS_OK:
-            return BOARD_INDIO_ANALOG_OUTPUT_STATUS_OK;
+        case PCA9555_STATUS_OK:
+            return ANALOG_OUTPUT_STATUS_OK;
 
-        case DRIVERS_PCA9555_STATUS_ERR:
+        case PCA9555_STATUS_ERR:
         default:
-            return BOARD_INDIO_ANALOG_OUTPUT_STATUS_ERR_CFG;
+            return ANALOG_OUTPUT_STATUS_ERR_CFG;
     }
 }
 
 /** @brief Convert a MCP4726 status code to an analog output status code. */
-static board_indio_analog_output_status_t
-mcp4726_status_to_analog_output_status (drivers_mcp4726_status_t status)
+static analog_output_status_t
+mcp4726_status_to_analog_output_status (mcp4726_status_t status)
 {
     switch (status)
     {
-        case DRIVERS_MCP4726_STATUS_OK:
-            return BOARD_INDIO_ANALOG_OUTPUT_STATUS_OK;
-        case DRIVERS_MCP4726_STATUS_ERR:
+        case MCP4726_STATUS_OK:
+            return ANALOG_OUTPUT_STATUS_OK;
+        case MCP4726_STATUS_ERR:
         default:
-            return BOARD_INDIO_ANALOG_OUTPUT_STATUS_ERR_WRITE;
+            return ANALOG_OUTPUT_STATUS_ERR_WRITE;
     }
 }

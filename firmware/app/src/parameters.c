@@ -16,16 +16,16 @@
 
 #define PARAMETERS_MODE_MASK(mode) (UINT32_C(1) << (uint32_t)(mode))
 
-#define FIELD_REQUIRED_MODES_ALL                            \
-    (PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_COUNT)  \
-     | PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_TIME) \
-     | PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_CONTINUOUS))
+#define FIELD_REQUIRED_MODES_ALL                        \
+    (PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_COUNT)  \
+     | PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_TIME) \
+     | PARAMETERS_MODE_MASK(PARAMETERS_MODE_CONTINUOUS))
 
 #define FIELD_REQUIRED_MODES_POINT_COUNT \
-    PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_COUNT)
+    PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_COUNT)
 
 #define FIELD_REQUIRED_MODES_POINT_TIME \
-    PARAMETERS_MODE_MASK(APP_PARAMETERS_MODE_POINT_TIME)
+    PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_TIME)
 
 #define PARAMETERS_FIELD_LIST(X)                                      \
     X(MODE, "mode", mode, MODE, ALL)                                  \
@@ -45,17 +45,17 @@
       UINT32,                                                         \
       POINT_COUNT)
 
-#define PARAMETERS_MODE_LIST(X)                       \
-    X("point_count", APP_PARAMETERS_MODE_POINT_COUNT) \
-    X("point_time", APP_PARAMETERS_MODE_POINT_TIME)   \
-    X("continuous", APP_PARAMETERS_MODE_CONTINUOUS)
+#define PARAMETERS_MODE_LIST(X)                   \
+    X("point_count", PARAMETERS_MODE_POINT_COUNT) \
+    X("point_time", PARAMETERS_MODE_POINT_TIME)   \
+    X("continuous", PARAMETERS_MODE_CONTINUOUS)
 
-#define FIELD_TYPE_C_TYPE_MODE   app_parameters_mode_t
+#define FIELD_TYPE_C_TYPE_MODE   parameters_mode_t
 #define FIELD_TYPE_C_TYPE_INT    int
 #define FIELD_TYPE_C_TYPE_UINT32 uint32_t
 
 #define FIELD_TYPE_MATCHES(id, json_name, member, field_type, requirement) \
-    _Static_assert(_Generic(((app_parameters_t *)0)->member,               \
+    _Static_assert(_Generic(((parameters_t *)0)->member,                   \
                        FIELD_TYPE_C_TYPE_##field_type: 1,                  \
                        default: 0),                                        \
                    "Incorrect field type");
@@ -94,7 +94,7 @@ typedef enum
 #define FIELD_MASK(id) (UINT32_C(1) << FIELD_INDEX_##id)
 
 _Static_assert(FIELD_INDEX_COUNT <= 32, "Too many parameters");
-_Static_assert(APP_PARAMETERS_MODE_COUNT <= 32, "Too many modes");
+_Static_assert(PARAMETERS_MODE_COUNT <= 32, "Too many modes");
 
 /**
  * @brief JSON fields.
@@ -133,7 +133,7 @@ typedef struct
     {                                                                          \
         .name           = json_name,                                           \
         .type           = FIELD_TYPE_##field_type,                             \
-        .offset         = offsetof(app_parameters_t, member),                  \
+        .offset         = offsetof(parameters_t, member),                      \
         .mask           = FIELD_MASK(id),                                      \
         .required_modes = FIELD_REQUIRED_MODES_##requirement,                  \
     },
@@ -147,39 +147,30 @@ _Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
                "Instruction field table is incomplete");
 
 static bool token_is_valid(token_t const *token);
-
 static bool token_text_equals_str(token_t const *token, char const *string);
-
 static parse_status_t token_copy(token_t const *token,
                                  char          *buffer,
                                  size_t         buffer_size);
-
-static parse_status_t token_parse_mode(token_t const         *token,
-                                       app_parameters_mode_t *value);
-
+static parse_status_t token_parse_mode(token_t const     *token,
+                                       parameters_mode_t *value);
 static parse_status_t token_parse_int(token_t const *token, int *value);
-
 static parse_status_t token_parse_uint32(token_t const *token, uint32_t *value);
-
 static parse_status_t token_field_find(token_t const       *token,
                                        field_spec_t const **field);
-
 static parse_status_t token_field_set(token_t const      *token,
-                                      app_parameters_t   *parameters,
+                                      parameters_t       *parameters,
                                       field_spec_t const *field);
-
-static uint32_t parameters_required_mask_get(app_parameters_mode_t mode);
-
+static uint32_t       parameters_required_mask_get(parameters_mode_t mode);
 static parse_status_t token_next_index_get(jsmntok_t const *tokens_data,
                                            int              token_count,
                                            int              token_index,
                                            int             *next_token_index);
 
-app_parameters_status_t
-app_parameters_parse_json (app_parameters_t *parameters, char const *json)
+parameters_status_t
+parameters_parse_json (parameters_t *parameters, char const *json)
 {
-    PLATFORM_SAMD21G18A_ASSERT(parameters != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(json != NULL);
+    ASSERT(parameters != NULL);
+    ASSERT(json != NULL);
 
     jsmn_parser parser;
 
@@ -195,17 +186,17 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
 
     if (token_count < 0)
     {
-        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
     if ((token_count < 1) || (tokens_data[0].type != JSMN_OBJECT))
     {
-        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
-    app_parameters_t temp        = (app_parameters_t) { 0 };
-    uint32_t         fields_seen = 0u;
-    int              token_index = 1;
+    parameters_t temp        = (parameters_t) { 0 };
+    uint32_t     fields_seen = 0u;
+    int          token_index = 1;
 
     while ((token_index < token_count)
            && (tokens_data[token_index].start < tokens_data[0].end))
@@ -217,14 +208,14 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
 
         if (!token_is_valid(&token) || (token.data->type != JSMN_STRING))
         {
-            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         field_spec_t const *field;
 
         if (token_field_find(&token, &field) != PARSE_STATUS_OK)
         {
-            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         token_index++;
@@ -232,7 +223,7 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
         if ((token_index >= token_count)
             || (tokens_data[token_index].start >= tokens_data[0].end))
         {
-            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         token = (token_t) {
@@ -246,7 +237,7 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
                 tokens_data, token_count, token_index, &next_token_index)
             != PARSE_STATUS_OK)
         {
-            return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
         // Unknown fields are ignored.
@@ -254,7 +245,7 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
         {
             if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
             {
-                return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+                return PARAMETERS_STATUS_ERR_JSON_PARSE;
             }
 
             fields_seen |= field->mask;
@@ -265,39 +256,39 @@ app_parameters_parse_json (app_parameters_t *parameters, char const *json)
 
     if ((fields_seen & FIELD_MASK(MODE)) == 0u)
     {
-        return APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
     }
 
-    if ((uint32_t)temp.mode >= (uint32_t)APP_PARAMETERS_MODE_COUNT)
+    if ((uint32_t)temp.mode >= (uint32_t)PARAMETERS_MODE_COUNT)
     {
-        return APP_PARAMETERS_STATUS_ERR_JSON_PARSE;
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
     uint32_t required_fields = parameters_required_mask_get(temp.mode);
 
     if ((fields_seen & required_fields) != required_fields)
     {
-        return APP_PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
     }
 
     *parameters = temp;
 
-    return APP_PARAMETERS_STATUS_OK_PARSED;
+    return PARAMETERS_STATUS_OK_PARSED;
 }
 
 /** @brief Check that a token is valid. */
 static bool
 token_is_valid (token_t const *token)
 {
-    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
+    ASSERT(token != NULL);
 
     if (token == NULL)
     {
         return false;
     }
 
-    PLATFORM_SAMD21G18A_ASSERT(token->data != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(token->json != NULL);
+    ASSERT(token->data != NULL);
+    ASSERT(token->json != NULL);
 
     // Check for garbage token data.
     if ((token->data == NULL) || (token->json == NULL)
@@ -313,7 +304,7 @@ token_is_valid (token_t const *token)
 static bool
 token_text_equals_str (token_t const *token, char const *string)
 {
-    PLATFORM_SAMD21G18A_ASSERT(string != NULL);
+    ASSERT(string != NULL);
 
     if (!token_is_valid(token) || (string == NULL))
     {
@@ -341,8 +332,8 @@ token_text_equals_str (token_t const *token, char const *string)
 static parse_status_t
 token_copy (token_t const *token, char *buffer, size_t buffer_size)
 {
-    PLATFORM_SAMD21G18A_ASSERT(buffer != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(buffer_size > 0u);
+    ASSERT(buffer != NULL);
+    ASSERT(buffer_size > 0u);
 
     if (!token_is_valid(token) || (buffer == NULL) || (buffer_size == 0u))
     {
@@ -364,10 +355,10 @@ token_copy (token_t const *token, char *buffer, size_t buffer_size)
 
 /** @brief Parse a token into a mode. */
 static parse_status_t
-token_parse_mode (token_t const *token, app_parameters_mode_t *value)
+token_parse_mode (token_t const *token, parameters_mode_t *value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value != NULL);
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
 
     if (!token_is_valid(token) || (value == NULL)
         || (token->data->type != JSMN_STRING))
@@ -393,8 +384,8 @@ token_parse_mode (token_t const *token, app_parameters_mode_t *value)
 static parse_status_t
 token_parse_int (token_t const *token, int *value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value != NULL);
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
 
     if (!token_is_valid(token) || (value == NULL)
         || (token->data->type != JSMN_PRIMITIVE))
@@ -430,8 +421,8 @@ token_parse_int (token_t const *token, int *value)
 static parse_status_t
 token_parse_uint32 (token_t const *token, uint32_t *value)
 {
-    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(value != NULL);
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
 
     if (!token_is_valid(token) || (value == NULL)
         || (token->data->type != JSMN_PRIMITIVE))
@@ -471,7 +462,7 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
 static parse_status_t
 token_field_find (token_t const *token, field_spec_t const **field)
 {
-    PLATFORM_SAMD21G18A_ASSERT(token != NULL);
+    ASSERT(token != NULL);
 
     *field = NULL;
 
@@ -489,11 +480,11 @@ token_field_find (token_t const *token, field_spec_t const **field)
 
 static parse_status_t
 token_field_set (token_t const      *token,
-                 app_parameters_t   *parameters,
+                 parameters_t       *parameters,
                  field_spec_t const *field)
 {
-    PLATFORM_SAMD21G18A_ASSERT(parameters != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(field != NULL);
+    ASSERT(parameters != NULL);
+    ASSERT(field != NULL);
 
     if ((parameters == NULL) || (field == NULL))
     {
@@ -505,7 +496,7 @@ token_field_set (token_t const      *token,
     switch (field->type)
     {
         case FIELD_TYPE_MODE:
-            return token_parse_mode(token, (app_parameters_mode_t *)target);
+            return token_parse_mode(token, (parameters_mode_t *)target);
 
         case FIELD_TYPE_INT:
             return token_parse_int(token, (int *)target);
@@ -520,12 +511,11 @@ token_field_set (token_t const      *token,
 
 /** @brief Get the required field mask for a mode. */
 static uint32_t
-parameters_required_mask_get (app_parameters_mode_t mode)
+parameters_required_mask_get (parameters_mode_t mode)
 {
-    PLATFORM_SAMD21G18A_ASSERT((uint32_t)mode
-                               < (uint32_t)APP_PARAMETERS_MODE_COUNT);
+    ASSERT((uint32_t)mode < (uint32_t)PARAMETERS_MODE_COUNT);
 
-    if ((uint32_t)mode >= (uint32_t)APP_PARAMETERS_MODE_COUNT)
+    if ((uint32_t)mode >= (uint32_t)PARAMETERS_MODE_COUNT)
     {
         return 0u;
     }
@@ -551,8 +541,8 @@ token_next_index_get (jsmntok_t const *tokens_data,
                       int              token_index,
                       int             *next_token_index)
 {
-    PLATFORM_SAMD21G18A_ASSERT(tokens_data != NULL);
-    PLATFORM_SAMD21G18A_ASSERT(next_token_index != NULL);
+    ASSERT(tokens_data != NULL);
+    ASSERT(next_token_index != NULL);
 
     if ((tokens_data == NULL) || (next_token_index == NULL) || (token_index < 0)
         || (token_index >= token_count))

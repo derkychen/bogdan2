@@ -13,14 +13,14 @@ typedef struct
 
     /** The y-coordinate in units. */
     int y;
-} app_path_position_t;
+} path_position_t;
 
 /** @brief Path status codes. */
 typedef enum
 {
-    APP_PATH_STATUS_OK = 0,
-    APP_PATH_STATUS_ERR,
-} app_path_status_t;
+    PATH_STATUS_OK = 0,
+    PATH_STATUS_ERR,
+} path_status_t;
 
 /**
  * @brief For storage of the direction of the raster.
@@ -34,9 +34,9 @@ typedef enum
  */
 typedef enum
 {
-    APP_PATH_RASTER_DIRECTION_HORIZONTAL = 0,
-    APP_PATH_RASTER_DIRECTION_VERTICAL,
-} app_path_raster_direction_t;
+    PATH_RASTER_DIRECTION_HORIZONTAL = 0,
+    PATH_RASTER_DIRECTION_VERTICAL,
+} path_raster_direction_t;
 
 /**
  * @brief Generate an array of Position structures that form a modified raster.
@@ -52,12 +52,12 @@ typedef enum
  * movement of the stages for each grid and balance consecutive travel between
  * the stages.
  */
-app_path_status_t app_path_modified_raster(
-    app_axis_t const            *x,
-    app_axis_t const            *y,
-    app_path_raster_direction_t *prev_raster_direction,
-    bool                         corners_only,
-    app_path_position_t        **path,
-    size_t                      *path_size);
+path_status_t path_modified_raster(
+    axis_t const            *x,
+    axis_t const            *y,
+    path_raster_direction_t *prev_raster_direction,
+    bool                     corners_only,
+    path_position_t        **path,
+    size_t                  *path_size);
 
 #endif

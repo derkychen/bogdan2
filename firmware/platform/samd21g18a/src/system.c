@@ -15,15 +15,13 @@
 
 #define SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ (1000000u)
 #define SYSTEM_CORE_CLOCK_FREQUENCY_INIT_HZ  (48000000u)
-
-#define XOSC32K_FREQUENCY_HZ        (32768u)
-#define XOSC32K_STARTUP_CYCLE131072 (0x7u)
-
-#define DFLL48M_MULTIPLIER          (1465u)
-#define DFLL48M_FINE_STEP           (511u)
-#define DFLL48M_COARSE_STEP         (31u)
-#define DFLL48M_COARSE_CAL_INVALID  (0x3Fu)
-#define DFLL48M_COARSE_CAL_FALLBACK (0x1Fu)
+#define XOSC32K_FREQUENCY_HZ                 (32768u)
+#define XOSC32K_STARTUP_CYCLE131072          (0x7u)
+#define DFLL48M_MULTIPLIER                   (1465u)
+#define DFLL48M_FINE_STEP                    (511u)
+#define DFLL48M_COARSE_STEP                  (31u)
+#define DFLL48M_COARSE_CAL_INVALID           (0x3Fu)
+#define DFLL48M_COARSE_CAL_FALLBACK          (0x1Fu)
 
 uint32_t    SystemCoreClock          = SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ;
 static bool system_clock_initialized = false;
@@ -145,7 +143,7 @@ gclk1_set_source_to_xosc32k (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1u) | GCLK_GENCTRL_SRC_XOSC32K
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk_poll_sync();
 
     return;
 }
@@ -157,7 +155,7 @@ dfll_set_reference_to_gclk1 (void)
     GCLK->CLKCTRL.reg
         = GCLK_CLKCTRL_ID_DFLL48 | GCLK_CLKCTRL_GEN_GCLK1 | GCLK_CLKCTRL_CLKEN;
 
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk_poll_sync();
 
     return;
 }
@@ -212,7 +210,7 @@ gclk0_set_source_to_dfll (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0u) | GCLK_GENCTRL_SRC_DFLL48M
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    platform_samd21g18a_utils_gclk_poll_sync();
+    utils_gclk_poll_sync();
 
     return;
 }
