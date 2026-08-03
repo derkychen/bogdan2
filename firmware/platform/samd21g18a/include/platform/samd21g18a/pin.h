@@ -47,10 +47,10 @@ typedef struct
 /** @brief Check the validity of a pin port group. */
 bool pin_port_group_valid(pin_port_group_t group);
 
-/** @brief Check the validity of a pin port group. */
+/** @brief Check the validity of a pin number. */
 bool pin_number_valid(pin_number_t number);
 
-/** @brief Check the validity of a pin port group. */
+/** @brief Check the validity of a pin peripheral function. */
 bool pin_peripheral_function_valid(pin_peripheral_function_t function);
 
 /** @brief Set a pin's complete configuration. */
