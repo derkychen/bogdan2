@@ -408,7 +408,10 @@ token_parse_int (token_t const *token, int *value)
 
     char *end;
 
-    // NOTE: This only works because the SAMD21 is ILP32.
+    _Static_assert(sizeof(long) == sizeof(int),
+                   "The parsed long is narrowed to an int. This should only be "
+                   "done on ILP32 targets like the SAMD21.");
+
     int parsed = strtol(buffer, &end, 10);
 
     if ((errno != 0) || (end == buffer) || (*end != '\0'))
