@@ -5,7 +5,7 @@ This repository contains all the code used to set up and operate Bogdan 2, a bea
 1. Difficulty triggering conventional beam profilers for very low frequency pulsed lasers.
 2. Damage on detectors requiring the replacement of the entire beam profiler, which is costly and inefficient.
 
-This beam profiler that translates a photodiode in an $x\text{-}y$ plane, capturing intensities at different positions through an oscilloscope. It solves Problem 1 by using its own triggering mechanism that detects laser pulses. It constructs the beam profile across many pulses. It solves Problem 2 as the replacement of the photodiode as a detector is much less costly and easier than the replacement of an entire beam profiler.
+This beam profiler translates a photodiode in an $x\text{-}y$ plane, capturing intensities at different positions through an oscilloscope. It solves Problem 1 by using its own triggering mechanism that detects laser pulses. It constructs the beam profile across many pulses. It solves Problem 2 as the replacement of the photodiode as a detector is much less costly and easier than the replacement of an entire beam profiler.
 
 ## Dependencies:
 

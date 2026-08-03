@@ -2,7 +2,7 @@
 
 This document provides an overview of the conventions and tooling that are used in this project. It is recommended that these conventions be followed.
 
-## Firmware
+## C
 
 The firmware aims to follow Barr Group's *Embedded C Coding Standard*, which can be found [here](https://barrgroup.com/sites/default/files/barr_c_coding_standard_2018.pdf).
 
@@ -10,7 +10,9 @@ Doxygen-format comments were used throughout the firmware, though, as of now, Do
 
 Enforcement of these conventions was done through the tool `clangd`, which handles code diagnostics and formatting.
 
-## Host
+Functions are namespaced according to their functionality, which is the same as their module name.
+
+## Python
 
 Google-style Python docstrings are used.
 
