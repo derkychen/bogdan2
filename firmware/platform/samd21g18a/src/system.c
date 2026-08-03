@@ -8,7 +8,6 @@
  * there is no use case for this, if clock frequency is changed elsewhere,
  * `SystemCoreClockUpdate` will have to be rewritten.
  */
-#include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,23 +25,16 @@
 uint32_t    SystemCoreClock          = SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ;
 static bool system_clock_initialized = false;
 
+static inline void gclk_poll_sync(void);
 static inline void xosc32k_poll_until_ready(void);
-
 static inline void dfll_poll_until_ready(void);
-
 static inline void dfll_poll_until_locked(void);
-
-static void set_number_of_wait_states_48_mhz(void);
-
-static void xosc32k_start_and_enable(void);
-
-static void gclk1_set_source_to_xosc32k(void);
-
-static void dfll_set_reference_to_gclk1(void);
-
-static void dfll_lock_48_mhz(void);
-
-static void gclk0_set_source_to_dfll(void);
+static void        set_number_of_wait_states_48_mhz(void);
+static void        xosc32k_start_and_enable(void);
+static void        gclk1_set_source_to_xosc32k(void);
+static void        dfll_set_reference_to_gclk1(void);
+static void        dfll_lock_48_mhz(void);
+static void        gclk0_set_source_to_dfll(void);
 
 void
 SystemInit (void)
@@ -70,6 +62,17 @@ SystemCoreClockUpdate (void)
     else
     {
         SystemCoreClock = SYSTEM_CORE_CLOCK_FREQUENCY_RESET_HZ;
+    }
+
+    return;
+}
+
+/** @brief Poll the GCLK until it is synchronized. */
+void
+gclk_poll_sync (void)
+{
+    while (GCLK->STATUS.bit.SYNCBUSY)
+    {
     }
 
     return;
@@ -143,7 +146,7 @@ gclk1_set_source_to_xosc32k (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1u) | GCLK_GENCTRL_SRC_XOSC32K
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    utils_gclk_poll_sync();
+    gclk_poll_sync();
 
     return;
 }
@@ -155,7 +158,7 @@ dfll_set_reference_to_gclk1 (void)
     GCLK->CLKCTRL.reg
         = GCLK_CLKCTRL_ID_DFLL48 | GCLK_CLKCTRL_GEN_GCLK1 | GCLK_CLKCTRL_CLKEN;
 
-    utils_gclk_poll_sync();
+    gclk_poll_sync();
 
     return;
 }
@@ -167,7 +170,9 @@ dfll_lock_48_mhz (void)
     // This is a workaround for a hardware quirk in which the `DFLLCTRL`
     // register must be reset to this value before configuration.
     dfll_poll_until_ready();
+
     SYSCTRL->DFLLCTRL.reg = SYSCTRL_DFLLCTRL_ENABLE;
+
     dfll_poll_until_ready();
 
     // DFLL multiplies the oscillator frequency to the desired 48 megahertz
@@ -192,12 +197,14 @@ dfll_lock_48_mhz (void)
     }
 
     SYSCTRL->DFLLVAL.bit.COARSE = (uint8_t)(coarse & 0x3Fu);
+
     dfll_poll_until_ready();
 
     // Set the DFLL to closed-loop mode. Configure the DFLL to only output
     // when the frequency is locked and enable.
     SYSCTRL->DFLLCTRL.reg |= SYSCTRL_DFLLCTRL_MODE | SYSCTRL_DFLLCTRL_WAITLOCK
                              | SYSCTRL_DFLLCTRL_ENABLE;
+
     dfll_poll_until_locked();
 
     return;
@@ -210,7 +217,7 @@ gclk0_set_source_to_dfll (void)
     GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(0u) | GCLK_GENCTRL_SRC_DFLL48M
                         | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
 
-    utils_gclk_poll_sync();
+    gclk_poll_sync();
 
     return;
 }

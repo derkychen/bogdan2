@@ -6,8 +6,11 @@
 #include "sam.h" // IWYU pragma: keep
 
 void
-utils_gclk_poll_sync (void)
+utils_gclk0_enable (uint16_t id)
 {
+    GCLK->CLKCTRL.reg
+        = (uint16_t)(id | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN);
+
     while (GCLK->STATUS.bit.SYNCBUSY)
     {
     }
@@ -16,10 +19,9 @@ utils_gclk_poll_sync (void)
 }
 
 void
-utils_gclk0_enable (uint16_t id)
+utils_apbc_enable (uint32_t mask)
 {
-    GCLK->CLKCTRL.reg
-        = (uint16_t)(id | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_CLKEN);
+    PM->APBCMASK.reg |= mask;
 
     return;
 }

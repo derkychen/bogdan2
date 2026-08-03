@@ -20,13 +20,20 @@ usb_init (void)
     PM->APBBMASK.reg |= PM_APBBMASK_USB;
 
     // Route GCLK0 to USB peripheral. This assumes `SystemInit` configured GCLK0
-    // to 48 MHz.
+    // to 48 megahertz.
     utils_gclk0_enable(GCLK_CLKCTRL_ID_USB);
-    utils_gclk_poll_sync();
 
     // USB pins (DM: PA24, DP: PA25), peripheral function G.
-    PORT->Group[PIN_PORT_GROUP_A].PINCFG[24].reg = PORT_PINCFG_PMUXEN;
-    PORT->Group[PIN_PORT_GROUP_A].PINCFG[25].reg = PORT_PINCFG_PMUXEN;
+    pin_t const pa24 = (pin_t) {
+        .port_group=PIN_PORT_GROUP_A,
+        .number=24u,
+    };
+    pin_t const pa25 = (pin_t) {
+        .port_group=PIN_PORT_GROUP_A,
+        .number=24u,
+    };
+    pin_set_cfg(&pa24, true, false, false, false);
+    pin_set_cfg(&pa25, true, false, false, false);
 
     PORT->Group[PIN_PORT_GROUP_A].PMUX[12].reg
         = PORT_PMUX_PMUXE_G | PORT_PMUX_PMUXO_G;

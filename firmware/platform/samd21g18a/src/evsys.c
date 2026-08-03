@@ -41,7 +41,7 @@ static inline uint16_t channel_gclk_id(evsys_channel_t channel);
 void
 evsys_init (void)
 {
-    PM->APBCMASK.reg |= PM_APBCMASK_EVSYS;
+    utils_apbc_enable(PM_APBCMASK_EVSYS);
 
     EVSYS->CTRL.reg = EVSYS_CTRL_SWRST;
 
@@ -60,7 +60,6 @@ evsys_channel_set (evsys_channel_t   channel,
     if (path != EVSYS_PATH_ASYNCHRONOUS)
     {
         utils_gclk0_enable(channel_gclk_id(channel));
-        utils_gclk_poll_sync();
     }
 
     EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL((uint32_t)channel)

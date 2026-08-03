@@ -68,7 +68,6 @@ eic_init (void)
     PM->APBAMASK.reg |= PM_APBAMASK_EIC;
 
     utils_gclk0_enable(GCLK_CLKCTRL_ID_EIC);
-    utils_gclk_poll_sync();
 
     // Reset EIC.
     EIC->CTRL.bit.SWRST = 1u;
@@ -115,13 +114,11 @@ eic_configure (eic_pin_t const *eic_pin, eic_sense_t sense)
     uint8_t    pin_number = eic_pin->pin->number;
     uint32_t   pin_mask   = 1u << pin_number;
 
-    port->DIRCLR.reg             = pin_mask;
-    port->PINCFG[pin_number].reg = 0u;
+    port->DIRCLR.reg = pin_mask;
 
-    // Configure the pin to the EIC peripheral function (A).
+    // Set the pin to an input with peripheral function to A (EIC).
+    pin_set_cfg(eic_pin->pin, true, true, false, false);
     pin_set_peripheral_function(eic_pin->pin, PIN_PERIPHERAL_FUNCTION_A);
-
-    port->PINCFG[pin_number].reg = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
 
     // Configure the pin's sense.
     uint8_t config_index = eic_pin->line / 8u;

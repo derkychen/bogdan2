@@ -104,11 +104,10 @@ pulser_configure (pulser_t const *pulser)
 
     timer_data_t data = timer_data[pulser->timer];
 
-    PM->APBCMASK.reg |= data.apbc_mask;
+    utils_apbc_enable(data.apbc_mask);
 
     // TCC0 and TCC1 share the same GCLK ID.
     utils_gclk0_enable(data.gclk_id);
-    utils_gclk_poll_sync();
 
     Tcc *tcc = data.tcc;
 

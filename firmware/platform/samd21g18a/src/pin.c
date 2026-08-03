@@ -3,8 +3,10 @@
  * @brief Implementation of general GPIO functionality.
  */
 #include "platform/samd21g18a/pin.h"
+#include "platform/samd21g18a/assert.h"
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>
+#include <stddef.h>
 
 #define PIN_NUMBER_COUNT (32u)
 
@@ -62,14 +64,39 @@ pin_peripheral_function_valid (pin_peripheral_function_t function)
 }
 
 void
-pin_output_hold_low (pin_t const *pin)
+pin_set_cfg (pin_t const *pin,
+             bool         peripheral_muxed,
+             bool         input_enabled,
+             bool         pull_enabled,
+             bool         drive_strong)
 {
-    // Keep the pin disconnected from any peripherals.
-    PORT->Group[pin->port_group].PINCFG[pin->number].bit.PMUXEN = 0U;
+    ASSERT(pin != NULL);
+    ASSERT(pin_port_group_valid(pin->port_group));
+    ASSERT(pin_number_valid(pin->number));
 
-    // Preload output LOW to prevent unintended HIGH intervals.
-    PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
-    PORT->Group[pin->port_group].DIRSET.reg = (1u << pin->number);
+    uint8_t cfg = 0u;
+
+    if (peripheral_muxed)
+    {
+        cfg |= PORT_PINCFG_PMUXEN;
+    }
+
+    if (input_enabled)
+    {
+        cfg |= PORT_PINCFG_INEN;
+    }
+
+    if (pull_enabled)
+    {
+        cfg |= PORT_PINCFG_PULLEN;
+    }
+
+    if (drive_strong)
+    {
+        cfg |= PORT_PINCFG_DRVSTR;
+    }
+
+    PORT->Group[pin->port_group].PINCFG[pin->number].reg = cfg;
 
     return;
 }
@@ -78,6 +105,11 @@ void
 pin_set_peripheral_function (pin_t const              *pin,
                              pin_peripheral_function_t peripheral_function)
 {
+    ASSERT(pin != NULL);
+    ASSERT(pin_port_group_valid(pin->port_group));
+    ASSERT(pin_number_valid(pin->number));
+    ASSERT(pin_peripheral_function_valid(peripheral_function));
+
     uint8_t pmux_index = pin->number / 2u;
 
     if ((pin->number & 1u) == 0u)
@@ -91,7 +123,24 @@ pin_set_peripheral_function (pin_t const              *pin,
             = (uint8_t)(peripheral_function & 0x0Fu);
     }
 
-    PORT->Group[pin->port_group].PINCFG[pin->number].bit.PMUXEN = 1u;
+    pin_set_cfg(pin, true, false, false, false);
+
+    return;
+}
+
+void
+pin_output_hold_low (pin_t const *pin)
+{
+    ASSERT(pin != NULL);
+    ASSERT(pin_port_group_valid(pin->port_group));
+    ASSERT(pin_number_valid(pin->number));
+
+    // Keep the pin disconnected from any peripherals.
+    pin_set_cfg(pin, false, false, false, false);
+
+    // Preload output LOW to prevent unintended HIGH intervals.
+    PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
+    PORT->Group[pin->port_group].DIRSET.reg = (1u << pin->number);
 
     return;
 }

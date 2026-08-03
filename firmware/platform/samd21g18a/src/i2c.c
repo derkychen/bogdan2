@@ -157,8 +157,7 @@ i2c_configure (i2c_master_t     master,
 
     PM->APBCMASK.reg |= master_data[master].apbc_mask;
 
-    utils_gclk0_enable(master_data[master].gclk_id);
-    utils_gclk_poll_sync();
+    utils_apbc_enable(master_data[master].gclk_id);
 
     pin_configure(sda, master);
     pin_configure(scl, master);
@@ -534,8 +533,7 @@ pin_configure (i2c_pin_t const *i2c_pin, i2c_master_t master)
 
     // NOTE: No pull-up resistor is used because the IND.I/O board has them
     //       built in.
-    PORT->Group[i2c_pin->pin->port_group].PINCFG[i2c_pin->pin->number].reg
-        = PORT_PINCFG_PMUXEN | PORT_PINCFG_INEN;
+    pin_set_cfg(i2c_pin->pin, true, true, false, false);
 
     pin_set_peripheral_function(i2c_pin->pin, peripheral_function);
 

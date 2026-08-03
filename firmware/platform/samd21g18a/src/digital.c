@@ -19,7 +19,7 @@ digital_pin_cfg_set_output (digital_pin_t const *pin)
     PORT->Group[pin->port_group].DIRCLR.reg = (1u << pin->number);
 
     // Set the pin as a GPIO and disable the input buffer.
-    PORT->Group[pin->port_group].PINCFG[pin->number].reg = 0u;
+    pin_set_cfg(pin, false, false, false, false);
 
     // Set the pin level to LOW and direction to output.
     PORT->Group[pin->port_group].OUTCLR.reg = (1u << pin->number);
@@ -45,7 +45,7 @@ digital_pin_cfg_set_input (digital_pin_t const *pin)
 
     // Set the pin as a GPIO with input buffer enabled and no internal pull
     // resistor.
-    PORT->Group[pin->port_group].PINCFG[pin->number].reg = PORT_PINCFG_INEN;
+    pin_set_cfg(pin, false, true, false, false);
 
     return;
 }
@@ -80,9 +80,6 @@ digital_pin_read (digital_pin_t const *pin)
     ASSERT(pin != NULL);
     ASSERT(pin_port_group_valid(pin->port_group));
     ASSERT(pin_number_valid(pin->number));
-
-    // Enable input buffer.
-    PORT->Group[pin->port_group].PINCFG[pin->number].bit.INEN = 1u;
 
     // Read pin state.
     return ((PORT->Group[pin->port_group].IN.reg & (1u << pin->number)) != 0u)

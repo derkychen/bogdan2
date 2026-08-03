@@ -53,11 +53,18 @@ bool pin_number_valid(pin_number_t number);
 /** @brief Check the validity of a pin port group. */
 bool pin_peripheral_function_valid(pin_peripheral_function_t function);
 
-/** @brief Disconnect a pin from all peripheral functions and write LOW. */
-void pin_output_hold_low(pin_t const *pin);
+/** @brief Set a pin's complete configuration. */
+void pin_set_cfg(pin_t const *pin,
+                 bool         peripheral_muxed,
+                 bool         input_enabled,
+                 bool         pull_enabled,
+                 bool         drive_strong);
 
 /** @brief Set the peripheral function of a pin. */
 void pin_set_peripheral_function(pin_t const              *pin,
                                  pin_peripheral_function_t peripheral_function);
+
+/** @brief Disconnect a pin from all peripheral functions and write LOW. */
+void pin_output_hold_low(pin_t const *pin);
 
 #endif
