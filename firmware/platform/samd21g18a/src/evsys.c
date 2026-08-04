@@ -36,7 +36,6 @@ static uint16_t const channel_gclk_ids[EVSYS_CHANNEL_COUNT] = {
 static uint16_t channels_in_use = 0u;
 
 static inline bool     channel_valid(evsys_channel_t channel);
-static inline bool     channel_not_used(evsys_channel_t channel);
 static inline uint16_t channel_gclk_id(evsys_channel_t channel);
 static inline bool     path_valid(evsys_path_t path);
 static inline uint32_t path_reg_value(evsys_path_t path);
@@ -56,15 +55,18 @@ evsys_channel_claim (void)
 {
     for (evsys_channel_t channel = 0; channel < EVSYS_CHANNEL_COUNT; channel++)
     {
-        if ((channels_in_use & (1u << channel)) == 0u)
+        if ((channels_in_use & ((uint16_t)(1u << channel))) == 0u)
         {
             channels_in_use |= (uint16_t)(1u << channel);
+
             return channel;
         }
     }
 
-    // No program should claim a channel when none are available.
+    // Channels should not be claimed when none are available.
     ASSERT(false);
+
+    return EVSYS_CHANNEL_0;
 }
 
 void
@@ -72,7 +74,7 @@ evsys_channel_unclaim (evsys_channel_t channel)
 {
     ASSERT(channel_valid(channel));
 
-    channels_in_use &= ~(1u << channel);
+    channels_in_use &= ~((uint16_t)(1u << channel));
 
     return;
 }
@@ -83,7 +85,6 @@ evsys_channel_set_generator (evsys_channel_t   channel,
                              evsys_path_t      path)
 {
     ASSERT(channel_valid(channel));
-    ASSERT(channel_not_used(channel));
     ASSERT(path_valid(path));
     ASSERT(generator != 0u);
 
@@ -133,20 +134,6 @@ static inline bool
 channel_valid (evsys_channel_t channel)
 {
     return channel < EVSYS_CHANNEL_COUNT;
-}
-
-/** @brief Check whether a channel is in use. */
-static inline bool
-channel_not_used (evsys_channel_t channel)
-{
-    return channel
-}
-
-/** @brief Set a channel as used. */
-static inline bool
-channel_set_used (evsys_channel_t channel)
-{
-    return channel
 }
 
 /** @brief Get the GCLK ID for a channel. */
