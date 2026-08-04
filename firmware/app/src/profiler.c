@@ -378,7 +378,7 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
         axis_move_end(&y);
     }
 
-    relay_count_end(profiler->relay);
+    relay_pulser_event_end(profiler->relay);
 
     status = PROFILER_STATUS_OK;
 
@@ -387,7 +387,7 @@ cleanup:
     axis_move_end(&x);
     axis_move_end(&y);
 
-    relay_count_end(profiler->relay);
+    relay_pulser_event_end(profiler->relay);
 
     return status;
 }

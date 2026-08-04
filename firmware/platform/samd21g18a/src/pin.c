@@ -123,7 +123,7 @@ pin_set_peripheral_function (pin_t const              *pin,
             = (uint8_t)(peripheral_function & 0x0Fu);
     }
 
-    pin_set_cfg(pin, true, false, false, false);
+    PORT->Group[pin->port_group].PINCFG[pin->number].reg |= PORT_PINCFG_PMUXEN;
 
     return;
 }
