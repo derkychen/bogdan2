@@ -155,9 +155,8 @@ i2c_configure (i2c_master_t     master,
     baud_t baud;
     baud_calculate(&baud, SystemCoreClock, frequency_hz, rise_nsec);
 
-    PM->APBCMASK.reg |= master_data[master].apbc_mask;
-
-    utils_apbc_enable(master_data[master].gclk_id);
+    utils_apbc_enable(master_data[master].apbc_mask);
+    utils_gclk0_enable(master_data[master].gclk_id);
 
     pin_configure(sda, master);
     pin_configure(scl, master);
