@@ -48,6 +48,12 @@ typedef uint8_t evsys_user_t;
 /** @brief Initialize the EVSYS peripheral. */
 void evsys_init(void);
 
+/** @brief Claim a channel that is unused, to avoid collisions. */
+evsys_channel_t evsys_channel_claim(void);
+
+/** @brief Unclaim a channel. */
+void evsys_channel_unclaim(evsys_channel_t channel);
+
 /** @brief Set a channel's event generator and path. */
 void evsys_channel_set_generator(evsys_channel_t   channel,
                                  evsys_generator_t generator,
