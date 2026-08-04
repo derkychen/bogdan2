@@ -6,7 +6,7 @@
 set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/setup.sh"
+source "$SCRIPT_DIR/lib/vars.sh"
 
 usage() {
   cat <<EOF

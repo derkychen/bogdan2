@@ -30,8 +30,8 @@ In the directory that you want the project to clone into, open `bash` and run
 cd i/want/bogdan2/here # Replace with actual location.
 git clone https://github.com/derkychen/bogdan2.git # Clone the repository.
 cd bogdan2 # Change to the project directory.
-chmod +x scripts/deps.sh # Permissions for a dependencies installation script.
-scripts/deps.sh
+chmod +x scripts/setup.sh # Permissions for a dependencies installation script.
+scripts/setup.sh
 ```
 
 ## Usage
@@ -41,7 +41,7 @@ scripts/deps.sh
 To flash the firmware to the Industruino, double press the RST button on the back of the LCD screen and then open `bash` and run
 
 ```bash
-scripts/firmware.sh -x -b release -p path/to/usb/port
+scripts/firmware.sh -b release -p path/to/usb/port
 ```
 
 Make sure to replace the port with the actual path to your USB port. On Windows it should be `COMx` where `x` is a number.

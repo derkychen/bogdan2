@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# Build files list and check firmware.
+
+files=$(git diff --cached --name-only --diff-filter=ACM |
+  grep -E '^firmware/.*\.[ch]$' | grep -v '^firmware/external/')
+
+[ -z "$files" ] || clang-format --dry-run -Werror $files
