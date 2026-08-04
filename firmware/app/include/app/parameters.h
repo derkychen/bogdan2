@@ -12,19 +12,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** @brief Instruction status codes. */
+/** @brief Parameters status codes. */
 typedef enum
 {
     PARAMETERS_STATUS_OK_PARSED = 0,
-    PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
     PARAMETERS_STATUS_ERR_JSON_DUPLICATE_FIELD,
     PARAMETERS_STATUS_ERR_JSON_FIELD_NOT_ALLOWED,
-    PARAMETERS_STATUS_ERR_JSON_UNKNOWN_FIELD,
+    PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS,
     PARAMETERS_STATUS_ERR_JSON_PARSE,
+    PARAMETERS_STATUS_ERR_JSON_UNKNOWN_FIELD,
 } parameters_status_t;
 
 /**
- * @brief Instruction mode enumeration.
+ * @brief Parameters mode enumeration.
  *
  * `POINT_COUNT`: moves to each point on a grid and counts a number of pulses.
  * `POINT_TIME`:  moves to each point on a grid for a fixed amount of time.
