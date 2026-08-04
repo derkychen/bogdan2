@@ -20,16 +20,15 @@
 
 #define PARAMETERS_MODE_MASK(mode) (UINT32_C(1) << (uint32_t)(mode))
 
-#define FIELD_REQUIRED_MODES_ALL                        \
+#define FIELD_MODES_ALL                                 \
     (PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_COUNT)  \
      | PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_TIME) \
      | PARAMETERS_MODE_MASK(PARAMETERS_MODE_CONTINUOUS))
 
-#define FIELD_REQUIRED_MODES_POINT_COUNT \
+#define FIELD_MODES_POINT_COUNT \
     PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_COUNT)
 
-#define FIELD_REQUIRED_MODES_POINT_TIME \
-    PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_TIME)
+#define FIELD_MODES_POINT_TIME PARAMETERS_MODE_MASK(PARAMETERS_MODE_POINT_TIME)
 
 #define PARAMETERS_FIELD_LIST(X)                                      \
     X(MODE, "mode", mode, MODE, ALL)                                  \
@@ -58,10 +57,10 @@
 #define FIELD_TYPE_C_TYPE_INT    int
 #define FIELD_TYPE_C_TYPE_UINT32 uint32_t
 
-#define FIELD_TYPE_MATCHES(id, json_name, member, field_type, requirement) \
-    _Static_assert(_Generic(((parameters_t *)0)->member,                   \
-                       FIELD_TYPE_C_TYPE_##field_type: 1,                  \
-                       default: 0),                                        \
+#define FIELD_TYPE_MATCHES(id, json_name, member, field_type, modes_mask) \
+    _Static_assert(_Generic(((parameters_t *)0)->member,                  \
+                       FIELD_TYPE_C_TYPE_##field_type: 1,                 \
+                       default: 0),                                       \
                    "Incorrect field type");
 
 PARAMETERS_FIELD_LIST(FIELD_TYPE_MATCHES)
@@ -83,7 +82,7 @@ typedef enum
     FIELD_TYPE_UINT32,
 } field_type_t;
 
-#define FIELD_INDEX_ENUM(id, json_name, member, field_type, requirement) \
+#define FIELD_INDEX_ENUM(id, json_name, member, field_type, modes_mask) \
     FIELD_INDEX_##id,
 
 typedef enum
@@ -120,7 +119,7 @@ typedef struct
     uint32_t mask;
 
     /** Modes for which this field is required. */
-    uint32_t required_modes;
+    uint32_t modes;
 } field_spec_t;
 
 /** @brief JSON token structure. */
@@ -133,13 +132,13 @@ typedef struct
     char const *json;
 } token_t;
 
-#define FIELD_SPEC_INITIALIZER(id, json_name, member, field_type, requirement) \
-    {                                                                          \
-        .name           = json_name,                                           \
-        .type           = FIELD_TYPE_##field_type,                             \
-        .offset         = offsetof(parameters_t, member),                      \
-        .mask           = FIELD_MASK(id),                                      \
-        .required_modes = FIELD_REQUIRED_MODES_##requirement,                  \
+#define FIELD_SPEC_INITIALIZER(id, json_name, member, field_type, modes_mask) \
+    {                                                                         \
+        .name   = json_name,                                                  \
+        .type   = FIELD_TYPE_##field_type,                                    \
+        .offset = offsetof(parameters_t, member),                             \
+        .mask   = FIELD_MASK(id),                                             \
+        .modes  = FIELD_MODES_##modes_mask,                                   \
     },
 
 static field_spec_t const parameters_fields[]
@@ -149,135 +148,6 @@ static field_spec_t const parameters_fields[]
 
 _Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
                "Instruction field table is incomplete");
-
-static bool token_is_valid(token_t const *token);
-static bool token_text_equals_str(token_t const *token, char const *string);
-static parse_status_t token_copy(token_t const *token,
-                                 char          *buffer,
-                                 size_t         buffer_size);
-static parse_status_t token_parse_mode(token_t const     *token,
-                                       parameters_mode_t *value);
-static parse_status_t token_parse_int(token_t const *token, int *value);
-static parse_status_t token_parse_uint32(token_t const *token, uint32_t *value);
-static parse_status_t token_field_find(token_t const       *token,
-                                       field_spec_t const **field);
-static parse_status_t token_field_set(token_t const      *token,
-                                      parameters_t       *parameters,
-                                      field_spec_t const *field);
-static uint32_t       parameters_required_mask_get(parameters_mode_t mode);
-static parse_status_t token_next_index_get(jsmntok_t const *tokens_data,
-                                           int              token_count,
-                                           int              token_index,
-                                           int             *next_token_index);
-
-parameters_status_t
-parameters_parse_json (parameters_t *parameters, char const *json)
-{
-    ASSERT(parameters != NULL);
-    ASSERT(json != NULL);
-
-    jsmn_parser parser;
-
-    jsmn_init(&parser);
-
-    jsmntok_t tokens_data[MAX_JSON_TOKENS];
-
-    int token_count = jsmn_parse(&parser,
-                                 json,
-                                 strlen(json),
-                                 tokens_data,
-                                 (unsigned int)MAX_JSON_TOKENS);
-
-    if (token_count < 0)
-    {
-        return PARAMETERS_STATUS_ERR_JSON_PARSE;
-    }
-
-    if ((token_count < 1) || (tokens_data[0].type != JSMN_OBJECT))
-    {
-        return PARAMETERS_STATUS_ERR_JSON_PARSE;
-    }
-
-    parameters_t temp        = (parameters_t) { 0 };
-    uint32_t     fields_seen = 0u;
-    int          token_index = 1;
-
-    while ((token_index < token_count)
-           && (tokens_data[token_index].start < tokens_data[0].end))
-    {
-        token_t token = (token_t) {
-            .data = &tokens_data[token_index],
-            .json = json,
-        };
-
-        if (!token_is_valid(&token) || (token.data->type != JSMN_STRING))
-        {
-            return PARAMETERS_STATUS_ERR_JSON_PARSE;
-        }
-
-        field_spec_t const *field;
-
-        if (token_field_find(&token, &field) != PARSE_STATUS_OK)
-        {
-            return PARAMETERS_STATUS_ERR_JSON_PARSE;
-        }
-
-        token_index++;
-
-        if ((token_index >= token_count)
-            || (tokens_data[token_index].start >= tokens_data[0].end))
-        {
-            return PARAMETERS_STATUS_ERR_JSON_PARSE;
-        }
-
-        token = (token_t) {
-            .data = &tokens_data[token_index],
-            .json = json,
-        };
-
-        int next_token_index;
-
-        if (token_next_index_get(
-                tokens_data, token_count, token_index, &next_token_index)
-            != PARSE_STATUS_OK)
-        {
-            return PARAMETERS_STATUS_ERR_JSON_PARSE;
-        }
-
-        if (field != NULL)
-        {
-            if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
-            {
-                return PARAMETERS_STATUS_ERR_JSON_PARSE;
-            }
-
-            fields_seen |= field->mask;
-        }
-
-        token_index = next_token_index;
-    }
-
-    if ((fields_seen & FIELD_MASK(MODE)) == 0u)
-    {
-        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
-    }
-
-    if ((uint32_t)temp.mode >= (uint32_t)PARAMETERS_MODE_COUNT)
-    {
-        return PARAMETERS_STATUS_ERR_JSON_PARSE;
-    }
-
-    uint32_t required_fields = parameters_required_mask_get(temp.mode);
-
-    if ((fields_seen & required_fields) != required_fields)
-    {
-        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
-    }
-
-    *parameters = temp;
-
-    return PARAMETERS_STATUS_OK_PARSED;
-}
 
 /** @brief Check that a token is valid. */
 static bool
@@ -405,20 +275,16 @@ token_parse_int (token_t const *token, int *value)
 
     errno = 0;
 
-    char *end;
+    char    *end;
+    intmax_t parsed = strtoimax(buffer, &end, 10);
 
-    _Static_assert(sizeof(long) == sizeof(int),
-                   "The parsed long is narrowed to an int. This should only be "
-                   "done on ILP32 targets like the SAMD21.");
-
-    int parsed = strtol(buffer, &end, 10);
-
-    if ((errno != 0) || (end == buffer) || (*end != '\0'))
+    if ((errno != 0) || (end == buffer) || (*end != '\0') || (parsed < INT_MIN)
+        || (parsed > INT_MAX))
     {
         return PARSE_STATUS_ERR;
     }
 
-    *value = parsed;
+    *value = (int)parsed;
 
     return PARSE_STATUS_OK;
 }
@@ -469,6 +335,7 @@ static parse_status_t
 token_field_find (token_t const *token, field_spec_t const **field)
 {
     ASSERT(token != NULL);
+    ASSERT(field != NULL);
 
     *field = NULL;
 
@@ -515,9 +382,9 @@ token_field_set (token_t const      *token,
     }
 }
 
-/** @brief Get the required field mask for a mode. */
+/** @brief Get the field mask for a mode. */
 static uint32_t
-parameters_required_mask_get (parameters_mode_t mode)
+parameters_mode_get_mask (parameters_mode_t mode)
 {
     ASSERT((uint32_t)mode < (uint32_t)PARAMETERS_MODE_COUNT);
 
@@ -526,18 +393,18 @@ parameters_required_mask_get (parameters_mode_t mode)
         return 0u;
     }
 
-    uint32_t mode_mask     = PARAMETERS_MODE_MASK(mode);
-    uint32_t required_mask = 0u;
+    uint32_t mode_mask   = PARAMETERS_MODE_MASK(mode);
+    uint32_t fields_mask = 0u;
 
     for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
     {
-        if ((parameters_fields[index].required_modes & mode_mask) != 0u)
+        if ((parameters_fields[index].modes & mode_mask) != 0u)
         {
-            required_mask |= parameters_fields[index].mask;
+            fields_mask |= parameters_fields[index].mask;
         }
     }
 
-    return required_mask;
+    return fields_mask;
 }
 
 /** @brief Get the index immediately after a token and its children. */
@@ -579,4 +446,119 @@ token_next_index_get (jsmntok_t const *tokens_data,
     *next_token_index = index;
 
     return PARSE_STATUS_OK;
+}
+
+parameters_status_t
+parameters_parse_json (parameters_t *parameters, char const *json)
+{
+    ASSERT(parameters != NULL);
+    ASSERT(json != NULL);
+
+    jsmn_parser parser;
+
+    jsmn_init(&parser);
+
+    jsmntok_t tokens_data[MAX_JSON_TOKENS];
+
+    int token_count = jsmn_parse(&parser,
+                                 json,
+                                 strlen(json),
+                                 tokens_data,
+                                 (unsigned int)MAX_JSON_TOKENS);
+
+    if (token_count < 0)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
+    }
+
+    if ((token_count < 1) || (tokens_data[0].type != JSMN_OBJECT))
+    {
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
+    }
+
+    parameters_t temp        = (parameters_t) { 0 };
+    uint32_t     fields_seen = 0u;
+    int          token_index = 1;
+
+    while ((token_index < token_count)
+           && (tokens_data[token_index].start < tokens_data[0].end))
+    {
+        token_t token = (token_t) {
+            .data = &tokens_data[token_index],
+            .json = json,
+        };
+
+        if (!token_is_valid(&token) || (token.data->type != JSMN_STRING))
+        {
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        field_spec_t const *field;
+
+        if (token_field_find(&token, &field) != PARSE_STATUS_OK)
+        {
+            return PARAMETERS_STATUS_ERR_JSON_UNKNOWN_FIELD;
+        }
+
+        token_index++;
+
+        if ((token_index >= token_count)
+            || (tokens_data[token_index].start >= tokens_data[0].end))
+        {
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        token = (token_t) {
+            .data = &tokens_data[token_index],
+            .json = json,
+        };
+
+        int next_token_index;
+
+        if (token_next_index_get(
+                tokens_data, token_count, token_index, &next_token_index)
+            != PARSE_STATUS_OK)
+        {
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        if ((fields_seen & field->mask) != 0u)
+        {
+            return PARAMETERS_STATUS_ERR_JSON_DUPLICATE_FIELD;
+        }
+
+        if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
+        {
+            return PARAMETERS_STATUS_ERR_JSON_PARSE;
+        }
+
+        fields_seen |= field->mask;
+        token_index = next_token_index;
+    }
+
+    if ((fields_seen & FIELD_MASK(MODE)) == 0u)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+    }
+
+    if ((uint32_t)temp.mode >= (uint32_t)PARAMETERS_MODE_COUNT)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
+    }
+
+    uint32_t fields = parameters_mode_get_mask(temp.mode);
+
+    if ((fields_seen & fields) != fields)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_MISSING_REQUIRED_FIELDS;
+    }
+
+    if ((fields_seen & ~fields) != 0u)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_FIELD_NOT_ALLOWED;
+    }
+
+    *parameters = temp;
+
+    return PARAMETERS_STATUS_OK_PARSED;
 }
