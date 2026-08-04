@@ -30,7 +30,7 @@ usb_init (void)
     };
     pin_t const pa25 = (pin_t) {
         .port_group=PIN_PORT_GROUP_A,
-        .number=24u,
+        .number=25u,
     };
     pin_set_cfg(&pa24, true, false, false, false);
     pin_set_cfg(&pa25, true, false, false, false);
