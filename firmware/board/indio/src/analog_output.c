@@ -26,11 +26,10 @@ static pca9555_device_t const analog_mode_expander = {
 static pca9555_cfgs_t    mode_cfgs_shadow    = MODE_CFGS_DEFAULT;
 static pca9555_outputs_t mode_outputs_shadow = MODE_OUTPUTS_DEFAULT;
 
-static analog_output_status_t
-pca9555_status_to_analog_output_status(pca9555_status_t status);
-
-static analog_output_status_t
-mcp4726_status_to_analog_output_status(mcp4726_status_t status);
+static analog_output_status_t pca9555_status_to_analog_output_status(
+    pca9555_status_t status);
+static analog_output_status_t mcp4726_status_to_analog_output_status(
+    mcp4726_status_t status);
 
 analog_output_status_t
 analog_output_configure_v10 (void)
@@ -59,8 +58,7 @@ analog_output_configure_v10 (void)
 }
 
 analog_output_status_t
-analog_output_write (
-    analog_output_channel_t const *channel, uint16_t value)
+analog_output_write (analog_output_channel_t const *channel, uint16_t value)
 {
     ASSERT(channel != NULL);
     ASSERT(value <= ANALOG_OUTPUT_MAX_VALUE);

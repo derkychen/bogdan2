@@ -25,12 +25,12 @@ usb_init (void)
 
     // USB pins (DM: PA24, DP: PA25), peripheral function G.
     pin_t const pa24 = (pin_t) {
-        .port_group=PIN_PORT_GROUP_A,
-        .number=24u,
+        .port_group = PIN_PORT_GROUP_A,
+        .number     = 24u,
     };
     pin_t const pa25 = (pin_t) {
-        .port_group=PIN_PORT_GROUP_A,
-        .number=25u,
+        .port_group = PIN_PORT_GROUP_A,
+        .number     = 25u,
     };
     pin_set_cfg(&pa24, true, false, false, false);
     pin_set_cfg(&pa25, true, false, false, false);

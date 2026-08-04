@@ -39,10 +39,10 @@ typedef struct
 } controller_t;
 
 /** @brief Initialize and configure a controller. */
-void controller_init(controller_t              *controller,
-                         pin_t const                   *trigger_in,
-                         eic_pin_t const               *trigger_out,
-                         analog_output_channel_t const *analog_in);
+void controller_init(controller_t                  *controller,
+                     pin_t const                   *trigger_in,
+                     eic_pin_t const               *trigger_out,
+                     analog_output_channel_t const *analog_in);
 
 /** @brief Return whether the stage is moving or not. */
 bool controller_get_stage_moving(controller_t const *controller);
@@ -53,8 +53,7 @@ bool controller_get_stage_moving(controller_t const *controller);
  * When called directly and not by an interrupt, this function should be setting
  * `stage_moving` to `true`.
  */
-void controller_set_stage_moving(controller_t *controller,
-                                     bool              stage_moving);
+void controller_set_stage_moving(controller_t *controller, bool stage_moving);
 
 /** @brief Disable the controller's interrupt line. */
 void controller_interrupt_disable(controller_t const *controller);
@@ -69,7 +68,7 @@ void controller_interrupt_enable(controller_t const *controller);
 void controller_pulse_trigger_in(controller_t const *controller);
 
 /** @brief Set the target of the stage through the controller Analog IN. */
-controller_status_t controller_write_analog_in(
-    controller_t const *controller, uint16_t dac_value);
+controller_status_t controller_write_analog_in(controller_t const *controller,
+                                               uint16_t            dac_value);
 
 #endif
