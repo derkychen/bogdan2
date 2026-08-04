@@ -244,7 +244,6 @@ parameters_parse_json (parameters_t *parameters, char const *json)
             return PARAMETERS_STATUS_ERR_JSON_PARSE;
         }
 
-        // Unknown fields are ignored.
         if (field != NULL)
         {
             if (token_field_set(&token, &temp, field) != PARSE_STATUS_OK)
