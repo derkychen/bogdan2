@@ -7,7 +7,7 @@
 
 assert_data_t volatile assert_data;
 
-_Noreturn void
+void
 assert_fail (char const *expression, char const *file, int line)
 {
     assert_data.expression = expression;

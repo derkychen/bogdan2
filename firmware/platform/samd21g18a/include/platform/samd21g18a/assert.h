@@ -35,7 +35,7 @@ extern assert_data_t volatile assert_data;
  * NOTE: Only the following macro that wraps this function should be
  *       invoked.This function should never be called directly.
  */
-void assert_fail(char const *expression, char const *file, int line);
+_Noreturn void assert_fail(char const *expression, char const *file, int line);
 
 // Assert only for debugging builds.
 #ifdef NDEBUG
