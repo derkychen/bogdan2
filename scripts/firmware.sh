@@ -10,10 +10,11 @@ source "$SCRIPT_DIR/lib/vars.sh"
 
 usage() {
   cat <<EOF
-Usage: $0 [-x] [-b PRESET] [-p PORT]
-  -x         Delete build directory.
-  -b PRESET  Build the firmware (PRESET can be "debug" or "release").
-  -p PORT    Flash the firmware to Industruino via a port.
+Usage: $0 -p PRESET [-x] [-b] [-c PORT]
+  -p PRESET  Preset of the firmware. Must be 'debug' or 'release'.
+  -x         Clean build directory.
+  -b         Build the firmware.
+  -c PORT    Flash the firmware to Industruino IND.I/O via a port.
 EOF
 }
 
@@ -22,48 +23,24 @@ if (($# == 0)); then
   exit 1
 fi
 
-PRESET=""
+PRESET=''
+CLEAN=false
+BUILD=false
+PORT=''
 
-while getopts "xb:p:" opt; do
+while getopts 'xbp:c:' opt; do
   case "$opt" in
+  p)
+    PRESET="$OPTARG"
+    ;;
   x)
-    rm -rf "$FIRMWARE_DIR/build"
+    CLEAN=true
     ;;
   b)
-    # Build firmware and optimize for speed, symlink compile commands for `clangd`.
-    cd "$FIRMWARE_DIR"
-
-    PRESET="$OPTARG"
-    case "$PRESET" in
-    debug)
-      cmake --preset samd21g18a-debug
-      cmake --build --preset samd21g18a-debug
-
-      ln -sfn build/samd21g18a-debug/compile_commands.json compile_commands.json
-      ;;
-    release)
-      cmake --preset samd21g18a-release
-      cmake --build --preset samd21g18a-release
-
-      ln -sfn build/samd21g18a-release/compile_commands.json compile_commands.json
-      ;;
-    *)
-      usage
-      exit 1
-      ;;
-    esac
-
+    BUILD=true
     ;;
-  p)
-    bossac \
-      --debug \
-      --port="$OPTARG" \
-      --offset=0x4000 \
-      --erase \
-      --write \
-      --verify \
-      --reset \
-      "$FIRMWARE_DIR/build/samd21g18a-$PRESET/firmware.bin"
+  c)
+    PORT="$OPTARG"
     ;;
   *)
     usage
@@ -71,3 +48,63 @@ while getopts "xb:p:" opt; do
     ;;
   esac
 done
+
+shift "$((OPTIND - 1))"
+
+if (($# > 0)); then
+  printf 'Error: Unexpected argument: %s\n' "$1" >&2
+  usage >&2
+  exit 1
+fi
+
+# Check preset validity.
+if [[ "$PRESET" != 'debug' && "$PRESET" != 'release' ]]; then
+  printf 'Error: Invalid preset: %s\n' "$PRESET" >&2
+  usage >&2
+  exit 1
+fi
+
+readonly PRESET_BUILD_DIR="$FIRMWARE_DIR/build/samd21g18a-$PRESET"
+
+# Check that an action was provided.
+if [[ "$CLEAN" == false && "$BUILD" == false && "$PORT" == '' ]]; then
+  printf 'Error: No actions were provided.' >&2
+  usage >&2
+  exit 1
+fi
+
+# Optionally clean the build directory.
+if [[ "$CLEAN" == true ]]; then
+  rm -rf "$PRESET_BUILD_DIR"
+fi
+
+# Optionally build firmware for debugging or release; symlink compile commands
+# for `clangd`.
+if [[ "$BUILD" == true ]]; then
+  readonly CMAKE_PRESET="samd21g18a-$PRESET"
+
+  cmake -S "$FIRMWARE_DIR" --preset "$CMAKE_PRESET"
+  cmake --build "$PRESET_BUILD_DIR"
+
+  ln -sfn "$PRESET_BUILD_DIR"/compile_commands.json "$FIRMWARE_DIR"/compile_commands.json
+fi
+
+# Optionally flash firmware to a port.
+if [[ -n "$PORT" ]]; then
+  readonly BINARY_PATH="$PRESET_BUILD_DIR/firmware.bin"
+
+  if [[ ! -f "$BINARY_PATH" ]]; then
+    printf 'Error: Binary does not exist: %s\n' "$BINARY_PATH" >&2
+    exit 1
+  fi
+
+  bossac \
+    --debug \
+    --port="$PORT" \
+    --offset=0x4000 \
+    --erase \
+    --write \
+    --verify \
+    --reset \
+    "$BINARY_PATH"
+fi
