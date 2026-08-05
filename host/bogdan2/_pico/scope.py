@@ -62,7 +62,7 @@ class Scope:
 
     def get_pretrigger_ns(self) -> int:
         """Get the pre-trigger sample interval of the PicoScope."""
-        return self._posttrigger_samples * self._sample_interval_ns
+        return self._pretrigger_samples * self._sample_interval_ns
 
     def get_posttrigger_ns(self) -> int:
         """Get the post-trigger sample interval of the PicoScope."""
