@@ -149,304 +149,25 @@ static field_spec_t const parameters_fields[]
 _Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
                "Instruction field table is incomplete");
 
-/** @brief Check that a token is valid. */
-static bool
-token_is_valid (token_t const *token)
-{
-    ASSERT(token != NULL);
-
-    if (token == NULL)
-    {
-        return false;
-    }
-
-    ASSERT(token->data != NULL);
-    ASSERT(token->json != NULL);
-
-    // Check for garbage token data.
-    if ((token->data == NULL) || (token->json == NULL)
-        || (token->data->start < 0) || (token->data->end < token->data->start))
-    {
-        return false;
-    }
-
-    return true;
-}
-
-/** @brief Check whether a token's text equals a string. */
-static bool
-token_text_equals_str (token_t const *token, char const *string)
-{
-    ASSERT(string != NULL);
-
-    if (!token_is_valid(token) || (string == NULL))
-    {
-        return false;
-    }
-
-    if (token->data->type != JSMN_STRING)
-    {
-        return false;
-    }
-
-    size_t token_length  = (size_t)(token->data->end - token->data->start);
-    size_t string_length = strlen(string);
-
-    if (token_length != string_length)
-    {
-        return false;
-    }
-
-    return (strncmp(&token->json[token->data->start], string, token_length)
-            == 0);
-}
-
-/** @brief Copy a token into a buffer. */
-static parse_status_t
-token_copy (token_t const *token, char *buffer, size_t buffer_size)
-{
-    ASSERT(buffer != NULL);
-    ASSERT(buffer_size > 0u);
-
-    if (!token_is_valid(token) || (buffer == NULL) || (buffer_size == 0u))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    size_t token_length = (size_t)(token->data->end - token->data->start);
-
-    if (token_length >= buffer_size)
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    memcpy(buffer, &token->json[token->data->start], token_length);
-    buffer[token_length] = '\0';
-
-    return PARSE_STATUS_OK;
-}
-
-/** @brief Parse a token into a mode. */
-static parse_status_t
-token_parse_mode (token_t const *token, parameters_mode_t *value)
-{
-    ASSERT(token != NULL);
-    ASSERT(value != NULL);
-
-    if (!token_is_valid(token) || (value == NULL)
-        || (token->data->type != JSMN_STRING))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-#define TOKEN_PARSE_MODE(json_name, mode_value)  \
-    if (token_text_equals_str(token, json_name)) \
-    {                                            \
-        *value = mode_value;                     \
-        return PARSE_STATUS_OK;                  \
-    }
-
-    PARAMETERS_MODE_LIST(TOKEN_PARSE_MODE)
-
-#undef TOKEN_PARSE_MODE
-
-    return PARSE_STATUS_ERR;
-}
-
-/** @brief Parse a token into an integer. */
-static parse_status_t
-token_parse_int (token_t const *token, int *value)
-{
-    ASSERT(token != NULL);
-    ASSERT(value != NULL);
-
-    if (!token_is_valid(token) || (value == NULL)
-        || (token->data->type != JSMN_PRIMITIVE))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    char buffer[24];
-
-    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    errno = 0;
-
-    char    *end;
-    intmax_t parsed = strtoimax(buffer, &end, 10);
-
-    if ((errno != 0) || (end == buffer) || (*end != '\0') || (parsed < INT_MIN)
-        || (parsed > INT_MAX))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    *value = (int)parsed;
-
-    return PARSE_STATUS_OK;
-}
-
-/** @brief Parse a token into a `uint32_t`. */
-static parse_status_t
-token_parse_uint32 (token_t const *token, uint32_t *value)
-{
-    ASSERT(token != NULL);
-    ASSERT(value != NULL);
-
-    if (!token_is_valid(token) || (value == NULL)
-        || (token->data->type != JSMN_PRIMITIVE))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    char buffer[24];
-
-    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    if (buffer[0] == '-')
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    errno = 0;
-
-    char *end;
-
-    uintmax_t parsed = strtoumax(buffer, &end, 10);
-
-    if ((errno != 0) || (end == buffer) || (*end != '\0')
-        || (parsed > UINT32_MAX))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    *value = (uint32_t)parsed;
-
-    return PARSE_STATUS_OK;
-}
-
-static parse_status_t
-token_field_find (token_t const *token, field_spec_t const **field)
-{
-    ASSERT(token != NULL);
-    ASSERT(field != NULL);
-
-    *field = NULL;
-
-    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
-    {
-        if (token_text_equals_str(token, parameters_fields[index].name))
-        {
-            *field = &parameters_fields[index];
-            return PARSE_STATUS_OK;
-        }
-    }
-
-    return PARSE_STATUS_ERR;
-}
-
-static parse_status_t
-token_field_set (token_t const      *token,
-                 parameters_t       *parameters,
-                 field_spec_t const *field)
-{
-    ASSERT(parameters != NULL);
-    ASSERT(field != NULL);
-
-    if ((parameters == NULL) || (field == NULL))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    char *target = ((char *)parameters) + field->offset;
-
-    switch (field->type)
-    {
-        case FIELD_TYPE_MODE:
-            return token_parse_mode(token, (parameters_mode_t *)target);
-
-        case FIELD_TYPE_INT:
-            return token_parse_int(token, (int *)target);
-
-        case FIELD_TYPE_UINT32:
-            return token_parse_uint32(token, (uint32_t *)target);
-
-        default:
-            return PARSE_STATUS_ERR;
-    }
-}
-
-/** @brief Get the field mask for a mode. */
-static uint32_t
-parameters_mode_get_mask (parameters_mode_t mode)
-{
-    ASSERT((uint32_t)mode < (uint32_t)PARAMETERS_MODE_COUNT);
-
-    if ((uint32_t)mode >= (uint32_t)PARAMETERS_MODE_COUNT)
-    {
-        return 0u;
-    }
-
-    uint32_t mode_mask   = PARAMETERS_MODE_MASK(mode);
-    uint32_t fields_mask = 0u;
-
-    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
-    {
-        if ((parameters_fields[index].modes & mode_mask) != 0u)
-        {
-            fields_mask |= parameters_fields[index].mask;
-        }
-    }
-
-    return fields_mask;
-}
-
-/** @brief Get the index immediately after a token and its children. */
-static parse_status_t
-token_next_index_get (jsmntok_t const *tokens_data,
-                      int              token_count,
-                      int              token_index,
-                      int             *next_token_index)
-{
-    ASSERT(tokens_data != NULL);
-    ASSERT(next_token_index != NULL);
-
-    if ((tokens_data == NULL) || (next_token_index == NULL) || (token_index < 0)
-        || (token_index >= token_count))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    if ((tokens_data[token_index].start < 0)
-        || (tokens_data[token_index].end < tokens_data[token_index].start))
-    {
-        return PARSE_STATUS_ERR;
-    }
-
-    int token_end = tokens_data[token_index].end;
-    int index     = token_index + 1;
-
-    while ((index < token_count) && (tokens_data[index].start < token_end))
-    {
-        if ((tokens_data[index].start < 0)
-            || (tokens_data[index].end < tokens_data[index].start))
-        {
-            return PARSE_STATUS_ERR;
-        }
-
-        index++;
-    }
-
-    *next_token_index = index;
-
-    return PARSE_STATUS_OK;
-}
+static bool token_is_valid(token_t const *token);
+static bool token_text_equals_str(token_t const *token, char const *string);
+static parse_status_t token_copy(token_t const *token,
+                                 char          *buffer,
+                                 size_t         buffer_size);
+static parse_status_t token_parse_mode(token_t const     *token,
+                                       parameters_mode_t *value);
+static parse_status_t token_parse_int(token_t const *token, int *value);
+static parse_status_t token_parse_uint32(token_t const *token, uint32_t *value);
+static parse_status_t token_field_find(token_t const       *token,
+                                       field_spec_t const **field);
+static parse_status_t token_field_set(token_t const      *token,
+                                      parameters_t       *parameters,
+                                      field_spec_t const *field);
+static parse_status_t token_next_index_get(jsmntok_t const *tokens_data,
+                                           int              token_count,
+                                           int              token_index,
+                                           int             *next_token_index);
+static uint32_t       mode_get_mask(parameters_mode_t mode);
 
 parameters_status_t
 parameters_parse_json (parameters_t *parameters, char const *json)
@@ -472,6 +193,19 @@ parameters_parse_json (parameters_t *parameters, char const *json)
     }
 
     if ((token_count < 1) || (tokens_data[0].type != JSMN_OBJECT))
+    {
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
+    }
+
+    int root_next_index;
+
+    if (token_next_index_get(tokens_data, token_count, 0, &root_next_index)
+        != PARSE_STATUS_OK)
+    {
+        return PARAMETERS_STATUS_ERR_JSON_PARSE;
+    }
+
+    if (root_next_index != token_count)
     {
         return PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
@@ -546,7 +280,7 @@ parameters_parse_json (parameters_t *parameters, char const *json)
         return PARAMETERS_STATUS_ERR_JSON_PARSE;
     }
 
-    uint32_t fields = parameters_mode_get_mask(temp.mode);
+    uint32_t fields = mode_get_mask(temp.mode);
 
     if ((fields_seen & fields) != fields)
     {
@@ -561,4 +295,283 @@ parameters_parse_json (parameters_t *parameters, char const *json)
     *parameters = temp;
 
     return PARAMETERS_STATUS_OK_PARSED;
+}
+
+/** @brief Check that a token is valid. */
+static bool
+token_is_valid (token_t const *token)
+{
+    ASSERT(token != NULL);
+    ASSERT(token->data != NULL);
+    ASSERT(token->json != NULL);
+
+    // Check for garbage token data.
+    if ((token->data->start < 0) || (token->data->end < token->data->start))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/** @brief Check whether a token's text equals a string. */
+static bool
+token_text_equals_str (token_t const *token, char const *string)
+{
+    ASSERT(string != NULL);
+
+    if (!token_is_valid(token))
+    {
+        return false;
+    }
+
+    if (token->data->type != JSMN_STRING)
+    {
+        return false;
+    }
+
+    size_t token_length  = (size_t)(token->data->end - token->data->start);
+    size_t string_length = strlen(string);
+
+    if (token_length != string_length)
+    {
+        return false;
+    }
+
+    return (strncmp(&token->json[token->data->start], string, token_length)
+            == 0);
+}
+
+/** @brief Copy a token into a buffer. */
+static parse_status_t
+token_copy (token_t const *token, char *buffer, size_t buffer_size)
+{
+    ASSERT(buffer != NULL);
+    ASSERT(buffer_size > 0u);
+
+    if (!token_is_valid(token))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    size_t token_length = (size_t)(token->data->end - token->data->start);
+
+    if (token_length >= buffer_size)
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    memcpy(buffer, &token->json[token->data->start], token_length);
+    buffer[token_length] = '\0';
+
+    return PARSE_STATUS_OK;
+}
+
+/** @brief Parse a token into a mode. */
+static parse_status_t
+token_parse_mode (token_t const *token, parameters_mode_t *value)
+{
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
+
+    if (!token_is_valid(token) || (token->data->type != JSMN_STRING))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+#define TOKEN_PARSE_MODE(json_name, mode_value)  \
+    if (token_text_equals_str(token, json_name)) \
+    {                                            \
+        *value = mode_value;                     \
+        return PARSE_STATUS_OK;                  \
+    }
+
+    PARAMETERS_MODE_LIST(TOKEN_PARSE_MODE)
+
+#undef TOKEN_PARSE_MODE
+
+    return PARSE_STATUS_ERR;
+}
+
+/** @brief Parse a token into an integer. */
+static parse_status_t
+token_parse_int (token_t const *token, int *value)
+{
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
+
+    if (!token_is_valid(token) || (token->data->type != JSMN_PRIMITIVE))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    char buffer[24];
+
+    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    errno = 0;
+
+    char    *end;
+    intmax_t parsed = strtoimax(buffer, &end, 10);
+
+    if ((errno != 0) || (end == buffer) || (*end != '\0') || (parsed < INT_MIN)
+        || (parsed > INT_MAX))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    *value = (int)parsed;
+
+    return PARSE_STATUS_OK;
+}
+
+/** @brief Parse a token into a `uint32_t`. */
+static parse_status_t
+token_parse_uint32 (token_t const *token, uint32_t *value)
+{
+    ASSERT(token != NULL);
+    ASSERT(value != NULL);
+
+    if (!token_is_valid(token) || (token->data->type != JSMN_PRIMITIVE))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    char buffer[24];
+
+    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    if (buffer[0] == '-')
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    errno = 0;
+
+    char *end;
+
+    uintmax_t parsed = strtoumax(buffer, &end, 10);
+
+    if ((errno != 0) || (end == buffer) || (*end != '\0')
+        || (parsed > UINT32_MAX))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    *value = (uint32_t)parsed;
+
+    return PARSE_STATUS_OK;
+}
+
+static parse_status_t
+token_field_find (token_t const *token, field_spec_t const **field)
+{
+    ASSERT(token != NULL);
+    ASSERT(field != NULL);
+
+    *field = NULL;
+
+    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
+    {
+        if (token_text_equals_str(token, parameters_fields[index].name))
+        {
+            *field = &parameters_fields[index];
+            return PARSE_STATUS_OK;
+        }
+    }
+
+    return PARSE_STATUS_ERR;
+}
+
+static parse_status_t
+token_field_set (token_t const      *token,
+                 parameters_t       *parameters,
+                 field_spec_t const *field)
+{
+    ASSERT(parameters != NULL);
+    ASSERT(field != NULL);
+
+    char *target = ((char *)parameters) + field->offset;
+
+    switch (field->type)
+    {
+        case FIELD_TYPE_MODE:
+            return token_parse_mode(token, (parameters_mode_t *)target);
+
+        case FIELD_TYPE_INT:
+            return token_parse_int(token, (int *)target);
+
+        case FIELD_TYPE_UINT32:
+            return token_parse_uint32(token, (uint32_t *)target);
+
+        default:
+            ASSERT(false);
+            return PARSE_STATUS_ERR;
+    }
+}
+
+/** @brief Get the index immediately after a token and its children. */
+static parse_status_t
+token_next_index_get (jsmntok_t const *tokens_data,
+                      int              token_count,
+                      int              token_index,
+                      int             *next_token_index)
+{
+    ASSERT(tokens_data != NULL);
+    ASSERT(next_token_index != NULL);
+
+    if ((token_index < 0) || (token_index >= token_count))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    if ((tokens_data[token_index].start < 0)
+        || (tokens_data[token_index].end < tokens_data[token_index].start))
+    {
+        return PARSE_STATUS_ERR;
+    }
+
+    int token_end = tokens_data[token_index].end;
+    int index     = token_index + 1;
+
+    while ((index < token_count) && (tokens_data[index].start < token_end))
+    {
+        if ((tokens_data[index].start < 0)
+            || (tokens_data[index].end < tokens_data[index].start))
+        {
+            return PARSE_STATUS_ERR;
+        }
+
+        index++;
+    }
+
+    *next_token_index = index;
+
+    return PARSE_STATUS_OK;
+}
+
+/** @brief Get the field mask for a mode. */
+static uint32_t
+mode_get_mask (parameters_mode_t mode)
+{
+    ASSERT((uint32_t)mode < (uint32_t)PARAMETERS_MODE_COUNT);
+
+    uint32_t mode_mask   = PARAMETERS_MODE_MASK(mode);
+    uint32_t fields_mask = 0u;
+
+    for (size_t index = 0u; index < ARRAY_COUNT(parameters_fields); index++)
+    {
+        if ((parameters_fields[index].modes & mode_mask) != 0u)
+        {
+            fields_mask |= parameters_fields[index].mask;
+        }
+    }
+
+    return fields_mask;
 }
