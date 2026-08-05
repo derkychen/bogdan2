@@ -85,9 +85,8 @@ serial_write_line (char const *message)
         return SERIAL_STATUS_ERR_DISCONNECTED;
     }
 
-    size_t message_size = strlen(message);
-
-    uint32_t written = tud_cdc_write(message, message_size);
+    size_t   message_size = strlen(message);
+    uint32_t written      = tud_cdc_write(message, message_size);
 
     if (written != message_size)
     {

@@ -21,9 +21,6 @@ axis_init (axis_t       *axis,
            int           origin_nm,
            controller_t *controller)
 {
-    int min_nm;
-    int max_nm;
-
     ASSERT(axis != NULL);
     ASSERT(controller != NULL);
 
@@ -57,8 +54,8 @@ axis_init (axis_t       *axis,
         return AXIS_STATUS_INIT_ERR_ORIGIN_OUTSIDE_RANGE;
     }
 
-    min_nm = origin_nm + (min * (int)unit_nm);
-    max_nm = origin_nm + (max * (int)unit_nm);
+    int min_nm = origin_nm + (min * (int)unit_nm);
+    int max_nm = origin_nm + (max * (int)unit_nm);
 
     if (min_nm <= STAGE_RANGE_MIN_NM || min_nm >= STAGE_RANGE_MAX_NM
         || max_nm <= STAGE_RANGE_MIN_NM || max_nm >= STAGE_RANGE_MAX_NM)
@@ -95,18 +92,15 @@ axis_num_points (const axis_t *axis)
 axis_status_t
 axis_set_target (axis_t *axis, int target)
 {
-    uint16_t value;
-    int      target_nm;
-
     ASSERT(axis != NULL);
     ASSERT(target >= axis->min && target <= axis->max);
 
-    target_nm = target * (int)axis->unit_nm + axis->origin_nm;
+    int target_nm = target * (int)axis->unit_nm + axis->origin_nm;
 
     // Calculate the analog value of the coordinate.
-    value = (uint16_t)((((uint64_t)(target_nm - STAGE_RANGE_MIN_NM))
-                        * ANALOG_OUTPUT_MAX_VALUE)
-                       / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
+    uint16_t value = (uint16_t)((((uint64_t)(target_nm - STAGE_RANGE_MIN_NM))
+                                 * ANALOG_OUTPUT_MAX_VALUE)
+                                / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
 
     if (controller_write_analog_in(axis->controller, value)
         != CONTROLLER_STATUS_ANALOG_IN_OK)

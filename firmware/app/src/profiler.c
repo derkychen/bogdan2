@@ -123,9 +123,6 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
 
     for (size_t i = 0; i < path_size; i++)
     {
-        uint32_t start_msec;
-        uint32_t start_usec;
-
         if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
             || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
         {
@@ -139,7 +136,7 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         axis_move_start(&x);
         axis_move_start(&y);
 
-        start_msec = time_msec();
+        uint32_t start_msec = time_msec();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
@@ -175,7 +172,7 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         relay_count_end(profiler->relay);
         relay_pulser_event_end(profiler->relay);
 
-        start_usec = time_usec();
+        uint32_t start_usec = time_usec();
 
         while (time_usec() - start_usec < parameters->posttrigger_time_us)
         {
@@ -245,9 +242,6 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
 
     for (size_t i = 0; i < path_size; i++)
     {
-        uint32_t start_msec;
-        uint32_t start_usec;
-
         if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
             || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
         {
@@ -261,7 +255,7 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
         axis_move_start(&x);
         axis_move_start(&y);
 
-        start_msec = time_msec();
+        uint32_t start_msec = time_msec();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
@@ -279,7 +273,7 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
 
         relay_pulser_retrigger(profiler->relay);
 
-        start_usec = time_usec();
+        uint32_t start_usec = time_usec();
 
         while (time_usec() - start_usec < parameters->wait_time_us)
         {
@@ -346,8 +340,6 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
 
     for (size_t i = 0; i < path_size; i++)
     {
-        uint32_t start_msec;
-
         if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
             || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
         {
@@ -361,7 +353,7 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
         axis_move_start(&x);
         axis_move_start(&y);
 
-        start_msec = time_msec();
+        uint32_t start_msec = time_msec();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
