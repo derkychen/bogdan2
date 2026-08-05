@@ -1,8 +1,8 @@
 add_library(cmsis_atmel_samd21g18a INTERFACE)
 
 target_include_directories(cmsis_atmel_samd21g18a SYSTEM INTERFACE
-  "${EXTERNAL_DIR}/cmsis-atmel/CMSIS-Atmel/CMSIS/Device/ATMEL"
-  "${EXTERNAL_DIR}/cmsis-atmel/CMSIS-Atmel/CMSIS/Device/ATMEL/samd21/include"
+  "${cmsis_atmel_SOURCE_DIR}/CMSIS-Atmel/CMSIS/Device/ATMEL"
+  "${cmsis_atmel_SOURCE_DIR}/CMSIS-Atmel/CMSIS/Device/ATMEL/samd21/include"
 )
 
 target_compile_definitions(cmsis_atmel_samd21g18a INTERFACE
