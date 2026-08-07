@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Install and update dependencies of the project.
+# Synchronize dependencies of the project.
 
 set -euo pipefail
 
