@@ -1,6 +1,6 @@
-add_library(warnings INTERFACE)
+add_library(project_warnings INTERFACE)
 
-target_compile_options(warnings INTERFACE
+target_compile_options(project_warnings INTERFACE
   -Wall
   -Wconversion
   -Wdouble-promotion
@@ -11,5 +11,3 @@ target_compile_options(warnings INTERFACE
   -Wswitch-enum
   -Wunused-but-set-variable
 )
-
-add_library(options::warnings ALIAS warnings)

@@ -20,10 +20,10 @@ target_include_directories(platform_samd21g18a PUBLIC
 
 target_link_libraries(platform_samd21g18a
   PRIVATE
-    mcu::samd21g18a
-    options::features
-    options::warnings
-    external::tinyusb_device_samd
+    mcu_samd21g18a
+    project_build_options
+    project_warnings
+    tinyusb_device_samd
   PUBLIC
-    external::cmsis_atmel_samd21g18a
+    cmsis_atmel_samd21g18a
 )

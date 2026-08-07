@@ -6,7 +6,7 @@
 			"displayName": "SAMD21G18A Debug Bootloader",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/samd21g18a-debug",
-			"toolchainFile": "${sourceDir}/cmake/toolchain_arm_none_eabi.cmake",
+			"toolchainFile": "${sourceDir}/cmake/toolchains/arm-none-eabi.cmake",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug"
 			}
@@ -16,7 +16,7 @@
 			"displayName": "SAMD21G18A Release Bootloader",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/samd21g18a-release",
-			"toolchainFile": "${sourceDir}/cmake/toolchain_arm_none_eabi.cmake",
+			"toolchainFile": "${sourceDir}/cmake/toolchains/arm-none-eabi.cmake",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release"
 			}

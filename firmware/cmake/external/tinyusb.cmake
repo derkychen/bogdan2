@@ -14,11 +14,9 @@ target_include_directories(tinyusb_device_samd SYSTEM PUBLIC
 
 target_link_libraries(tinyusb_device_samd
   PRIVATE
-    mcu::samd21g18a
-    options::features
+    mcu_samd21g18a
+    project_build_options
   PUBLIC
     usb
-    external::cmsis_atmel_samd21g18a
+    cmsis_atmel_samd21g18a
 )
-
-add_library(external::tinyusb_device_samd ALIAS tinyusb_device_samd)

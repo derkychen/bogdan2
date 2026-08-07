@@ -11,9 +11,9 @@ target_include_directories(board_indio PUBLIC
 
 target_link_libraries(board_indio
   PRIVATE
-    mcu::samd21g18a
-    options::features
-    options::warnings
+    mcu_samd21g18a
+    project_build_options
+    project_warnings
   PUBLIC
     drivers
     platform_samd21g18a

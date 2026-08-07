@@ -19,21 +19,21 @@ set(DRIVERS_DIR "${PROJECT_SOURCE_DIR}/drivers")
 set(PLATFORM_SAMD21G18A_DIR "${PROJECT_SOURCE_DIR}/platform/samd21g18a")
 set(USB_DIR "${PROJECT_SOURCE_DIR}/usb")
 
-# CMake options (features and warnings).
-include("${CMAKE_DIR}/options/features.cmake")
+# CMake options (build options and warnings).
+include("${CMAKE_DIR}/options/build.cmake")
 include("${CMAKE_DIR}/options/warnings.cmake")
 
 # CMake microcontroller-specific options.
 include("${CMAKE_DIR}/mcu/samd21g18a.cmake")
 
 # Download and populate dependency sources.
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Dependencies.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies.cmake")
 
 # CMake wrappers for all external modules.
-include("${CMAKE_DIR}/external/cmsis_atmel_samd21g18a.cmake")
-include("${CMAKE_DIR}/external/cmsis_core.cmake")
+include("${CMAKE_DIR}/external/cmsis_6.cmake")
+include("${CMAKE_DIR}/external/cmsis_atmel.cmake")
 include("${CMAKE_DIR}/external/jsmn.cmake")
-include("${CMAKE_DIR}/external/tinyusb_device_samd.cmake")
+include("${CMAKE_DIR}/external/tinyusb.cmake")
 
 # Other directories.
 add_subdirectory("${APP_DIR}")
@@ -43,41 +43,49 @@ add_subdirectory("${PLATFORM_SAMD21G18A_DIR}")
 add_subdirectory("${USB_DIR}")
 
 # Target.
-set(TARGET_NAME firmware.elf)
-add_executable("${TARGET_NAME}")
+add_executable(firmware.elf)
 
-target_sources("${TARGET_NAME}" PRIVATE
+target_sources(firmware.elf PRIVATE
   "${PLATFORM_SAMD21G18A_DIR}/src/startup.c"
 )
 
-target_link_libraries("${TARGET_NAME}" PRIVATE
+target_link_libraries(firmware.elf PRIVATE
   app
   board_indio
   cmsis_atmel_samd21g18a
   cmsis_core
   drivers
-  mcu::samd21g18a
+  mcu_samd21g18a
   platform_samd21g18a
 )
 
-set(SAMD21G18A_LINKER_SCRIPT_PATH
-  "${PLATFORM_SAMD21G18A_DIR}/linker/samd21g18a_bootloader_0x4000.ld"
-)
+set(LINKER_SCRIPT_PATH "${BOARD_INDIO_DIR}/linker.ld")
 
-target_link_options(${TARGET_NAME} PRIVATE
-  "LINKER:-T,${SAMD21G18A_LINKER_SCRIPT_PATH}"
+target_link_options(firmware.elf PRIVATE
+  -nostartfiles
+  --specs=nano.specs
+  --specs=nosys.specs
+  "LINKER:-T,${LINKER_SCRIPT_PATH}"
+  "LINKER:--gc-sections"
+  "LINKER:--orphan-handling=warn"
   "LINKER:-Map,${CMAKE_CURRENT_BINARY_DIR}/firmware.map"
   "LINKER:--print-memory-usage"
 )
 
 add_custom_command(
-  TARGET ${TARGET_NAME}
-  POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${TARGET_NAME}> firmware.bin
-  COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${TARGET_NAME}> firmware.hex
-  COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET_NAME}>
-  BYPRODUCTS
-    firmware.bin
-    firmware.hex
-    firmware.map
+    TARGET firmware.elf
+    POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY}
+        -O binary
+        $<TARGET_FILE:firmware.elf>
+        "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
+    COMMAND ${CMAKE_OBJCOPY}
+        -O ihex
+        $<TARGET_FILE:firmware.elf>
+        "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
+    COMMAND ${CMAKE_SIZE}
+        $<TARGET_FILE:firmware.elf>
+    BYPRODUCTS
+        "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
+        "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
 )

@@ -8,9 +8,9 @@ target_include_directories(usb PUBLIC
 
 target_link_libraries(usb
   PRIVATE
-    mcu::samd21g18a
-    options::features
-    options::warnings
+    mcu_samd21g18a
+    project_build_options
+    project_warnings
   PUBLIC
-    external::tinyusb_device_samd
+    tinyusb_device_samd
 )

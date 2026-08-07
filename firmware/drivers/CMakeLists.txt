@@ -11,9 +11,9 @@ target_include_directories(drivers PUBLIC
 
 target_link_libraries(drivers
   PRIVATE
-    mcu::samd21g18a
-    options::features
-    options::warnings
+    mcu_samd21g18a
+    project_build_options
+    project_warnings
   PUBLIC
     platform_samd21g18a
 )

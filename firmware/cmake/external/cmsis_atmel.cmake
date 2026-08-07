@@ -10,7 +10,5 @@ target_compile_definitions(cmsis_atmel_samd21g18a INTERFACE
 )
 
 target_link_libraries(cmsis_atmel_samd21g18a INTERFACE
-  external::cmsis_core
+  cmsis_core
 )
-
-add_library(external::cmsis_atmel_samd21g18a ALIAS cmsis_atmel_samd21g18a)

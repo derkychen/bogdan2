@@ -17,12 +17,12 @@ target_include_directories(app PRIVATE
 
 target_link_libraries(app
   PRIVATE
-    mcu::samd21g18a
-    options::features
-    options::warnings
+    mcu_samd21g18a
+    project_build_options
+    project_warnings
   PUBLIC
     board_indio
-    external::jsmn
-    external::tinyusb_device_samd
+    jsmn
     platform_samd21g18a
+    tinyusb_device_samd
 )
