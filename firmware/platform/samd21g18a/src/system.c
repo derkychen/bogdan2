@@ -124,8 +124,8 @@ set_number_of_wait_states_48_mhz (void)
 static void
 xosc32k_start_and_enable (void)
 {
-    // TODO: Currently using the longest start-up time option (~4 s). Switch to
-    // a shorter one once tested.
+    // Uses the longest start-up time option (~4 s) to be conservative. This is
+    // okay, because boot time is not important.
     SYSCTRL->XOSC32K.reg = SYSCTRL_XOSC32K_STARTUP(XOSC32K_STARTUP_CYCLE131072)
                            | SYSCTRL_XOSC32K_EN32K | SYSCTRL_XOSC32K_XTALEN;
 

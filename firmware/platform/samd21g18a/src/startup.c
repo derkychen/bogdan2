@@ -37,9 +37,6 @@ void Dummy_Handler(void);
 //
 // NOTE: Weak wrappers were used instead of aliases due aliases not being
 //       supported on Darwin (macOS).
-//
-// TODO: Switch to aliases if Darwin support is deemed not needed to optimize
-//       binary size. This will be likely when rapid development has ended.
 #if 0
 // CORTEX-M0+ handlers.
 void NMI_Handler(void) __attribute__((weak, alias("Dummy_Handler")));
