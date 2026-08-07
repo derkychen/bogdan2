@@ -11,7 +11,7 @@
 #define UNIT_MAX_NM        (1000000u)
 #define STAGE_RANGE_MIN_NM (-6000000)
 #define STAGE_RANGE_MAX_NM (6000000)
-#define STAGE_TOLERANCE_NM (300u)
+#define STAGE_MIN_STEP_NM  (300u)
 
 axis_status_t
 axis_init (axis_t       *axis,
@@ -26,32 +26,32 @@ axis_init (axis_t       *axis,
 
     if (min < MIN_MIN)
     {
-        return AXIS_STATUS_INIT_ERR_MIN_TOO_SMALL;
+        return AXIS_STATUS_ERR_MIN_TOO_SMALL;
     }
 
     if (max > MAX_MAX)
     {
-        return AXIS_STATUS_INIT_ERR_MAX_TOO_LARGE;
+        return AXIS_STATUS_ERR_MAX_TOO_LARGE;
     }
 
     if (min > max)
     {
-        return AXIS_STATUS_INIT_ERR_MIN_GREATER_THAN_MAX;
+        return AXIS_STATUS_ERR_MIN_GREATER_THAN_MAX;
     }
 
-    if (unit_nm < STAGE_TOLERANCE_NM)
+    if (unit_nm < STAGE_MIN_STEP_NM)
     {
-        return AXIS_STATUS_INIT_ERR_UNIT_SMALLER_THAN_TOLERANCE;
+        return AXIS_STATUS_ERR_UNIT_SMALLER_THAN_MIN_STEP;
     }
 
     if (unit_nm > UNIT_MAX_NM)
     {
-        return AXIS_STATUS_INIT_ERR_UNIT_TOO_LARGE;
+        return AXIS_STATUS_ERR_UNIT_TOO_LARGE;
     }
 
     if (origin_nm < STAGE_RANGE_MIN_NM || origin_nm > STAGE_RANGE_MAX_NM)
     {
-        return AXIS_STATUS_INIT_ERR_ORIGIN_OUTSIDE_RANGE;
+        return AXIS_STATUS_ERR_ORIGIN_OUTSIDE_RANGE;
     }
 
     int min_nm = origin_nm + (min * (int)unit_nm);
@@ -60,7 +60,7 @@ axis_init (axis_t       *axis,
     if (min_nm <= STAGE_RANGE_MIN_NM || min_nm >= STAGE_RANGE_MAX_NM
         || max_nm <= STAGE_RANGE_MIN_NM || max_nm >= STAGE_RANGE_MAX_NM)
     {
-        return AXIS_STATUS_INIT_ERR_BOUNDS_OUTSIDE_RANGE;
+        return AXIS_STATUS_ERR_BOUNDS_OUTSIDE_RANGE;
     }
 
     axis->min        = min;
@@ -69,7 +69,7 @@ axis_init (axis_t       *axis,
     axis->origin_nm  = origin_nm;
     axis->controller = controller;
 
-    return AXIS_STATUS_INIT_OK;
+    return AXIS_STATUS_OK;
 }
 
 bool
@@ -79,14 +79,6 @@ axis_get_stage_moving (axis_t const *axis)
     ASSERT(axis->controller != NULL);
 
     return controller_get_stage_moving(axis->controller);
-}
-
-size_t
-axis_num_points (const axis_t *axis)
-{
-    ASSERT(axis != NULL);
-
-    return (size_t)(axis->max - axis->min) + 1u;
 }
 
 axis_status_t
@@ -105,10 +97,10 @@ axis_set_target (axis_t *axis, int target)
     if (controller_write_analog_in(axis->controller, value)
         != CONTROLLER_STATUS_ANALOG_IN_OK)
     {
-        return AXIS_STATUS_TARGET_ERR_CONTROLLER;
+        return AXIS_STATUS_ERR_CONTROLLER;
     }
 
-    return AXIS_STATUS_TARGET_OK;
+    return AXIS_STATUS_OK;
 }
 
 void

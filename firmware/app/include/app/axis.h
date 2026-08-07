@@ -11,22 +11,20 @@
 #define APP_AXIS_H
 
 #include "app/controller.h"
-#include <stddef.h>
 #include <stdint.h>
 
 /** @brief Axis status codes. */
 typedef enum
 {
-    AXIS_STATUS_INIT_OK = 0,
-    AXIS_STATUS_TARGET_OK,
-    AXIS_STATUS_INIT_ERR_MIN_TOO_SMALL,
-    AXIS_STATUS_INIT_ERR_MIN_GREATER_THAN_MAX,
-    AXIS_STATUS_INIT_ERR_MAX_TOO_LARGE,
-    AXIS_STATUS_INIT_ERR_UNIT_SMALLER_THAN_TOLERANCE,
-    AXIS_STATUS_INIT_ERR_UNIT_TOO_LARGE,
-    AXIS_STATUS_INIT_ERR_ORIGIN_OUTSIDE_RANGE,
-    AXIS_STATUS_INIT_ERR_BOUNDS_OUTSIDE_RANGE,
-    AXIS_STATUS_TARGET_ERR_CONTROLLER,
+    AXIS_STATUS_OK = 0,
+    AXIS_STATUS_ERR_MIN_TOO_SMALL,
+    AXIS_STATUS_ERR_MIN_GREATER_THAN_MAX,
+    AXIS_STATUS_ERR_MAX_TOO_LARGE,
+    AXIS_STATUS_ERR_UNIT_SMALLER_THAN_MIN_STEP,
+    AXIS_STATUS_ERR_UNIT_TOO_LARGE,
+    AXIS_STATUS_ERR_ORIGIN_OUTSIDE_RANGE,
+    AXIS_STATUS_ERR_BOUNDS_OUTSIDE_RANGE,
+    AXIS_STATUS_ERR_CONTROLLER,
 } axis_status_t;
 
 /** @brief Interface between coordinate system and controller. */
@@ -58,9 +56,6 @@ axis_status_t axis_init(axis_t       *axis,
 
 /** @brief Return whether the axis is moving or not */
 bool axis_get_stage_moving(axis_t const *axis);
-
-/** @brief Number of points on the axis. */
-size_t axis_num_points(axis_t const *axis);
 
 /**
  * @brief Set the target of the axis.
