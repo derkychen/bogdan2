@@ -469,6 +469,7 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
     return PARSE_STATUS_OK;
 }
 
+/** @brief Find a field in the token. */
 static parse_status_t
 token_field_find (token_t const *token, field_spec_t const **field)
 {
@@ -489,6 +490,7 @@ token_field_find (token_t const *token, field_spec_t const **field)
     return PARSE_STATUS_ERR;
 }
 
+/** Set a parameters field from a token. */
 static parse_status_t
 token_field_set (token_t const      *token,
                  parameters_t       *parameters,
