@@ -12,9 +12,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define TARGET_SET_DEBOUNCE_TIME_USEC (1000u)
-#define AXES_TIMEOUT_MSEC             (10000u)
-#define PULSE_COUNTER_TIMEOUT_MSEC    (10000u)
+#define SET_DEBOUNCE_TIME_US (1000u)
+#define AXES_TIMEOUT_MS      (10000u)
+#define RELAY_TIMEOUT_MS     (10000u)
 
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
@@ -84,16 +84,13 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
     axis_t x;
     axis_t y;
 
-    path_position_t *path;
-    size_t           path_size;
-
     if (axis_init(&x,
                   parameters->x_min,
                   parameters->x_max,
                   parameters->x_unit_nm,
                   parameters->x_origin_nm,
                   profiler->x_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
@@ -104,45 +101,43 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
                   parameters->y_unit_nm,
                   parameters->y_origin_nm,
                   profiler->y_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
-    // Generate the full raster.
-    if (path_modified_raster(&x,
-                             &y,
-                             &(profiler->prev_raster_direction),
-                             false,
-                             &path,
-                             &path_size)
-        == PATH_STATUS_ERR)
-    {
-        return PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
-    }
+    path_t path;
 
-    for (size_t i = 0; i < path_size; i++)
+    path_init(
+        &path,
+        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
+        false);
+
+    path_coords_t position;
+
+    while (path_next(&path, &position) == PATH_STATUS_OK)
     {
-        if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
-            || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
+        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
         }
 
-        time_sleep_usec(TARGET_SET_DEBOUNCE_TIME_USEC);
+        time_sleep_us(SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
         axis_move_start(&y);
 
-        uint32_t start_msec = time_msec();
+        uint32_t start_ms = time_get_ms();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
             profiler->task();
 
-            if ((time_msec() - start_msec) > AXES_TIMEOUT_MSEC)
+            if ((time_get_ms() - start_ms) > AXES_TIMEOUT_MS)
             {
                 status = PROFILER_STATUS_ERR_AXES_TIMEOUT;
                 goto cleanup;
@@ -156,15 +151,15 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         relay_count_start(profiler->relay);
         relay_pulser_event_start(profiler->relay);
 
-        start_msec = time_msec();
+        start_ms = time_get_ms();
 
         while (relay_count_get(profiler->relay) < parameters->num_pulses)
         {
             profiler->task();
 
-            if ((time_msec() - start_msec) >= PULSE_COUNTER_TIMEOUT_MSEC)
+            if ((time_get_ms() - start_ms) >= RELAY_TIMEOUT_MS)
             {
-                status = PROFILER_STATUS_ERR_PULSE_COUNTER_TIMEOUT;
+                status = PROFILER_STATUS_ERR_RELAY_TIMEOUT;
                 goto cleanup;
             }
         }
@@ -172,9 +167,9 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         relay_count_end(profiler->relay);
         relay_pulser_event_end(profiler->relay);
 
-        uint32_t start_usec = time_usec();
+        uint32_t start_us = time_get_us();
 
-        while (time_usec() - start_usec < parameters->posttrigger_time_us)
+        while (time_get_us() - start_us < parameters->posttrigger_time_us)
         {
             profiler->task();
         }
@@ -202,16 +197,13 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
     axis_t x;
     axis_t y;
 
-    path_position_t *path;
-    size_t           path_size;
-
     if (axis_init(&x,
                   parameters->x_min,
                   parameters->x_max,
                   parameters->x_unit_nm,
                   parameters->x_origin_nm,
                   profiler->x_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
@@ -222,46 +214,43 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
                   parameters->y_unit_nm,
                   parameters->y_origin_nm,
                   profiler->y_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
-    // Generate the full raster.
-    if (path_modified_raster(&x,
-                             &y,
-                             &(profiler->prev_raster_direction),
-                             false,
-                             &path,
-                             &path_size)
-        == PATH_STATUS_ERR)
-    {
-        status = PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
-        goto cleanup;
-    }
+    path_t path;
 
-    for (size_t i = 0; i < path_size; i++)
+    path_init(
+        &path,
+        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
+        false);
+
+    path_coords_t position;
+
+    while (path_next(&path, &position) == PATH_STATUS_OK)
     {
-        if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
-            || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
+        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
         }
 
-        time_sleep_usec(TARGET_SET_DEBOUNCE_TIME_USEC);
+        time_sleep_us(SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
         axis_move_start(&y);
 
-        uint32_t start_msec = time_msec();
+        uint32_t start_ms = time_get_ms();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
             profiler->task();
 
-            if ((time_msec() - start_msec) >= AXES_TIMEOUT_MSEC)
+            if ((time_get_ms() - start_ms) >= AXES_TIMEOUT_MS)
             {
                 status = PROFILER_STATUS_ERR_AXES_TIMEOUT;
                 goto cleanup;
@@ -273,9 +262,9 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
 
         relay_pulser_retrigger(profiler->relay);
 
-        uint32_t start_usec = time_usec();
+        uint32_t start_us = time_get_us();
 
-        while (time_usec() - start_usec < parameters->wait_time_us)
+        while (time_get_us() - start_us < parameters->wait_time_us)
         {
             profiler->task();
         }
@@ -302,16 +291,13 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
     axis_t x;
     axis_t y;
 
-    path_position_t *path;
-    size_t           path_size;
-
     if (axis_init(&x,
                   parameters->x_min,
                   parameters->x_max,
                   parameters->x_unit_nm,
                   parameters->x_origin_nm,
                   profiler->x_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_X_AXIS_INIT;
     }
@@ -322,44 +308,43 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
                   parameters->y_unit_nm,
                   parameters->y_origin_nm,
                   profiler->y_controller)
-        != AXIS_STATUS_INIT_OK)
+        != AXIS_STATUS_OK)
     {
         return PROFILER_STATUS_ERR_Y_AXIS_INIT;
     }
 
-    // Generate only the corners of the raster.
-    if (path_modified_raster(
-            &x, &y, &(profiler->prev_raster_direction), true, &path, &path_size)
-        == PATH_STATUS_ERR)
-    {
-        status = PROFILER_STATUS_ERR_PATH_NOT_GENERATED;
-        goto cleanup;
-    }
+    path_t path;
 
-    relay_pulser_event_start(profiler->relay);
+    path_init(
+        &path,
+        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
+        true);
 
-    for (size_t i = 0; i < path_size; i++)
+    path_coords_t position;
+
+    while (path_next(&path, &position) == PATH_STATUS_OK)
     {
-        if (axis_set_target(&x, path[i].x) != AXIS_STATUS_TARGET_OK
-            || axis_set_target(&y, path[i].y) != AXIS_STATUS_TARGET_OK)
+        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
         }
 
-        time_sleep_usec(TARGET_SET_DEBOUNCE_TIME_USEC);
+        time_sleep_us(SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
         axis_move_start(&y);
 
-        uint32_t start_msec = time_msec();
+        uint32_t start_ms = time_get_ms();
 
         while (axis_get_stage_moving(&x) || axis_get_stage_moving(&y))
         {
             profiler->task();
 
-            if ((time_msec() - start_msec) >= AXES_TIMEOUT_MSEC)
+            if ((time_get_ms() - start_ms) >= AXES_TIMEOUT_MS)
             {
                 status = PROFILER_STATUS_ERR_AXES_TIMEOUT;
                 goto cleanup;

@@ -1,713 +1,660 @@
 /**
  * @file path.c
- * @brief Implementation of the generation of a modified raster.
- *
- * NOTE: The static allocation `path_buffer` occupies the majority of all of the
- *       SRAM available on the processor. As such, if modifications to the rest
- *       of the program cause errors upon compilation regarding insufficient
- *       SRAM, decreasing the size of the buffer is likely to be a solution.
+ * @brief Implementation of incremental modified-raster generation.
  */
 #include "app/path.h"
-#include "app/axis.h"
 #include "platform/samd21g18a/assert.h"
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-#define PATH_BUFFER_CAPACITY (2048u)
+/** @brief Internal structure for a modified raster local segment. */
+typedef struct
+{
+    /** @brief Starting indices of the segment. */
+    path_indices_t start;
 
-static path_position_t path_buffer[PATH_BUFFER_CAPACITY];
+    /** @brief Ending indices of the segment. */
+    path_indices_t end;
+} segment_t;
 
-static int  get_anchor_coord(axis_t const *axis);
-static void append(path_position_t *path,
-                   size_t          *path_size,
-                   size_t           path_size_capacity,
-                   int              x,
-                   int              y);
-static void reverse_path(path_position_t *path, size_t low, size_t high);
-static void rotate_to_anchor(path_position_t *path,
-                             size_t           path_size,
-                             int              anchor_x,
-                             int              anchor_y);
-static path_raster_direction_t choose_raster_direction(
-    size_t                  x_num_points,
-    size_t                  y_num_points,
-    path_raster_direction_t prev_raster_direction);
-static void append_local(path_position_t *path,
-                         size_t          *path_size,
-                         size_t           path_size_capacity,
-                         axis_t const    *x,
-                         axis_t const    *y,
-                         int              row,
-                         int              col,
-                         bool             transposed);
-static void append_line(path_position_t *path,
-                        size_t          *path_size,
-                        size_t           path_size_capacity,
-                        axis_t const    *x,
-                        axis_t const    *y,
-                        int              num_points,
-                        int              anchor,
-                        bool             transposed);
-static void append_even_unrotated_path(path_position_t *path,
-                                       size_t          *path_size,
-                                       size_t           path_size_capacity,
-                                       axis_t const    *x,
-                                       axis_t const    *y,
-                                       int              rows,
-                                       int              cols,
-                                       bool             transposed);
-static void append_odd_unrotated_path(path_position_t *path,
-                                      size_t          *path_size,
-                                      size_t           path_size_capacity,
-                                      axis_t const    *x,
-                                      axis_t const    *y,
-                                      int              rows,
-                                      int              cols,
-                                      bool             transposed);
-static bool corner_at(path_position_t const *prev,
-                      path_position_t const *curr,
-                      path_position_t const *next);
-static void shrink_to_corners(path_position_t *path, size_t *path_size);
+static path_raster_direction_t prev_raster_direction
+    = PATH_RASTER_DIRECTION_HORIZONTAL;
+
+static int                     num_points(int min, int max);
+static int                     anchor_index(int min_coord, int max_coord);
+static path_raster_direction_t select_raster_direction(int x_num_points,
+                                                       int y_num_points);
+static int get_line_col(int current, int anchor, int last, bool corners_only);
+static segment_t      create_segment(int start_row,
+                                     int start_col,
+                                     int end_row,
+                                     int end_col);
+static segment_t      get_even_segment(path_indices_t curr,
+                                       int            num_rows,
+                                       int            num_cols);
+static segment_t      get_odd_segment(path_indices_t curr,
+                                      int            num_rows,
+                                      int            num_cols);
+static bool           index_between(int index, int start, int end);
+static bool           segment_contains_anchor(segment_t const *segment,
+                                              path_indices_t   anchor);
+static int            unit_step(int displacement);
+static path_indices_t advance_line(int  curr_col,
+                                   int  anchor_col,
+                                   int  num_cols,
+                                   bool corners_only);
+static path_indices_t advance_raster(path_indices_t curr,
+                                     path_indices_t anchor,
+                                     int            num_rows,
+                                     int            num_cols,
+                                     bool           corners_only);
+static path_indices_t advance(path_indices_t curr,
+                              path_indices_t anchor,
+                              int            num_rows,
+                              int            num_cols,
+                              bool           corners_only);
+static path_coords_t  indices_to_coords(
+    path_indices_t          indices,
+    path_coords_t           zero,
+    path_raster_direction_t raster_direction);
 
 path_status_t
-path_modified_raster (axis_t const            *x,
-                      axis_t const            *y,
-                      path_raster_direction_t *prev_raster_direction,
-                      bool                     corners_only,
-                      path_position_t        **path,
-                      size_t                  *path_size)
+path_init (path_t       *path,
+           path_coords_t min,
+           path_coords_t max,
+           bool          corners_only)
 {
-    ASSERT(x != NULL);
-    ASSERT(y != NULL);
-    ASSERT(prev_raster_direction != NULL);
-    ASSERT(path_size != NULL);
+    ASSERT(path != NULL);
 
-    *path_size = 0u;
-
-    size_t x_num_points = axis_num_points(x);
-    size_t y_num_points = axis_num_points(y);
-
-    ASSERT(x_num_points > 0u);
-    ASSERT(x_num_points <= INT_MAX);
-    ASSERT(y_num_points > 0u);
-    ASSERT(y_num_points <= INT_MAX);
-    ASSERT(x_num_points <= (SIZE_MAX / y_num_points));
-
-    size_t grid_num_points = x_num_points * y_num_points;
-
-    if (grid_num_points == 0)
+    if ((min.x > max.x) || (min.y > max.y))
     {
-        return PATH_STATUS_ERR;
+        return PATH_STATUS_ERR_BOUNDS_MIN_GREATER_THAN_MAX;
     }
 
-    size_t path_buffer_capacity = sizeof path_buffer / sizeof path_buffer[0];
-    size_t closing_point_count  = (grid_num_points > 1u) ? 1u : 0u;
-
-    if (path_buffer_capacity < (grid_num_points + closing_point_count))
+    if (min.x < PATH_COORD_MIN || max.x > PATH_COORD_MAX
+        || min.y < PATH_COORD_MIN || max.y > PATH_COORD_MAX)
     {
-        return PATH_STATUS_ERR;
+        return PATH_STATUS_ERR_BOUNDS_TOO_LARGE;
     }
 
-    size_t path_size_capacity = grid_num_points + closing_point_count;
-
-    int anchor_x = get_anchor_coord(x);
-    int anchor_y = get_anchor_coord(y);
-
-    bool transposed;
-
-    // Handle one dimensional grids.
-    if (x_num_points == 1u || y_num_points == 1u)
+    if ((max.x - min.x) == INT_MAX || (max.y - min.y) == INT_MAX)
     {
-        int num_points;
-        int anchor;
-
-        if (y_num_points == 1u)
-        {
-            num_points = (int)x_num_points;
-            anchor     = anchor_x - x->min;
-            transposed = false;
-        }
-        else
-        {
-            num_points = (int)y_num_points;
-            anchor     = anchor_y - y->min;
-            transposed = true;
-        }
-
-        append_line(path_buffer,
-                    path_size,
-                    path_size_capacity,
-                    x,
-                    y,
-                    num_points,
-                    anchor,
-                    transposed);
-
-        if (corners_only)
-        {
-            shrink_to_corners(path_buffer, path_size);
-        }
-
-        *path = path_buffer;
-
-        return PATH_STATUS_OK;
+        return PATH_STATUS_ERR_BOUNDS_TOO_LARGE;
     }
 
-    // Handle two dimensional grid.
-    path_raster_direction_t direction = choose_raster_direction(
-        x_num_points, y_num_points, *prev_raster_direction);
-    *prev_raster_direction = direction;
+    int x_num_points = num_points(min.x, max.x);
+    int y_num_points = num_points(min.y, max.y);
 
-    int rows;
-    int cols;
+    path->corners_only = corners_only;
+    path->phase        = PATH_PHASE_READY;
+    path->raster_direction
+        = select_raster_direction(x_num_points, y_num_points);
+    path->zero = min;
 
-    if (direction == PATH_RASTER_DIRECTION_HORIZONTAL)
+    int anchor_x_index = anchor_index(min.x, max.x);
+    int anchor_y_index = anchor_index(min.y, max.y);
+
+    if (path->raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL)
     {
-        rows       = (int)y_num_points;
-        cols       = (int)x_num_points;
-        transposed = false;
+        path->anchor
+            = (path_indices_t) { .row = anchor_y_index, .col = anchor_x_index };
+        path->num_rows = y_num_points;
+        path->num_cols = x_num_points;
     }
     else
     {
-        rows       = (int)x_num_points;
-        cols       = (int)y_num_points;
-        transposed = true;
+        path->anchor
+            = (path_indices_t) { .row = anchor_x_index, .col = anchor_y_index };
+        path->num_rows = x_num_points;
+        path->num_cols = y_num_points;
     }
 
-    if ((rows & 1) == 0)
+    ASSERT(path->num_rows >= 1);
+    ASSERT(path->num_cols >= 1);
+    ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
+    ASSERT(path->anchor.col >= 0 && path->anchor.col < path->num_cols);
+
+    if (path->num_rows > 1)
     {
-        append_even_unrotated_path(path_buffer,
-                                   path_size,
-                                   path_size_capacity,
-                                   x,
-                                   y,
-                                   rows,
-                                   cols,
-                                   transposed);
+        ASSERT(path->num_cols > 1);
+        ASSERT(((path->num_rows & 1) == 0) || ((path->num_cols & 1) != 0));
     }
-    else if (((rows & 1) == 1) && ((cols & 1) == 1))
+
+    path->curr = path->anchor;
+
+    // Only two-dimensional grids cause raster direction alternation.
+    if (x_num_points > 1 && y_num_points > 1)
     {
-        append_odd_unrotated_path(path_buffer,
-                                  path_size,
-                                  path_size_capacity,
-                                  x,
-                                  y,
-                                  rows,
-                                  cols,
-                                  transposed);
+        prev_raster_direction = path->raster_direction;
     }
-    else
-    {
-        ASSERT(false);
-    }
-
-    ASSERT(*path_size == grid_num_points);
-
-    // Rotate the path to start at the anchor.
-    rotate_to_anchor(path_buffer, grid_num_points, anchor_x, anchor_y);
-
-    path_buffer[grid_num_points] = path_buffer[0];
-    *path_size                   = path_size_capacity;
-
-    if (corners_only)
-    {
-        shrink_to_corners(path_buffer, path_size);
-    }
-
-    *path = path_buffer;
 
     return PATH_STATUS_OK;
 }
 
-/**
- * @brief Get the coordinate of the path anchor on an axis.
- *
- * This function returns zero, or the coordinate nearest to zero on the axis.
- * The point on the grid whose coordinates are closest to zero is referred to as
- * the anchor, and it is where the traversal of the grid begins and ends.
- */
-static int
-get_anchor_coord (axis_t const *axis)
-{
-    ASSERT(axis != NULL);
-
-    if (axis->min > 0)
-    {
-        return axis->min;
-    }
-
-    if (axis->max < 0)
-    {
-        return axis->max;
-    }
-
-    return 0;
-}
-
-/** @brief Append a point to a path. */
-static void
-append (path_position_t *path,
-        size_t          *path_size,
-        size_t           path_size_capacity,
-        int              x,
-        int              y)
+path_status_t
+path_next (path_t *path, path_coords_t *coords)
 {
     ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
-    ASSERT(*path_size < path_size_capacity);
+    ASSERT(coords != NULL);
 
-    path[*path_size].x = x;
-    path[*path_size].y = y;
-    (*path_size)++;
+    ASSERT(path->phase == PATH_PHASE_READY || path->phase == PATH_PHASE_ONGOING
+           || path->phase == PATH_PHASE_DONE);
 
-    return;
-}
-
-/**
- * @brief Reverse the order of a slice of a path.
- *
- * This is used in the rotation of the path to start at any point on it. The
- * slice includes elements at both indices @p low and @p high.
- */
-static void
-reverse_path (path_position_t *path, size_t low, size_t high)
-{
-    ASSERT(path != NULL);
-
-    while (low < high)
+    if (path->phase == PATH_PHASE_DONE)
     {
-        path_position_t tmp = path[low];
-        path[low]           = path[high];
-        path[high]          = tmp;
-
-        low++;
-        high--;
+        return PATH_STATUS_DONE;
     }
 
-    return;
-}
+    ASSERT(path->num_rows >= 1);
+    ASSERT(path->num_cols >= 1);
+    ASSERT(path->curr.row >= 0 && path->curr.row < path->num_rows);
+    ASSERT(path->curr.col >= 0 && path->curr.col < path->num_cols);
+    ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
+    ASSERT(path->anchor.col >= 0 && path->anchor.col < path->num_cols);
+    ASSERT(path->raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL
+           || path->raster_direction == PATH_RASTER_DIRECTION_VERTICAL);
 
-/**
- * @brief Rotate a path so that the anchor point is first.
- *
- * Since the path is cyclic, its rotation preserves the traversal.
- */
-static void
-rotate_to_anchor (path_position_t *path,
-                  size_t           path_size,
-                  int              anchor_x,
-                  int              anchor_y)
-{
-    // Search for the index of the anchor point.
-    size_t anchor_index = 0u;
-    bool   found        = false;
-
-    ASSERT(path != NULL);
-
-    for (size_t i = 0u; i < path_size; i++)
+    // Manage traversal phase.
+    //
+    // Phase evolves as `READY` (before generation) to `ONGOING` (during
+    // generation) to `DONE` (generation completed).
+    if (path->phase == PATH_PHASE_READY)
     {
-        if (path[i].x == anchor_x && path[i].y == anchor_y)
+        if (path->num_rows == 1 && path->num_cols == 1)
         {
-            anchor_index = i;
-            found        = true;
-            break;
+            path->phase = PATH_PHASE_DONE;
+        }
+        else
+        {
+            path->phase = PATH_PHASE_ONGOING;
+        }
+    }
+    else
+    {
+        ASSERT(path->phase == PATH_PHASE_ONGOING);
+
+        path->curr = advance(path->curr,
+                             path->anchor,
+                             path->num_rows,
+                             path->num_cols,
+                             path->corners_only);
+
+        if (path->curr.row == path->anchor.row
+            && path->curr.col == path->anchor.col)
+        {
+            path->phase = PATH_PHASE_DONE;
         }
     }
 
-    ASSERT(found);
+    // Convert the local indices into the actual coordinate.
+    *coords = indices_to_coords(path->curr, path->zero, path->raster_direction);
 
-    if (anchor_index == 0u)
+    return PATH_STATUS_OK;
+}
+
+/** @brief Get the number of points on a side of the grid. */
+static int
+num_points (int min, int max)
+{
+    ASSERT(min >= PATH_COORD_MIN);
+    ASSERT(max <= PATH_COORD_MAX);
+    ASSERT(min <= max);
+    ASSERT((max - min) < INT_MAX);
+
+    return (max - min) + 1;
+}
+
+/**
+ * @brief Get the local index of the path anchor.
+ *
+ * This function returns the local index of the coordinate zero, or the
+ * coordinate nearest to zero given a set of bound coordinates. That is, this
+ * function computes the index of one of the coordinates of the anchor.
+ */
+static int
+anchor_index (int min_coord, int max_coord)
+{
+    ASSERT(min_coord >= PATH_COORD_MIN);
+    ASSERT(max_coord <= PATH_COORD_MAX);
+    ASSERT(min_coord <= max_coord);
+
+    if (min_coord > 0)
     {
-        return;
+        return 0;
     }
 
-    // Rotate the array.
-    reverse_path(path, 0u, anchor_index - 1u);
-    reverse_path(path, anchor_index, path_size - 1u);
-    reverse_path(path, 0u, path_size - 1u);
+    if (max_coord < 0)
+    {
+        return max_coord - min_coord;
+    }
 
-    return;
+    return -min_coord;
 }
 
 /**
  * @brief Choose the raster direction.
  *
- * If the dimensions of the grid are both even or both odd, either raster
- * direction can be chosen, so the program chooses the opposite of the direction
- * that was last used. Otherwise, the raster direction must be parallel to the
- * odd side.
+ * For grids that have only one position, the raster direction is irrelevant, so
+ * the previous one is used.
  *
- * NOTE: The direction chosen ensures that the number of local rows is even.
+ * For one-dimensional grids, the raster direction is parallel to the line.
+ *
+ * For two-dimensional grids, if the dimensions of the grid are both even or
+ * both odd, either raster direction can be chosen, so the opposite of the
+ * previous one is used. Otherwise, the raster direction must be parallel to the
+ * odd side.
  */
 static path_raster_direction_t
-choose_raster_direction (size_t                  x_num_points,
-                         size_t                  y_num_points,
-                         path_raster_direction_t prev_raster_direction)
+select_raster_direction (int x_num_points, int y_num_points)
 {
-    if ((x_num_points & 1u) == (y_num_points & 1u))
+    ASSERT(x_num_points >= 1);
+    ASSERT(y_num_points >= 1);
+
+    if (x_num_points == 1 && y_num_points == 1)
+    {
+        return prev_raster_direction;
+    }
+
+    if (y_num_points == 1)
+    {
+        return PATH_RASTER_DIRECTION_HORIZONTAL;
+    }
+
+    if (x_num_points == 1)
+    {
+        return PATH_RASTER_DIRECTION_VERTICAL;
+    }
+
+    if ((x_num_points & 1) == (y_num_points & 1))
     {
         return (prev_raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL)
                    ? PATH_RASTER_DIRECTION_VERTICAL
                    : PATH_RASTER_DIRECTION_HORIZONTAL;
     }
 
-    return ((x_num_points & 1u) == 0u) ? PATH_RASTER_DIRECTION_VERTICAL
-                                       : PATH_RASTER_DIRECTION_HORIZONTAL;
+    return ((x_num_points & 1) == 0) ? PATH_RASTER_DIRECTION_VERTICAL
+                                     : PATH_RASTER_DIRECTION_HORIZONTAL;
+}
+
+/** @brief Handle a one-dimensional grid. */
+static int
+get_line_col (int current, int anchor, int last, bool corners_only)
+{
+    ASSERT(last >= 1);
+    ASSERT(anchor >= 0 && anchor <= last);
+    ASSERT(current >= 0 && current <= last);
+
+    int near = (anchor <= last - anchor) ? 0 : last;
+    int far  = last - near;
+
+    if (corners_only)
+    {
+        if (current == anchor)
+        {
+            return (anchor == 0 || anchor == last) ? far : near;
+        }
+
+        if (current == near)
+        {
+            return far;
+        }
+
+        ASSERT(current == far);
+
+        return anchor;
+    }
+
+    if (near == 0)
+    {
+        if (current >= 1 && current <= anchor)
+        {
+            return current - 1;
+        }
+
+        if (current == 0)
+        {
+            return anchor + 1;
+        }
+
+        if (current < last)
+        {
+            return current + 1;
+        }
+
+        ASSERT(current == last);
+
+        return anchor;
+    }
+
+    if (current >= anchor && current < last)
+    {
+        return current + 1;
+    }
+
+    if (current == last)
+    {
+        return anchor - 1;
+    }
+
+    if (current >= 1 && current < anchor)
+    {
+        return current - 1;
+    }
+
+    ASSERT(current == 0);
+
+    return anchor;
+}
+
+/** @brief Create a local segment with start and end rows and columns. */
+static segment_t
+create_segment (int start_row, int start_col, int end_row, int end_col)
+{
+    ASSERT(start_row >= 0);
+    ASSERT(start_col >= 0);
+    ASSERT(end_row >= 0);
+    ASSERT(end_col >= 0);
+    ASSERT(start_row != end_row || start_col != end_col);
+
+    return (segment_t) {
+        .start = {
+            .row = start_row,
+            .col = start_col,
+        },
+        .end = {
+            .row = end_row,
+            .col = end_col,
+        },
+    };
 }
 
 /**
- * @brief Transform and then append a local point to a path.
+ * @brief Get a segment on an even two-dimensional raster.
  *
- * The points on the path are initially generated in a local space to form a
- * horizontal modified raster in a coordinate system where each axis is indexed
- * from zero upward. This function transforms such a point to the actual grid,
- * which may involve translating along each axis and transposing (changing the
- * orientation of the modified raster).
- *
- * Working in the initial local space allows for both horizontal and vertical
- * modified rasters to utilize the same algorithm.
+ * The even raster looks like a block letter E with an arbitrary number of
+ * horizontal "prongs" in the local space.
  */
-static void
-append_local (path_position_t *path,
-              size_t          *path_size,
-              size_t           path_size_capacity,
-              axis_t const    *x,
-              axis_t const    *y,
-              int              row,
-              int              col,
-              bool             transposed)
+static segment_t
+get_even_segment (path_indices_t curr, int num_rows, int num_cols)
 {
-    ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
-    ASSERT(x != NULL);
-    ASSERT(y != NULL);
+    ASSERT(num_rows > 1);
+    ASSERT(num_cols > 1);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT((num_rows & 1) == 0);
 
-    if (transposed)
+    int last_row = num_rows - 1;
+    int last_col = num_cols - 1;
+
+    // NOTE: A two-column even raster collapses to a rectangle. This must be
+    //      handled in a separate case since the row turns become one segment.
+    if (num_cols == 2)
     {
-        append(path, path_size, path_size_capacity, x->min + row, y->min + col);
+        // Handle the local left side of the rectangle.
+        if (curr.col == 0 && curr.row < last_row)
+        {
+            return create_segment(curr.row, curr.col, last_row, curr.col);
+        }
 
-        return;
+        // Handle the local top side of the rectangle.
+        if (curr.col == 0)
+        {
+            ASSERT(curr.row == last_row);
+
+            return create_segment(curr.row, curr.col, curr.row, 1);
+        }
+
+        // Handle the local right side of the rectangle.
+        if (curr.row > 0)
+        {
+            return create_segment(curr.row, curr.col, 0, curr.col);
+        }
+
+        // Handle the local bottom side of the rectangle.
+        return create_segment(curr.row, curr.col, curr.row, 0);
     }
 
-    append(path, path_size, path_size_capacity, x->min + col, y->min + row);
+    // Handle the local left side of the raster (| part of the E).
+    if (curr.col == 0)
+    {
+        return (curr.row < last_row)
+                   ? create_segment(curr.row, curr.col, last_row, curr.col)
+                   : create_segment(curr.row, curr.col, curr.row, last_col);
+    }
 
-    return;
+    // Handle the local bottom of the raster (_ part of the E).
+    if (curr.row == 0)
+    {
+        return create_segment(curr.row, curr.col, curr.row, 0);
+    }
+
+    // Handle the prongs in the raster (-s in the E).
+    int end_col = ((curr.row & 1) != 0) ? last_col : 1;
+
+    return (curr.col != end_col)
+               ? create_segment(curr.row, curr.col, curr.row, end_col)
+               : create_segment(curr.row, curr.col, curr.row - 1, curr.col);
 }
 
 /**
- * @brief Generate a horizontal path for one-dimensional grids.
+ * @brief Get a segment on an odd two-dimensional raster.
  *
- * The generated path starts and ends at the anchor, but skips over points as a
- * raster is impossible in this case.
+ * The odd raster looks like a block letter E with an arbitrary number of
+ * horizontal "prongs" in the local space. It differs from the even raster at
+ * the local bottom, where the bottom side of the bottom prong contains one
+ * diagonal and a "squiggle" back to the local origin.
  */
-static void
-append_line (path_position_t *path,
-             size_t          *path_size,
-             size_t           path_size_capacity,
-             axis_t const    *x,
-             axis_t const    *y,
-             int              num_points,
-             int              anchor,
-             bool             transposed)
+static segment_t
+get_odd_segment (path_indices_t curr, int num_rows, int num_cols)
 {
-    ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
-    ASSERT(x != NULL);
-    ASSERT(y != NULL);
+    ASSERT(num_rows > 1);
+    ASSERT(num_cols > 1);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT((num_rows & 1) != 0);
+    ASSERT((num_cols & 1) != 0);
 
-    ASSERT(num_points > 0);
-    ASSERT(anchor >= 0);
-    ASSERT(anchor < num_points);
+    int last_row = num_rows - 1;
+    int last_col = num_cols - 1;
 
-    // Handle a single point.
-    if (num_points == 1)
+    // Handle the local left side of the raster (| part of the E).
+    if (curr.col == 0)
     {
-        append_local(
-            path, path_size, path_size_capacity, x, y, 0, 0, transposed);
-
-        return;
+        return (curr.row < last_row)
+                   ? create_segment(curr.row, curr.col, last_row, curr.col)
+                   : create_segment(curr.row, curr.col, curr.row, last_col);
     }
 
-    // Traverse the line by going to the nearest end first, minimizing the
-    // amount of time spent skipping over points before the profile is
-    // completed.
-    int col;
-
-    if (anchor <= (num_points - 1 - anchor))
+    // Handle the prongs in the raster (-s in the E).
+    if (curr.row >= 2)
     {
-        for (col = anchor; col >= 0; col--)
-        {
-            append_local(
-                path, path_size, path_size_capacity, x, y, 0, col, transposed);
-        }
+        int end_col = ((curr.row & 1) != 0) ? 1 : last_col;
 
-        for (col = anchor + 1; col < num_points; col++)
-        {
-            append_local(
-                path, path_size, path_size_capacity, x, y, 0, col, transposed);
-        }
-    }
-    else
-    {
-        for (col = anchor; col < num_points; col++)
-        {
-            append_local(
-                path, path_size, path_size_capacity, x, y, 0, col, transposed);
-        }
-
-        for (col = anchor - 1; col >= 0; col--)
-        {
-            append_local(
-                path, path_size, path_size_capacity, x, y, 0, col, transposed);
-        }
+        return (curr.col != end_col)
+                   ? create_segment(curr.row, curr.col, curr.row, end_col)
+                   : create_segment(curr.row, curr.col, curr.row - 1, curr.col);
     }
 
-    append_local(
-        path, path_size, path_size_capacity, x, y, 0, anchor, transposed);
+    // Handle the local downward and diagonal segments at the local bottom side
+    // of the bottom prong squiggle (bottom of the _ in the E).
+    if (curr.row == 1)
+    {
+        if ((curr.col & 1) == 0)
+        {
+            return create_segment(curr.row, curr.col, curr.row, curr.col - 1);
+        }
 
-    return;
+        return (curr.col == last_col - 1)
+                   ? create_segment(curr.row, curr.col, 0, last_col)
+                   : create_segment(curr.row, curr.col, 0, curr.col);
+    }
+
+    // Handle the last segment that returns to the local origin.
+    ASSERT(curr.row == 0);
+
+    if (curr.col == 1)
+    {
+        return create_segment(curr.row, curr.col, curr.row, 0);
+    }
+
+    // Handle the segment two units in length that is formed after the diagonal.
+    if (curr.col == last_col)
+    {
+        return create_segment(curr.row, curr.col, curr.row, curr.col - 2);
+    }
+
+    // Handle the local upward and horizontal segments at the local bottom side
+    // of the bottom prong squiggle (bottom of the _ in the E).
+    return ((curr.col & 1) == 0)
+               ? create_segment(curr.row, curr.col, 1, curr.col)
+               : create_segment(curr.row, curr.col, curr.row, curr.col - 1);
 }
 
-/**
- * @brief Generate a horizontal modified raster for an even grid.
- *
- * @p rows must be even.
- */
-static void
-append_even_unrotated_path (path_position_t *path,
-                            size_t          *path_size,
-                            size_t           path_size_capacity,
-                            axis_t const    *x,
-                            axis_t const    *y,
-                            int              rows,
-                            int              cols,
-                            bool             transposed)
-{
-    ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
-    ASSERT(x != NULL);
-    ASSERT(y != NULL);
-
-    // Ensure an even number of rows and a two-dimensional grid.
-    ASSERT((rows & 1) == 0);
-    ASSERT(rows > 1);
-    ASSERT(cols > 1);
-
-    // Move to the top of the grid.
-    for (int row = 0; row < rows; row++)
-    {
-        append_local(
-            path, path_size, path_size_capacity, x, y, row, 0, transposed);
-    }
-
-    // Raster horizontally until the adjacent to the origin.
-    for (int row = rows - 1; row >= 1; row--)
-    {
-        if (((rows - 1 - row) & 1) == 0)
-        {
-            for (int col = 1; col < cols; col++)
-            {
-                append_local(path,
-                             path_size,
-                             path_size_capacity,
-                             x,
-                             y,
-                             row,
-                             col,
-                             transposed);
-            }
-        }
-        else
-        {
-            for (int col = cols - 1; col >= 1; col--)
-            {
-                append_local(path,
-                             path_size,
-                             path_size_capacity,
-                             x,
-                             y,
-                             row,
-                             col,
-                             transposed);
-            }
-        }
-    }
-
-    for (int col = cols - 1; col >= 1; col--)
-    {
-        append_local(
-            path, path_size, path_size_capacity, x, y, 0, col, transposed);
-    }
-
-    return;
-}
-
-/**
- * @brief Generate a horizontal modified raster for an odd grid.
- *
- * @p rows and @p cols must both be odd.
- */
-static void
-append_odd_unrotated_path (path_position_t *path,
-                           size_t          *path_size,
-                           size_t           path_size_capacity,
-                           axis_t const    *x,
-                           axis_t const    *y,
-                           int              rows,
-                           int              cols,
-                           bool             transposed)
-{
-    int col;
-
-    ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
-    ASSERT(x != NULL);
-    ASSERT(y != NULL);
-
-    // Ensure an odd, two-dimensional grid.
-    ASSERT((rows & 1) != 0);
-    ASSERT((cols & 1) != 0);
-    ASSERT(rows > 1);
-    ASSERT(cols > 1);
-
-    // Move to the top of the grid.
-    for (int row = 0; row < rows; row++)
-    {
-        append_local(
-            path, path_size, path_size_capacity, x, y, row, 0, transposed);
-    }
-
-    // Raster horizontally until at the right with two rows left.
-    for (col = 1; col < cols; col++)
-    {
-        append_local(path,
-                     path_size,
-                     path_size_capacity,
-                     x,
-                     y,
-                     rows - 1,
-                     col,
-                     transposed);
-    }
-
-    for (int row = rows - 2; row > 1; row--)
-    {
-        if (((rows - 2 - row) & 1) == 0)
-        {
-            for (col = cols - 1; col >= 1; col--)
-            {
-                append_local(path,
-                             path_size,
-                             path_size_capacity,
-                             x,
-                             y,
-                             row,
-                             col,
-                             transposed);
-            }
-        }
-        else
-        {
-            for (col = 1; col < cols; col++)
-            {
-                append_local(path,
-                             path_size,
-                             path_size_capacity,
-                             x,
-                             y,
-                             row,
-                             col,
-                             transposed);
-            }
-        }
-    }
-
-    // Move diagonally at the bottom-right corner to ensure a cyclic path.
-    append_local(
-        path, path_size, path_size_capacity, x, y, 1, cols - 1, transposed);
-
-    append_local(
-        path, path_size, path_size_capacity, x, y, 1, cols - 2, transposed);
-
-    append_local(
-        path, path_size, path_size_capacity, x, y, 0, cols - 1, transposed);
-
-    col = cols - 2;
-
-    // Squiggle toward the left until adjacent to the origin.
-    while (col >= 2)
-    {
-        append_local(
-            path, path_size, path_size_capacity, x, y, 0, col, transposed);
-
-        append_local(
-            path, path_size, path_size_capacity, x, y, 0, col - 1, transposed);
-
-        append_local(
-            path, path_size, path_size_capacity, x, y, 1, col - 1, transposed);
-
-        append_local(
-            path, path_size, path_size_capacity, x, y, 1, col - 2, transposed);
-
-        col -= 2;
-    }
-
-    append_local(path, path_size, path_size_capacity, x, y, 0, 1, transposed);
-
-    return;
-}
-
-/** @brief Determine whether a path changes direction at a point. */
+/** @brief Check if an index lies between a start and an end index. */
 static bool
-corner_at (path_position_t const *prev,
-           path_position_t const *curr,
-           path_position_t const *next)
+index_between (int index, int start, int end)
 {
-    ASSERT(prev != NULL);
-    ASSERT(curr != NULL);
-    ASSERT(next != NULL);
+    ASSERT(start != end);
 
-    int64_t dx_previous = (int64_t)curr->x - prev->x;
-    int64_t dy_previous = (int64_t)curr->y - prev->y;
-    int64_t dx_next     = (int64_t)next->x - curr->x;
-    int64_t dy_next     = (int64_t)next->y - curr->y;
-
-    int64_t cross_product = (dx_previous * dy_next) - (dy_previous * dx_next);
-    int64_t dot_product   = (dx_previous * dx_next) + (dy_previous * dy_next);
-
-    return cross_product != 0 || dot_product <= 0;
+    return (start < end) ? (start < index && index <= end)
+                         : (end <= index && index < start);
 }
 
-/** @brief Remove points that do not represent corners in a path. */
-static void
-shrink_to_corners (path_position_t *path, size_t *path_size)
+/** @brief Check if a segment contains the anchor. */
+static bool
+segment_contains_anchor (segment_t const *segment, path_indices_t anchor)
 {
-    ASSERT(path != NULL);
-    ASSERT(path_size != NULL);
+    ASSERT(segment != NULL);
 
-    if (*path_size <= 2)
+    if (segment->start.row == segment->end.row)
     {
-        return;
+        return anchor.row == segment->start.row
+               && index_between(
+                   anchor.col, segment->start.col, segment->end.col);
     }
 
-    size_t write_index = 1;
-
-    for (size_t read_index = 1; read_index + 1 < *path_size; read_index++)
+    if (segment->start.col == segment->end.col)
     {
-        if (corner_at(&path[read_index - 1],
-                      &path[read_index],
-                      &path[read_index + 1]))
-        {
-            path[write_index] = path[read_index];
-            write_index++;
-        }
+        return anchor.col == segment->start.col
+               && index_between(
+                   anchor.row, segment->start.row, segment->end.row);
     }
 
-    path[write_index] = path[*path_size - 1];
-    write_index++;
+    // The only remaining case should be the diagonal for odd grids, whose
+    // endpoints are the only place the anchor can lie.
+    ASSERT(segment->end.row == segment->start.row - 1);
+    ASSERT(segment->end.col == segment->start.col + 1);
 
-    *path_size = write_index;
+    return anchor.row == segment->end.row && anchor.col == segment->end.col;
+}
 
-    return;
+/** @brief Convert a displacement into a unit step with the same sign. */
+static int
+unit_step (int displacement)
+{
+    return (displacement > 0) - (displacement < 0);
+}
+
+/** @brief Load the next position to visit for a one-dimensional grid. */
+static path_indices_t
+advance_line (int curr_col, int anchor_col, int num_cols, bool corners_only)
+{
+    ASSERT(num_cols > 1);
+
+    return (path_indices_t) {
+        .row = 0,
+        .col = get_line_col(curr_col, anchor_col, num_cols - 1, corners_only),
+    };
+}
+
+/** @brief Load the next position to visit for a two-dimensional grid. */
+static path_indices_t
+advance_raster (path_indices_t curr,
+                path_indices_t anchor,
+                int            num_rows,
+                int            num_cols,
+                bool           corners_only)
+{
+    ASSERT(num_rows > 1);
+    ASSERT(num_cols > 1);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(anchor.row >= 0 && anchor.row < num_rows);
+    ASSERT(anchor.col >= 0 && anchor.col < num_cols);
+
+    segment_t segment = ((num_rows & 1) == 0)
+                            ? get_even_segment(curr, num_rows, num_cols)
+                            : get_odd_segment(curr, num_rows, num_cols);
+
+    ASSERT(segment.start.row == curr.row);
+    ASSERT(segment.start.col == curr.col);
+
+    // Stop the closing segment at the anchor.
+    if (segment_contains_anchor(&segment, anchor))
+    {
+        segment.end = anchor;
+    }
+
+    // Use unit steps for a full raster.
+    if (!corners_only)
+    {
+        segment.end.row = segment.start.row
+                          + unit_step(segment.end.row - segment.start.row);
+        segment.end.col = segment.start.col
+                          + unit_step(segment.end.col - segment.start.col);
+    }
+
+    ASSERT(segment.end.row >= 0 && segment.end.row < num_rows);
+    ASSERT(segment.end.col >= 0 && segment.end.col < num_cols);
+
+    return segment.end;
+}
+
+/** @brief Load the next position to visit. */
+static path_indices_t
+advance (path_indices_t curr,
+         path_indices_t anchor,
+         int            num_rows,
+         int            num_cols,
+         bool           corners_only)
+{
+    ASSERT(num_rows >= 1);
+    ASSERT(num_cols > 1);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(anchor.row >= 0 && anchor.row < num_rows);
+    ASSERT(anchor.col >= 0 && anchor.col < num_cols);
+
+    if (num_rows == 1)
+    {
+        return advance_line(curr.col, anchor.col, num_cols, corners_only);
+    }
+
+    return advance_raster(curr, anchor, num_rows, num_cols, corners_only);
+}
+
+/** @brief Convert local indices to coordinates. */
+static path_coords_t
+indices_to_coords (path_indices_t          indices,
+                   path_coords_t           zero,
+                   path_raster_direction_t raster_direction)
+{
+    ASSERT(indices.row >= 0);
+    ASSERT(indices.col >= 0);
+    ASSERT(raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL
+           || raster_direction == PATH_RASTER_DIRECTION_VERTICAL);
+
+    if (raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL)
+    {
+        return (path_coords_t) {
+            .x = zero.x + indices.col,
+            .y = zero.y + indices.row,
+        };
+    }
+
+    return (path_coords_t) {
+        .x = zero.x + indices.row,
+        .y = zero.y + indices.col,
+    };
 }
