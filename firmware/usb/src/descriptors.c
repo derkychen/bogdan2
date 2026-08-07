@@ -1,3 +1,7 @@
+/**
+ * @file descriptors.c
+ * @brief Implements TinyUSB descriptor callbacks.
+ */
 #include "tusb.h" // IWYU pragma: keep
 #include <stddef.h>
 #include <stdint.h>

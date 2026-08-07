@@ -1,5 +1,7 @@
-/** @brief TinyUSB configuration macros. */
-
+/**
+ * @file tusb_config.h
+ * @brief TinyUSB configuration macros.
+ */
 #ifndef TUSB_CONFIG_H
 #define TUSB_CONFIG_H
 
