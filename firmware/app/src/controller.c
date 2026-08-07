@@ -14,7 +14,7 @@
 #include "platform/samd21g18a/time.h"
 #include <stddef.h>
 
-#define START_MOVE_PULSE_WIDTH_MSEC (1u)
+#define START_MOVE_PULSE_WIDTH_MS (1u)
 
 static void trigger_out_isr(eic_extint_line_t line, void *context);
 
@@ -94,7 +94,7 @@ controller_pulse_trigger_in (controller_t const *controller)
     ASSERT(controller->trigger_in != NULL);
 
     digital_pin_level_set_high(controller->trigger_in);
-    time_sleep_msec(START_MOVE_PULSE_WIDTH_MSEC);
+    time_sleep_ms(START_MOVE_PULSE_WIDTH_MS);
     digital_pin_level_set_low(controller->trigger_in);
 
     return;

@@ -16,9 +16,9 @@
 #include <stdint.h>
 
 #define I2C_SCL_FREQUENCY_STANDARD_HZ (100000u)
-#define I2C_SCL_RISE_STANDARD_NSEC    (1000u)
+#define I2C_SCL_RISE_STANDARD_NS      (1000u)
 #define I2C_SCL_FREQUENCY_FAST_HZ     (400000u)
-#define I2C_SCL_RISE_FAST_NSEC        (300u)
+#define I2C_SCL_RISE_FAST_NS          (300u)
 
 /** @brief Status codes for I2C. */
 typedef enum
@@ -82,7 +82,7 @@ void i2c_configure(i2c_master_t     master,
                    i2c_pin_t const *sda,
                    i2c_pin_t const *scl,
                    uint32_t         scl_frequency_hz,
-                   uint32_t         scl_rise_nsec);
+                   uint32_t         scl_rise_ns);
 
 /** @brief Write bytes to an address. */
 i2c_status_t i2c_write(i2c_master_t   master,

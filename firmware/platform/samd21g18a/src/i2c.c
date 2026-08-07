@@ -13,7 +13,7 @@
 
 #define SCL_LATENCY_CYCLES (10u)
 #define SCL_FREQUENCY_HZ   (I2C_SCL_FREQUENCY_STANDARD_HZ)
-#define SCL_RISE_NSEC      (I2C_SCL_RISE_STANDARD_NSEC)
+#define SCL_RISE_NS        (I2C_SCL_RISE_STANDARD_NS)
 #define COMMAND_CONTINUE   (2u)
 #define COMMAND_STOP       (3u)
 #define TIMEOUT_COUNT      (100000u)
@@ -143,17 +143,17 @@ i2c_configure (i2c_master_t     master,
                i2c_pin_t const *sda,
                i2c_pin_t const *scl,
                uint32_t         scl_frequency_hz,
-               uint32_t         scl_rise_nsec)
+               uint32_t         scl_rise_ns)
 {
     ASSERT(master < I2C_SERCOM_COUNT);
     ASSERT(sda != NULL);
     ASSERT(scl != NULL);
 
     uint32_t frequency_hz = scl_frequency_hz;
-    uint32_t rise_nsec    = scl_rise_nsec;
+    uint32_t rise_ns      = scl_rise_ns;
 
     baud_t baud;
-    baud_calculate(&baud, SystemCoreClock, frequency_hz, rise_nsec);
+    baud_calculate(&baud, SystemCoreClock, frequency_hz, rise_ns);
 
     utils_apbc_enable(master_data[master].apbc_mask);
     utils_gclk0_enable(master_data[master].gclk_id);

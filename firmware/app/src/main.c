@@ -14,7 +14,7 @@
 #include "platform/samd21g18a/time.h"
 #include "platform/samd21g18a/usb.h"
 
-#define MAIN_LOOP_DELAY_USEC (100u)
+#define MAIN_LOOP_DELAY_US (100u)
 
 static controller_t x_controller;
 static controller_t y_controller;
@@ -41,7 +41,7 @@ main (void)
     for (;;)
     {
         task();
-        time_sleep_usec(MAIN_LOOP_DELAY_USEC);
+        time_sleep_us(MAIN_LOOP_DELAY_US);
 
         if (serial_read_line(message, sizeof(message))
             == SERIAL_STATUS_OK_LINE_RECEIVED)

@@ -196,6 +196,6 @@ io_cfg_init (void)
                   &board_i2c_bus_sda,
                   &board_i2c_bus_scl,
                   I2C_SCL_FREQUENCY_FAST_HZ,
-                  I2C_SCL_RISE_FAST_NSEC);
+                  I2C_SCL_RISE_FAST_NS);
     (void)analog_output_configure_v10();
 }

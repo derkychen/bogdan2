@@ -14,10 +14,10 @@
 void time_init(void);
 
 /** @brief Return the number of milliseconds elapsed since initialization. */
-uint32_t time_msec(void);
+uint32_t time_get_ms(void);
 
 /** @brief Return the number of microseconds elapsed since initialization. */
-uint32_t time_usec(void);
+uint32_t time_get_us(void);
 
 /**
  * @brief Blocking delay for a number of milliseconds.
@@ -26,7 +26,7 @@ uint32_t time_usec(void);
  *       recommended that this function is only called for delays well below 10
  *       milliseconds, as any more is very likely to starve other tasks.
  */
-void time_sleep_msec(uint32_t sleep_msec);
+void time_sleep_ms(uint32_t sleep_ms);
 
 /**
  * @brief Blocking delay for a number of microseconds.
@@ -35,6 +35,6 @@ void time_sleep_msec(uint32_t sleep_msec);
  *          this function is only called for delays well below one millisecond.
  *          Any more is likely to inhibit other system functions.
  */
-void time_sleep_usec(uint32_t sleep_usec);
+void time_sleep_us(uint32_t sleep_us);
 
 #endif
