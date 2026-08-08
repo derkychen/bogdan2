@@ -134,7 +134,13 @@ path_status_t path_init(path_t       *path,
 /**
  * @brief Get the next position in the path.
  *
- * This function updates the state of the path and computes the next position.
+ * Computes the next position and updates the state of the path.
+ *
+ * NOTE: The last point in the path returned by this function is the anchor,
+ *       even though capture ends at the point before the anchor (unless there
+ *       is only one point). This ensures the detector starts and ends at the
+ *       same point, eliminating unnecessary movement latency during the next
+ *       profile should the grid remain the same.
  */
 path_status_t path_next(path_t *path, path_coords_t *coords);
 

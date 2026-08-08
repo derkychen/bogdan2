@@ -146,14 +146,14 @@ path_next (path_t *path, path_coords_t *coords)
         return PATH_STATUS_DONE;
     }
 
-    ASSERT(path->num_rows >= 1);
-    ASSERT(path->num_cols >= 1);
-    ASSERT(path->curr.row >= 0 && path->curr.row < path->num_rows);
-    ASSERT(path->curr.col >= 0 && path->curr.col < path->num_cols);
-    ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
-    ASSERT(path->anchor.col >= 0 && path->anchor.col < path->num_cols);
     ASSERT(path->raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL
            || path->raster_direction == PATH_RASTER_DIRECTION_VERTICAL);
+    ASSERT(path->num_rows >= 1);
+    ASSERT(path->num_cols >= 1);
+    ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
+    ASSERT(path->anchor.col >= 0 && path->anchor.col < path->num_cols);
+    ASSERT(path->curr.row >= 0 && path->curr.row < path->num_rows);
+    ASSERT(path->curr.col >= 0 && path->curr.col < path->num_cols);
 
     // Manage traversal phase.
     //
