@@ -476,8 +476,8 @@ get_odd_segment (path_indices_t curr, int num_rows, int num_cols)
                    : create_segment(curr.row, curr.col, curr.row - 1, curr.col);
     }
 
-    // Handle the local downward and diagonal segments at the local bottom side
-    // of the bottom prong squiggle (bottom of the _ in the E).
+    // Handle the local downward, upper horizontal, and diagonal segments at
+    // bottom prong squiggle (bottom of the _ in the E).
     if (curr.row == 1)
     {
         if ((curr.col & 1) == 0)
@@ -504,8 +504,8 @@ get_odd_segment (path_indices_t curr, int num_rows, int num_cols)
         return create_segment(curr.row, curr.col, curr.row, curr.col - 2);
     }
 
-    // Handle the local upward and horizontal segments at the local bottom side
-    // of the bottom prong squiggle (bottom of the _ in the E).
+    // Handle the local upward and lower horizontal segments at the local bottom
+    // side of the bottom prong squiggle (bottom of the _ in the E).
     return ((curr.col & 1) == 0)
                ? create_segment(curr.row, curr.col, 1, curr.col)
                : create_segment(curr.row, curr.col, curr.row, curr.col - 1);
