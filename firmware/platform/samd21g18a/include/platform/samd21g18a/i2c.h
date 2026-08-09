@@ -57,11 +57,8 @@ typedef uint8_t i2c_slave_address_t;
 /** @brief Type for I2C pins. */
 typedef struct
 {
-    /** Pin. */
-    pin_t const *pin;
-
-    /** SERCOM pad. */
-    i2c_sercom_pad_t pad;
+    pin_t const     *pin; /**< Pin. */
+    i2c_sercom_pad_t pad; /**< SERCOM pad. */
 } i2c_pin_t;
 
 /** @brief I2C configuration structure. */

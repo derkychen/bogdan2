@@ -25,17 +25,11 @@ typedef enum
 /** @brief Interface with the controller I/O and Pico interrupts. */
 typedef struct
 {
-    /** Data on the digital pin connected to the controller Trigger IN. */
-    pin_t const *trigger_in;
+    pin_t const                   *trigger_in; /**< Connected to Trigger IN. */
+    analog_output_channel_t const *analog_in;  /**< Connected to Analog IN. */
+    eic_pin_t const *trigger_out;              /**< Connected to Trigger OUT. */
 
-    /** Data on the analog output connected to the controller Analog IN. */
-    analog_output_channel_t const *analog_in;
-
-    /** Interrupt pin connected to the controller Trigger OUT. */
-    eic_pin_t const *trigger_out;
-
-    /** State variable for whether the stage is moving. */
-    volatile bool stage_moving;
+    volatile bool stage_moving; /**< Whether the stage is moving. */
 } controller_t;
 
 /** @brief Initialize and configure a controller. */

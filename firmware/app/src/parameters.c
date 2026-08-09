@@ -106,30 +106,18 @@ _Static_assert(PARAMETERS_MODE_COUNT <= 32, "Too many modes");
  */
 typedef struct
 {
-    /** Name. */
-    char const *name;
-
-    /** Type. */
-    field_type_t type;
-
-    /** Offset in the parameters structure. */
-    size_t offset;
-
-    /** Mask specific to the field. */
-    uint32_t mask;
-
-    /** Modes for which this field is required. */
-    uint32_t modes;
+    char const  *name;   /**< Name. */
+    field_type_t type;   /**< Type. */
+    size_t       offset; /**< Offset in the parameters structure. */
+    uint32_t     mask;   /**< Mask specific to the field. */
+    uint32_t     modes;  /**< Modes for which this field is required. */
 } field_spec_t;
 
 /** @brief JSON token structure. */
 typedef struct
 {
-    /** JSMN token data. */
-    jsmntok_t const *data;
-
-    /** The JSON string. */
-    char const *json;
+    jsmntok_t const *data; /**< JSMN token data. */
+    char const      *json; /**< The JSON string. */
 } token_t;
 
 #define FIELD_SPEC_INITIALIZER(id, json_name, member, field_type, modes_mask) \
@@ -147,7 +135,7 @@ static field_spec_t const parameters_fields[]
 #undef FIELD_SPEC_INITIALIZER
 
 _Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
-               "Instruction field table is incomplete");
+               "Parameters field table is incomplete");
 
 static bool token_is_valid(token_t const *token);
 static bool token_text_equals_str(token_t const *token, char const *string);

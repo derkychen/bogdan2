@@ -16,14 +16,9 @@
 /** @brief Assertion structure that stores data. */
 typedef struct
 {
-    /** The assertion expression that failed. */
-    char const *expression;
-
-    /** The file containing the failed assertion. */
-    char const *file;
-
-    /** The line containing the failed assertion. */
-    int line;
+    char const *expression; /**< The assertion expression that failed. */
+    char const *file;       /**< The file containing the failed assertion. */
+    int         line;       /**< The line containing the failed assertion. */
 } assert_data_t;
 
 /** @brief Variable to inspect via debugger. */

@@ -11,11 +11,8 @@
 /** @brief Internal structure for a modified raster local segment. */
 typedef struct
 {
-    /** @brief Starting indices of the segment. */
-    path_indices_t start;
-
-    /** @brief Ending indices of the segment. */
-    path_indices_t end;
+    path_indices_t start; /**< Starting indices of the segment. */
+    path_indices_t end;   /**< Ending indices of the segment. */
 } segment_t;
 
 static path_raster_direction_t prev_raster_direction
@@ -40,20 +37,20 @@ static bool           index_between(int index, int start, int end);
 static bool           segment_contains_anchor(segment_t const *segment,
                                               path_indices_t   anchor);
 static int            unit_step(int displacement);
-static path_indices_t advance_line(int  curr_col,
+static path_indices_t advance_line(bool corners_only,
                                    int  anchor_col,
-                                   int  num_cols,
-                                   bool corners_only);
-static path_indices_t advance_raster(path_indices_t curr,
+                                   int  curr_col,
+                                   int  num_cols);
+static path_indices_t advance_raster(bool           corners_only,
                                      path_indices_t anchor,
+                                     path_indices_t curr,
                                      int            num_rows,
-                                     int            num_cols,
-                                     bool           corners_only);
-static path_indices_t advance(path_indices_t curr,
+                                     int            num_cols);
+static path_indices_t advance(bool           corners_only,
                               path_indices_t anchor,
+                              path_indices_t curr,
                               int            num_rows,
-                              int            num_cols,
-                              bool           corners_only);
+                              int            num_cols);
 static path_coords_t  indices_to_coords(
     path_indices_t          indices,
     path_coords_t           zero,
@@ -61,9 +58,9 @@ static path_coords_t  indices_to_coords(
 
 path_status_t
 path_init (path_t       *path,
+           bool          corners_only,
            path_coords_t min,
-           path_coords_t max,
-           bool          corners_only)
+           path_coords_t max)
 {
     ASSERT(path != NULL);
 
@@ -83,11 +80,12 @@ path_init (path_t       *path,
         return PATH_STATUS_ERR_BOUNDS_TOO_LARGE;
     }
 
+    path->corners_only = corners_only;
+    path->phase        = PATH_PHASE_READY;
+
     int x_num_points = num_points(min.x, max.x);
     int y_num_points = num_points(min.y, max.y);
 
-    path->corners_only = corners_only;
-    path->phase        = PATH_PHASE_READY;
     path->raster_direction
         = select_raster_direction(x_num_points, y_num_points);
     path->zero = min;
@@ -174,11 +172,11 @@ path_next (path_t *path, path_coords_t *coords)
     {
         ASSERT(path->phase == PATH_PHASE_ONGOING);
 
-        path->curr = advance(path->curr,
+        path->curr = advance(path->corners_only,
                              path->anchor,
+                             path->curr,
                              path->num_rows,
-                             path->num_cols,
-                             path->corners_only);
+                             path->num_cols);
 
         if (path->curr.row == path->anchor.row
             && path->curr.col == path->anchor.col)
@@ -379,10 +377,10 @@ static segment_t
 get_even_segment (path_indices_t curr, int num_rows, int num_cols)
 {
     ASSERT(num_rows > 1);
+    ASSERT((num_rows & 1) == 0);
     ASSERT(num_cols > 1);
     ASSERT(curr.row >= 0 && curr.row < num_rows);
     ASSERT(curr.col >= 0 && curr.col < num_cols);
-    ASSERT((num_rows & 1) == 0);
 
     int last_row = num_rows - 1;
     int last_col = num_cols - 1;
@@ -449,11 +447,11 @@ static segment_t
 get_odd_segment (path_indices_t curr, int num_rows, int num_cols)
 {
     ASSERT(num_rows > 1);
+    ASSERT((num_rows & 1) != 0);
     ASSERT(num_cols > 1);
+    ASSERT((num_cols & 1) != 0);
     ASSERT(curr.row >= 0 && curr.row < num_rows);
     ASSERT(curr.col >= 0 && curr.col < num_cols);
-    ASSERT((num_rows & 1) != 0);
-    ASSERT((num_cols & 1) != 0);
 
     int last_row = num_rows - 1;
     int last_col = num_cols - 1;
@@ -558,7 +556,7 @@ unit_step (int displacement)
 
 /** @brief Load the next position to visit for a one-dimensional grid. */
 static path_indices_t
-advance_line (int curr_col, int anchor_col, int num_cols, bool corners_only)
+advance_line (bool corners_only, int anchor_col, int curr_col, int num_cols)
 {
     ASSERT(num_cols > 1);
 
@@ -570,18 +568,18 @@ advance_line (int curr_col, int anchor_col, int num_cols, bool corners_only)
 
 /** @brief Load the next position to visit for a two-dimensional grid. */
 static path_indices_t
-advance_raster (path_indices_t curr,
+advance_raster (bool           corners_only,
                 path_indices_t anchor,
+                path_indices_t curr,
                 int            num_rows,
-                int            num_cols,
-                bool           corners_only)
+                int            num_cols)
 {
     ASSERT(num_rows > 1);
     ASSERT(num_cols > 1);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
     ASSERT(anchor.row >= 0 && anchor.row < num_rows);
     ASSERT(anchor.col >= 0 && anchor.col < num_cols);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
 
     segment_t segment = ((num_rows & 1) == 0)
                             ? get_even_segment(curr, num_rows, num_cols)
@@ -613,25 +611,25 @@ advance_raster (path_indices_t curr,
 
 /** @brief Load the next position to visit. */
 static path_indices_t
-advance (path_indices_t curr,
+advance (bool           corners_only,
          path_indices_t anchor,
+         path_indices_t curr,
          int            num_rows,
-         int            num_cols,
-         bool           corners_only)
+         int            num_cols)
 {
     ASSERT(num_rows >= 1);
     ASSERT(num_cols > 1);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
     ASSERT(anchor.row >= 0 && anchor.row < num_rows);
     ASSERT(anchor.col >= 0 && anchor.col < num_cols);
+    ASSERT(curr.row >= 0 && curr.row < num_rows);
+    ASSERT(curr.col >= 0 && curr.col < num_cols);
 
     if (num_rows == 1)
     {
-        return advance_line(curr.col, anchor.col, num_cols, corners_only);
+        return advance_line(corners_only, anchor.col, curr.col, num_cols);
     }
 
-    return advance_raster(curr, anchor, num_rows, num_cols, corners_only);
+    return advance_raster(corners_only, anchor, curr, num_rows, num_cols);
 }
 
 /** @brief Convert local indices to coordinates. */

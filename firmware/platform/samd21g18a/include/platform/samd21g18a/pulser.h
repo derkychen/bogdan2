@@ -39,11 +39,8 @@ typedef enum
 /** @brief Structure for pulsers. */
 typedef struct
 {
-    /** Pulser output pin. */
-    pulser_output_t const *output;
-
-    /** Identifer for hardware timer. */
-    pulser_timer_t timer;
+    pulser_output_t const *output; /**< Pulser output pin. */
+    pulser_timer_t         timer;  /**< Identifer for hardware timer. */
 } pulser_t;
 
 /**

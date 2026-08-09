@@ -21,14 +21,10 @@
 /** @brief Laser pulse counter. */
 typedef struct
 {
-    /** Pulser instance that times the pulse. */
-    pulser_t const *out;
+    pulser_t const  *out; /**< Pulser instance that times the pulse. */
+    eic_pin_t const *in;  /**< EIC pin connected to the laser trigger. */
 
-    /** EIC pin connected to the laser trigger. */
-    eic_pin_t const *in;
-
-    /** The number of pulses detected after the last reset. */
-    volatile uint32_t count;
+    volatile uint32_t count; /** The number of pulses counted. */
 } relay_t;
 
 /** @brief Initialize pulse tracker. */

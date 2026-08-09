@@ -30,8 +30,8 @@ static void task(void);
  * @brief Beam profiler firmware application entry point.
  *
  * The microcontroller will poll the serial connection until it receives a set
- * of instructions. It will then control the traversal of the corresponding
- * grid. Once finished, it will resume polling for the next set of instructions.
+ * of parameters. It will then control the traversal of the corresponding
+ * grid. Once finished, it will resume polling for the next set of parameters.
  */
 int
 main (void)
@@ -50,7 +50,7 @@ main (void)
                 == PARAMETERS_STATUS_OK_PARSED)
             {
                 serial_write_line(
-                    "{\"ok\":true,\"msg\":\"instructions_received\"}");
+                    "{\"ok\":true,\"msg\":\"parameters_received\"}");
 
                 if (profiler_profile(&profiler, &parameters)
                     == PROFILER_STATUS_OK)
@@ -66,7 +66,7 @@ main (void)
             else
             {
                 serial_write_line(
-                    "{\"ok\":false,\"msg\":\"instruction_parse_failed\"}");
+                    "{\"ok\":false,\"msg\":\"parameters_parse_failed\"}");
             }
         }
     }

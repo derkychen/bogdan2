@@ -18,45 +18,30 @@
 /** @brief Supported pulser route. */
 typedef struct
 {
-    /** Output pin port group. */
-    pin_port_group_t pin_port_group;
+    pin_port_group_t pin_port_group; /**< Output pin port group. */
+    pin_number_t     pin_number;     /**< Output pin number. */
+    pin_peripheral_function_t
+        pin_peripheral_function; /**< Peripheral function for the output. */
 
-    /** Output pin number. */
-    pin_number_t pin_number;
-
-    /** Peripheral function for the output. */
-    pin_peripheral_function_t pin_peripheral_function;
-
-    /** Pulser hardware timer instance. */
-    pulser_timer_t timer;
+    pulser_timer_t timer; /**< Pulser hardware timer instance. */
 } route_t;
 
 /** @brief Hardware data associated with a pulser. */
 typedef struct
 {
-    /** TCC registers. */
-    Tcc *tcc;
+    Tcc *tcc; /**< TCC registers. */
 
-    /** APBC mask. */
-    uint32_t apbc_mask;
+    uint32_t apbc_mask; /**< APBC mask. */
+    uint16_t gclk_id;   /**< GCLK identifier for the TCC instance. */
 
-    /** GCLK identifier for the TCC instance. */
-    uint16_t gclk_id;
+    uint8_t  compare_channel;   /**< Compare channel for output pulse width. */
+    uint32_t compare_sync_mask; /**< Compare channel synchronization mask. */
+    uint32_t match_flag;        /**< Compare channel satch interrupt flag. */
 
-    /** Compare channel for output pulse width. */
-    uint8_t compare_channel;
+    uint32_t
+        nre_mask; /**< Mask enabling the non-recoverable state output value. */
 
-    /** Synchronization mask for the compare channel. */
-    uint32_t compare_sync_mask;
-
-    /** Match interrupt flag for the compare channel. */
-    uint32_t match_flag;
-
-    /** Mask enabling the non-recoverable fault output value. */
-    uint32_t non_recoverable_enable_mask;
-
-    /** Event user corresponding to the timer event input. */
-    evsys_user_t event_user;
+    evsys_user_t event_user; /**< Event user. */
 } timer_data_t;
 
 // NOTE: Only TCC0 is supported.
@@ -77,7 +62,7 @@ static timer_data_t const timer_data[PULSER_TIMER_COUNT] = {
         .compare_channel             = 0u,
         .compare_sync_mask           = TCC_SYNCBUSY_CC0,
         .match_flag                  = TCC_INTFLAG_MC0,
-        .non_recoverable_enable_mask = TCC_DRVCTRL_NRE0,
+        .nre_mask = TCC_DRVCTRL_NRE0,
         .event_user                  =
             (evsys_user_t)EVSYS_ID_USER_TCC0_EV_0,
     },
@@ -127,7 +112,7 @@ pulser_configure (pulser_t const *pulser)
     tcc_poll_sync(tcc, TCC_SYNCBUSY_WAVE);
 
     // This keeps the pulser LOW between pulses.
-    tcc->DRVCTRL.reg = data.non_recoverable_enable_mask;
+    tcc->DRVCTRL.reg = data.nre_mask;
 
     // Configure TCC event input zero to re-trigger the one-shot pulse.
     tcc->EVCTRL.reg = TCC_EVCTRL_TCEI0 | TCC_EVCTRL_EVACT0_RETRIGGER;

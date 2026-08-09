@@ -38,11 +38,8 @@ typedef uint16_t pca9555_polarities_t;
 /** @brief PCA9555 device structure. */
 typedef struct
 {
-    /** I2C master who controls the PCA9555. */
-    i2c_master_t master;
-
-    /** Address of the PCA9555. */
-    i2c_slave_address_t address;
+    i2c_master_t        master;  /**< I2C master who controlling the PCA9555. */
+    i2c_slave_address_t address; /**< Address of the PCA9555. */
 } pca9555_device_t;
 
 /**

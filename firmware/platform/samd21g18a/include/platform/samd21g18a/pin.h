@@ -37,11 +37,8 @@ typedef enum
 /** @brief SAMD21 pin structure for storage of pin data. */
 typedef struct
 {
-    /** Pin port group. */
-    pin_port_group_t port_group;
-
-    /** Pin number. */
-    pin_number_t number;
+    pin_port_group_t port_group; /**< Pin port group. */
+    pin_number_t     number;     /**< Pin number. */
 } pin_t;
 
 /** @brief Check the validity of a pin port group. */

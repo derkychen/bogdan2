@@ -40,15 +40,8 @@ typedef void (*eic_callback_t)(eic_extint_line_t line, void *context);
 /** @brief EIC pin data. */
 typedef struct
 {
-    /** Pin. */
-    pin_t const *pin;
-
-    /**
-     * External interrupt line.
-     *
-     * NOTE: This is designated for each pin, it is not arbitrary.
-     */
-    eic_extint_line_t line;
+    pin_t const      *pin;  /**< Pin. */
+    eic_extint_line_t line; /**< Hardware-designated external interrupt line. */
 } eic_pin_t;
 
 /** @brief Check if an external interrupt line is valid. */

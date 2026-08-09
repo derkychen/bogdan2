@@ -22,11 +22,8 @@
 /** @brief Internal baud values structure. */
 typedef struct
 {
-    /** SAMD21 BAUD register value for the number of cycles SCL is HIGH. */
-    uint8_t baud;
-
-    /** SAMD21 BAUD register value for the number of cycles SCL is LOW. */
-    uint8_t baudlow;
+    uint8_t baud;    /**< BAUD value for the number of cycles SCL is HIGH. */
+    uint8_t baudlow; /**< BAUD value for the number of cycles SCL is LOW. */
 } baud_t;
 
 /**
@@ -37,20 +34,13 @@ typedef struct
  */
 typedef struct
 {
-    /** Pin port group. */
-    pin_port_group_t pin_port_group;
+    pin_port_group_t pin_port_group; /**< Pin port group. */
+    pin_number_t     pin_number;     /**< Pin number. */
+    pin_peripheral_function_t
+        pin_peripheral_function; /**< Pin peripheral function for I2C. */
 
-    /** Pin number. */
-    pin_number_t pin_number;
-
-    /** Peripheral function for I2C. */
-    pin_peripheral_function_t pin_peripheral_function;
-
-    /** I2C master. */
-    i2c_master_t master;
-
-    /** SERCOM pad. */
-    i2c_sercom_pad_t pad;
+    i2c_master_t     master; /**< I2C master. */
+    i2c_sercom_pad_t pad;    /**< SERCOM pad. */
 } route_t;
 
 /**
@@ -60,14 +50,9 @@ typedef struct
  */
 typedef struct
 {
-    /** SERCOM registers. */
-    Sercom *sercom;
-
-    /** APBC mask. */
-    uint32_t apbc_mask;
-
-    /** GCLK ID for the SERCOM instance. */
-    uint16_t gclk_id;
+    Sercom  *sercom;    /**< SERCOM registers. */
+    uint32_t apbc_mask; /**< APBC mask. */
+    uint16_t gclk_id;   /**< GCLK ID for the SERCOM instance. */
 } master_data_t;
 
 static route_t const routes[] = {

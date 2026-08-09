@@ -30,11 +30,8 @@ static uint16_t const sense_values[EIC_SENSE_COUNT] = {
 /** @brief EIC callback entry format. */
 typedef struct
 {
-    /** The callback that runs on an interrupt. */
-    eic_callback_t callback;
-
-    /** Context pointer passed to the callback. */
-    void *context;
+    eic_callback_t callback; /**< The callback that runs on an interrupt. */
+    void          *context;  /**< Context pointer passed to the callback. */
 } eic_callback_entry_t;
 
 static eic_callback_entry_t callback_entries[EXTINT_LINE_COUNT];

@@ -65,21 +65,15 @@ typedef enum
 /** @brief Define a position with x and y coordinates. */
 typedef struct
 {
-    /** The x-coordinate in units. */
-    int x;
-
-    /** The y-coordinate in units. */
-    int y;
+    int x; /**< The x-coordinate in units. */
+    int y; /**< The y-coordinate in units. */
 } path_coords_t;
 
 /** @brief Define a local position with row and column indices. */
 typedef struct
 {
-    /** The row index. */
-    int row;
-
-    /** The column index. */
-    int col;
+    int row; /**< The row index. */
+    int col; /**< The column index. */
 } path_indices_t;
 
 /**
@@ -96,40 +90,25 @@ typedef struct
  */
 typedef struct
 {
-    /**
-     * Whether only corners are generated.
-     *
-     * Corners are endpoints of the straight segments of the raster.
-     * */
-    bool corners_only;
+    bool corners_only; /**< Whether only corners are generated. */
 
-    /** Current traversal phase. */
-    path_phase_t phase;
+    path_phase_t            phase;            /**< Current traversal phase. */
+    path_raster_direction_t raster_direction; /**< Current raster direction. */
 
-    /** Raster direction for the path. */
-    path_raster_direction_t raster_direction;
+    path_coords_t zero; /**< Coordinates of local minimum indices. */
 
-    /** Coordinates corresponding to local minimum indices.. */
-    path_coords_t zero;
+    path_indices_t anchor; /**< Local indices of the anchor. */
+    path_indices_t curr;   /**< Local indices of the current position. */
 
-    /** Local indices of the anchor. */
-    path_indices_t anchor;
-
-    /** Local indices of the current position. */
-    path_indices_t curr;
-
-    /** Local number of rows. */
-    int num_rows;
-
-    /** Local number of columns. */
-    int num_cols;
+    int num_rows; /**< Local number of rows. */
+    int num_cols; /**< Local number of columns. */
 } path_t;
 
 /** @brief Initialize a path. */
 path_status_t path_init(path_t       *path,
+                        bool          corners_only,
                         path_coords_t min,
-                        path_coords_t max,
-                        bool          corners_only);
+                        path_coords_t max);
 
 /**
  * @brief Get the next position in the path.

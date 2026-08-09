@@ -52,41 +52,22 @@ typedef enum
  */
 typedef struct
 {
-    /** Mode of the profiler. */
-    parameters_mode_t mode;
+    parameters_mode_t mode; /**< Mode of the profiler. */
 
-    /** Minimum coordinate on the x-axis in units. */
-    int x_min;
+    int      x_min;     /**< Minimum coordinate on the x-axis in units. */
+    int      x_max;     /**< Maximum coordinate on the x-axis in units. */
+    uint32_t x_unit_nm; /**< Unit length on the x-axis in nanometres. */
+    int x_origin_nm;    /**< Position of the origin of x-axis in nanometres. */
 
-    /** Maximum coordinate on the x-axis in units. */
-    int x_max;
+    int      y_min;     /**< Minimum coordinate on the y-axis in units. */
+    int      y_max;     /**< Maximum coordinate on the y-axis in units. */
+    uint32_t y_unit_nm; /**< Unit length on the y-axis in nanometres. */
+    int y_origin_nm;    /**< Position of the origin of y-axis in nanometres. */
 
-    /** The length of each unit on the x-axis in nanometres. */
-    uint32_t x_unit_nm;
+    uint32_t num_pulses;   /**< Number of laser pulses to capture per point. */
+    uint32_t wait_time_us; /**< Time to wait at each point, in microseconds. */
 
-    /** Position of the origin of x-axis after calibration in nanometres. */
-    int x_origin_nm;
-
-    /** Minimum coordinate on the x-axis in units. */
-    int y_min;
-
-    /** Maximum coordinate on the x-axis in units. */
-    int y_max;
-
-    /** The length of each unit on the x-axis in nanometres. */
-    uint32_t y_unit_nm;
-
-    /** Position of the origin of y-axis after calibration in nanometres. */
-    int y_origin_nm;
-
-    /** The number of laser pulses that should be captured at each point.*/
-    uint32_t num_pulses;
-
-    /** The amount of time to wait at each point, in microseconds. */
-    uint32_t wait_time_us;
-
-    /** The delay after the triggering of the PicoScope, in microseconds. */
-    uint32_t posttrigger_time_us;
+    uint32_t posttrigger_time_us; /**< Time after trigger, in microseconds. */
 } parameters_t;
 
 /** @brief Parse the JSON parameters sent through serial. */

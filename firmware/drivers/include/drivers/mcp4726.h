@@ -30,11 +30,8 @@ typedef uint8_t mcp4726_reg_t;
 /** @brief MCP4726 device structure. */
 typedef struct
 {
-    /** I2C master who controls the MCP4726. */
-    i2c_master_t master;
-
-    /** Address of the MCP4726. */
-    i2c_slave_address_t address;
+    i2c_master_t        master;  /**< I2C master controlling the MCP4726. */
+    i2c_slave_address_t address; /**< Address of the MCP4726. */
 } mcp4726_device_t;
 
 /** @brief Write a 12-bit digital value to the MCP4726 device. */

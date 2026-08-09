@@ -36,11 +36,10 @@ profiler_init (profiler_t     *profiler,
     ASSERT(relay != NULL);
     ASSERT(task != NULL);
 
-    profiler->x_controller          = x_controller;
-    profiler->y_controller          = y_controller;
-    profiler->relay                 = relay;
-    profiler->task                  = task;
-    profiler->prev_raster_direction = PATH_RASTER_DIRECTION_HORIZONTAL;
+    profiler->x_controller = x_controller;
+    profiler->y_controller = y_controller;
+    profiler->relay        = relay;
+    profiler->task         = task;
 
     return;
 }
@@ -110,9 +109,9 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
 
     path_init(
         &path,
+        false,
         (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
-        false);
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
 
     path_coords_t position;
 
@@ -223,9 +222,9 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
 
     path_init(
         &path,
+        false,
         (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
-        false);
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
 
     path_coords_t position;
 
@@ -317,9 +316,9 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
 
     path_init(
         &path,
+        true,
         (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max },
-        true);
+        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
 
     path_coords_t position;
 

@@ -145,8 +145,6 @@ static i2c_pin_t const board_i2c_bus_scl = {
     .pad = I2C_SERCOM_PAD1,
 };
 
-/** @brief Internal handle for I2C configuration of the IND.I/O. */
-
 /** @brief Internal MCP4726 that controls all analog output CH1. */
 static mcp4726_device_t const analog_output_mcp4726_ch1 = {
     .master  = I2C_MASTER_SERCOM1,
@@ -197,5 +195,8 @@ io_cfg_init (void)
                   &board_i2c_bus_scl,
                   I2C_SCL_FREQUENCY_FAST_HZ,
                   I2C_SCL_RISE_FAST_NS);
+
     (void)analog_output_configure_v10();
+
+    return;
 }

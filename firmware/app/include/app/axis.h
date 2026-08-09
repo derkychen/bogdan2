@@ -30,20 +30,11 @@ typedef enum
 /** @brief Interface between coordinate system and controller. */
 typedef struct
 {
-    /** Minimum coordinate on the axis in units. */
-    int min;
-
-    /** Maximum coordinate on the axis in units. */
-    int max;
-
-    /** Length of each unit on the axis in nanometres */
-    uint32_t unit_nm;
-
-    /** Position in nanometres the stage was calibrated to initially. */
-    int origin_nm;
-
-    /** Pointer to the controller for the corresponding axis. */
-    controller_t *controller;
+    int           min;        /**< Minimum coordinate in units. */
+    int           max;        /**< Maximum coordinate in units. */
+    uint32_t      unit_nm;    /**< Length of each unit in nanometres. */
+    int           origin_nm;  /**< Initial stage position in nanometres. */
+    controller_t *controller; /**< Pointer to the controller for the axis. */
 } axis_t;
 
 /** @brief Initialize an axis structure and configure controller interrupts. */

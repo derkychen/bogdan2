@@ -12,7 +12,6 @@
 
 #include "app/controller.h"
 #include "app/parameters.h"
-#include "app/path.h"
 #include "app/relay.h"
 
 /** @brief Profiler status codes. */
@@ -38,20 +37,12 @@ typedef void (*profiler_task_t)(void);
 /** @brief Abstraction of the beam profiler. */
 typedef struct
 {
-    /** Controller for the x-axis. */
-    controller_t *x_controller;
+    controller_t *x_controller; /**< Controller for the x-axis. */
+    controller_t *y_controller; /**< Controller for the y-axis. */
 
-    /** Controller for the y-axis. */
-    controller_t *y_controller;
+    relay_t *relay; /**< Relay. */
 
-    /** Relay. */
-    relay_t *relay;
-
-    /** Task to be called in all blocking delays.*/
-    profiler_task_t task;
-
-    /** Previous raster direction. */
-    path_raster_direction_t prev_raster_direction;
+    profiler_task_t task; /**< Task function to be called in blocking delays. */
 } profiler_t;
 
 /** @brief Initialize the beam profiler. */
