@@ -50,6 +50,18 @@ def _check_err_bool[**P](
         raise KinesisStatusFailure(f"{func.__name__} failed.")
 
 
+class PDXC2_ClosedLoopParameters(ctypes.Structure):
+    """Parameters for closed-loop motion."""
+
+    _fields_ = [  # pyright: ignore[reportUnannotatedClassAttribute]
+        ("RefSpeed", ctypes.c_uint32),
+        ("Proportional", ctypes.c_uint32),
+        ("Integral", ctypes.c_uint32),
+        ("Differential", ctypes.c_uint32),
+        ("Acceleration", ctypes.c_uint32),
+    ]
+
+
 class PDXC2TriggerParams(ctypes.Structure):
     """Mirrors the PDXC2_TriggerParams structure from the Kinesis C API."""
 
@@ -144,6 +156,10 @@ class Controller:
             os.path.join(KINESIS_DIR, KINESIS_DLL_FILE)
         )
 
+        self._position: ctypes.c_int = ctypes.c_int(1)
+
+        self._position_ptr = ctypes.pointer(self._position)  # pyright: ignore[reportUnannotatedClassAttribute]
+
         self._set_function_prototypes()
 
     def enable(self) -> None:
@@ -173,7 +189,7 @@ class Controller:
     def get_trigger_params(self) -> PDXC2TriggerParams:
         """Get trigger parameters."""
         sentinel = PDXC2TriggerParams()
-        sentinel_bytes = bytes(sentinel)  # all zeros
+        sentinel_bytes = bytes(sentinel)
 
         _check_err_status_code(
             self._lib.PDXC2_RequestExternalTriggerParams, self._serial_num
@@ -197,6 +213,29 @@ class Controller:
         raise KinesisStatusFailure(
             "Device did not return trigger parameters within "
             + f"{TRIGGER_PARAMS_REFRESH_TIMEOUT_S} s."
+        )
+
+    def set_closedloop_params(
+        self,
+        refspeed: int = 10000000,
+        proportional: int = 8192,
+        integral: int = 8192,
+        differential: int = 0,
+        acceleration: int = 50000000,
+    ) -> None:
+        """Set parameters for closed-loop motion."""
+        closedloop_params = PDXC2_ClosedLoopParameters(
+            ctypes.c_uint32(refspeed),
+            ctypes.c_uint32(proportional),
+            ctypes.c_uint32(integral),
+            ctypes.c_uint32(differential),
+            ctypes.c_uint32(acceleration),
+        )
+
+        _check_err_status_code(
+            self._lib.PDXC2_SetClosedLoopParams,
+            self._serial_num,
+            closedloop_params,
         )
 
     def set_to_analog_rising_trigger_mode(self) -> None:
