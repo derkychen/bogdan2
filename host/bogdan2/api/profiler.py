@@ -179,7 +179,6 @@ class Profiler:
             ANALOG_OUT_OFFSET_MV_N10_TO_10,
         )
 
-        self._scope.open()
         self._scope.setup()
         self._scope.configure_channels(
             ScopeChannelParams(name="trigger_mv", range_id=RANGE_20V),
