@@ -221,7 +221,7 @@ class Controller:
         proportional: int = 8192,
         integral: int = 8192,
         differential: int = 0,
-        acceleration: int = 50000000,
+        acceleration: int = 100000000,
     ) -> None:
         """Set parameters for closed-loop motion."""
         closedloop_params = PDXC2_ClosedLoopParameters(
