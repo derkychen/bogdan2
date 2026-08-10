@@ -160,11 +160,19 @@ class Profiler:
 
     def _configure(self) -> None:
         """Configure the profiler hardware."""
+        # Use fast settings.
+        #
+        # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
+        #       long-term usage.
+        self._x_controller.set_closedloop_params(
+            refspeed=15000000, acceleration=500000000
+        )
+        self._y_controller.set_closedloop_params(
+            refspeed=15000000, acceleration=500000000
+        )
+
         self._x_controller.set_to_analog_rising_trigger_mode()
         self._y_controller.set_to_analog_rising_trigger_mode()
-
-        self._x_controller.set_closedloop_params()
-        self._y_controller.set_closedloop_params()
 
         self._x_controller.set_analog_rising_trigger_params(
             ANALOG_IN_GAIN_0_TO_10,
@@ -178,6 +186,9 @@ class Profiler:
             ANALOG_OUT_GAIN_N10_TO_10,
             ANALOG_OUT_OFFSET_MV_N10_TO_10,
         )
+
+        self._x_controller.persist_settings()
+        self._y_controller.persist_settings()
 
         self._scope.setup()
         self._scope.configure_channels(
