@@ -1,4 +1,4 @@
-"""This module contains the main profiling functionality."""
+"""Main profiling functionality."""
 
 import json
 import time
@@ -22,10 +22,7 @@ from bogdan2._utils.math import ceil_div
 from bogdan2.api.data import (
     BeamPoint,
     BeamProfile,
-    Position,
-    Quantity,
-    Sequence,
-    TimeSeries,
+    Reading,
 )
 from bogdan2.api.params import (
     AXIS_STAGE_RANGE_MAX_NM,
@@ -70,11 +67,6 @@ class MCUError(Exception):
     """Host receives an error message from the microcontroller."""
 
 
-def _clear_terminal() -> None:
-    """Clear the terminal."""
-    print("\033[2J\033[H", end="")
-
-
 def _ser_write_newline_terminated(
     ser: serial.Serial, params: dict[str, bool | int | str]
 ) -> None:
@@ -82,27 +74,14 @@ def _ser_write_newline_terminated(
     _ = ser.write((json.dumps(params) + "\n").encode())
 
 
-def _x_y_mv_to_position(x_mv: TimeSeries, y_mv: TimeSeries) -> Position:
+def _mv_to_mm(mv: Reading) -> float:
     """Convert x and y millivolt readings into a position."""
-    interval = x_mv.interval
-
-    x_data: Sequence = Sequence(
-        values=(x_mv.data.values - ANALOG_OUT_MIN_MV)
+    return (
+        (mv.mean - ANALOG_OUT_MIN_MV)
         * (AXIS_STAGE_RANGE_MAX_NM - AXIS_STAGE_RANGE_MIN_NM)
-        / (1e-6 * (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV)),
-        unit="mm",
+        / (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV)
+        * 1e-6
     )
-    y_data: Sequence = Sequence(
-        values=(y_mv.data.values - ANALOG_OUT_MIN_MV)
-        * (AXIS_STAGE_RANGE_MAX_NM - AXIS_STAGE_RANGE_MIN_NM)
-        / (1e-6 * (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV)),
-        unit="mm",
-    )
-
-    x_mm = TimeSeries(data=x_data, interval=interval)
-    y_mm = TimeSeries(data=y_data, interval=interval)
-
-    return Position(x=x_mm, y=y_mm)
 
 
 class Profiler:
@@ -140,36 +119,6 @@ class Profiler:
         if self._ser is not None:
             self._ser.close()
         self._stack.close()
-
-    def calibrate(self) -> None:
-        """Run calibration by printing a continuous stream of intensities."""
-        self._scope.set_sample_region(0, 4000)
-
-        try:
-            self._scope.enable_trigger_a()
-            self._scope.configure_single_capture()
-
-            while True:
-                self._scope.run_capture()
-                self._scope.transfer_single_values()
-
-                intensity_mv = self._scope.channel_single_mv("intensity_mv")
-
-                _clear_terminal()
-
-                print(
-                    "Current Intensity (mV):\n"
-                    + "\n"
-                    + f"{intensity_mv}\n"
-                    + "\n"
-                    + "Ctrl+C to quit"
-                )
-
-                time.sleep(CALIBRATION_REFRESH_S)
-
-        except KeyboardInterrupt:
-            _clear_terminal()
-            print("\nStopped voltage monitor.")
 
     def profile(self, port: str, params: ProfilerParams) -> BeamProfile | None:
         """Run profiling with a set of parameters."""
@@ -214,13 +163,15 @@ class Profiler:
         self._x_controller.set_to_analog_rising_trigger_mode()
         self._y_controller.set_to_analog_rising_trigger_mode()
 
+        self._x_controller.set_closedloop_params()
+        self._y_controller.set_closedloop_params()
+
         self._x_controller.set_analog_rising_trigger_params(
             ANALOG_IN_GAIN_0_TO_10,
             ANALOG_IN_OFFSET_MV_0_TO_10,
             ANALOG_OUT_GAIN_N10_TO_10,
             ANALOG_OUT_OFFSET_MV_N10_TO_10,
         )
-
         self._y_controller.set_analog_rising_trigger_params(
             ANALOG_IN_GAIN_0_TO_10,
             ANALOG_IN_OFFSET_MV_0_TO_10,
@@ -230,14 +181,12 @@ class Profiler:
 
         self._scope.open()
         self._scope.setup()
-
         self._scope.configure_channels(
             ScopeChannelParams(name="trigger_mv", range_id=RANGE_20V),
             ScopeChannelParams(name="x_mv", range_id=RANGE_20V),
             ScopeChannelParams(name="y_mv", range_id=RANGE_20V),
             ScopeChannelParams(name="intensity_mv", range_id=RANGE_20V),
         )
-
         self._scope.disable_trigger_a()
 
     def _poll_mcu_status(
@@ -264,77 +213,31 @@ class Profiler:
 
     def _beam_point_single(self) -> BeamPoint:
         """Construct a beam point from a single capture."""
-        interval_s: Quantity = Quantity(
-            value=self._scope.get_sample_interval_ns() * 1e-9,
-            unit="s",
-        )
+        interval_s = self._scope.get_sample_interval_ns() * 1e-9
 
-        x_mv = TimeSeries(
-            data=Sequence(
-                values=np.concatenate(self._scope.channel_bulk_mv("x_mv")),
-                unit="mv",
-            ),
-            interval=interval_s,
-        )
+        x_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("x_mv")))
+        y_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("y_mv")))
+        intensity = Reading(
+            vals=self._scope.channel_single_mv("intensity_mv")
+        ).integral(interval_s)
 
-        y_mv = TimeSeries(
-            data=Sequence(
-                values=np.concatenate(self._scope.channel_bulk_mv("y_mv")),
-                unit="mv",
-            ),
-            interval=interval_s,
-        )
-
-        intensity_mv = TimeSeries(
-            data=Sequence(
-                values=np.concatenate(
-                    self._scope.channel_bulk_mv("intensity_mv")
-                ),
-                unit="mv",
-            ),
-            interval=interval_s,
-        )
-
-        position = _x_y_mv_to_position(x_mv, y_mv)
-
-        return BeamPoint(position=position, intensity=intensity_mv)
+        return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
 
     def _beam_point_bulk(self) -> BeamPoint:
-        """Construct a beam point from a bulk capture."""
-        interval_s: Quantity = Quantity(
-            value=self._scope.get_sample_interval_ns() * 1e-9,
-            unit="s",
+        """Construct a beam point from a single capture."""
+        interval_s = self._scope.get_sample_interval_ns() * 1e-9
+
+        x_mm = _mv_to_mm(
+            Reading(vals=np.concatenate(self._scope.channel_single_mv("x_mv")))
         )
-
-        x_mv = TimeSeries(
-            data=Sequence(
-                values=self._scope.channel_single_mv("x_mv"),
-                unit="mv",
-            ),
-            interval=interval_s,
+        y_mm = _mv_to_mm(
+            Reading(vals=np.concatenate(self._scope.channel_single_mv("y_mv")))
         )
+        intensity = Reading(
+            vals=np.concatenate(self._scope.channel_single_mv("intensity_mv"))
+        ).integral(interval_s)
 
-        y_mv = TimeSeries(
-            data=Sequence(
-                values=self._scope.channel_single_mv("y_mv"),
-                unit="mv",
-            ),
-            interval=interval_s,
-        )
-
-        intensity_mv = TimeSeries(
-            data=Sequence(
-                values=np.concatenate(
-                    self._scope.channel_bulk_mv("intensity_mv")
-                ),
-                unit="mv",
-            ),
-            interval=interval_s,
-        )
-
-        position = _x_y_mv_to_position(x_mv, y_mv)
-
-        return BeamPoint(position=position, intensity=intensity_mv)
+        return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
 
     def _profile_mode_point_count(
         self, grid: GridParams, capture: PointCountCaptureParams

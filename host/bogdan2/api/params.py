@@ -10,9 +10,7 @@ AXIS_MAX_MAX: Final[int] = 1000
 AXIS_UNIT_MAX_NM: Final[int] = 1000000
 AXIS_STAGE_RANGE_MIN_NM: Final[int] = -6000000
 AXIS_STAGE_RANGE_MAX_NM: Final[int] = 6000000
-AXIS_STAGE_TOLERANCE_NM: Final[int] = 300
-
-GRID_MAX_NUM_POINTS: Final[int] = 1023
+AXIS_STAGE_MIN_STEP_NM: Final[int] = 300
 
 CAPTURE_SAMPLE_INTERVAL_NS_MAX: Final[int] = 10000
 CAPTURE_MAX_SAMPLES: Final[int] = 30000000
@@ -34,7 +32,7 @@ class ProfilerParamsInitError(Exception):
     """When the profiling parameters are incorrect."""
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class AxisParams:
     """Define one axis."""
 
@@ -60,10 +58,10 @@ class AxisParams:
                 "Minimum coordinate is greater than maximum coordinate."
             )
 
-        if self.unit_nm < AXIS_STAGE_TOLERANCE_NM:
+        if self.unit_nm < AXIS_STAGE_MIN_STEP_NM:
             raise AxisParamsInitError(
-                "The unit length is less than the tolerance of the stage "
-                + f"({AXIS_STAGE_TOLERANCE_NM} nm)."
+                "The unit length is less than the minimum step length of the "
+                + f"stage ({AXIS_STAGE_MIN_STEP_NM} nm)."
             )
 
         if self.unit_nm > AXIS_UNIT_MAX_NM:
@@ -100,20 +98,12 @@ class AxisParams:
         return self.max - self.min + 1
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class GridParams:
     """Define a grid with an x and y axis."""
 
     x: AxisParams
     y: AxisParams
-
-    def __post_init__(self) -> None:
-        """Validate grid parameters."""
-        if self.num_points > GRID_MAX_NUM_POINTS:
-            raise GridParamsInitError(
-                f"Number of grid points ({self.num_points}) exceeds maximum "
-                + f"number of grid points ({GRID_MAX_NUM_POINTS})."
-            )
 
     @property
     def num_points(self) -> int:
@@ -121,7 +111,7 @@ class GridParams:
         return self.x.num_points * self.y.num_points
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class _BaseCaptureParams:
     """Define a parent configuration for capture."""
 
@@ -153,7 +143,7 @@ class _BaseCaptureParams:
         raise NotImplementedError
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class PointCountCaptureParams(_BaseCaptureParams):
     """Define a capture in `point_count` mode."""
 
@@ -170,7 +160,7 @@ class PointCountCaptureParams(_BaseCaptureParams):
         return self.num_pulses
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class PointTimeCaptureParams(_BaseCaptureParams):
     """Define a capture in `point_time` mode."""
 
@@ -187,7 +177,7 @@ class PointTimeCaptureParams(_BaseCaptureParams):
         return 1
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class ContinuousCaptureParams(_BaseCaptureParams):
     """Define a capture in `continuous` mode."""
 
@@ -198,7 +188,7 @@ class ContinuousCaptureParams(_BaseCaptureParams):
         return 1
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class ProfilerParams:
     """Define a full set of profiling parameters."""
 

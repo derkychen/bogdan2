@@ -8,69 +8,38 @@ import numpy.typing as npt
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Quantity:
-    """Abstraction for quantities."""
+class Reading:
+    """Abstraction for raw readings captured from the oscilloscope."""
 
-    value: float
-    unit: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Sequence:
-    """Abstraction for data (multiple quantities)."""
-
-    values: npt.NDArray[np.float64]
-    unit: str
+    vals: npt.NDArray[np.float64]
 
     @property
     def mean(self) -> float:
-        """Mean of a waveform."""
-        return float(np.mean(self.values))
+        """Mean of quantities."""
+        return float(np.mean(self.vals))
 
     @property
     def median(self) -> float:
-        """Median of a waveform."""
-        return float(np.median(self.values))
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class TimeSeries:
-    """All measured quantities are readings from the PicoScope."""
-
-    data: Sequence
-    interval: Quantity | None
+        """Median of quantities."""
+        return float(np.median(self.vals))
 
     @property
-    def integral(self) -> Quantity:
-        """The integral of a waveform by trapezoidal method."""
-        assert self.interval is not None, (
-            "Data interval must be set for integration."
-        )
+    def stddev(self) -> float:
+        """Median of quantities."""
+        return float(np.std(self.vals))
 
-        return Quantity(
-            value=float(
-                np.trapezoid(
-                    self.data.values, x=None, dx=self.interval.value, axis=-1
-                )
-            ),
-            unit=f"{self.data.unit} * {self.interval.unit}",
-        )
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Position:
-    """Position of a point on the beam profile."""
-
-    x: TimeSeries
-    y: TimeSeries
+    def integral(self, interval: float) -> float:
+        """Integral of a waveform by trapezoidal method."""
+        return float(np.trapezoid(self.vals, x=None, dx=interval, axis=-1))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class BeamPoint:
     """Point on a beam profile."""
 
-    position: Position
-    intensity: TimeSeries
+    x_mm: float
+    y_mm: float
+    intensity: float
 
 
 class BeamProfile:
@@ -78,8 +47,7 @@ class BeamProfile:
 
     def __init__(self, points: list[BeamPoint]) -> None:
         """Initialize a profile."""
-        # TODO: Implement.
-        pass
+        self._points: list[BeamPoint] = points
 
     def save(self, path: Path) -> None:
         """Save profile data to a location."""
