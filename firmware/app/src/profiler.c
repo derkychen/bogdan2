@@ -55,7 +55,7 @@ profiler_profile (profiler_t *profiler, parameters_t const *parameters)
     // completes required configuration.
     uint32_t start_ms = time_get_ms();
 
-    while (time_get_ms() - start_ms < PROFILE_START_WAIT_MS)
+    while ((time_get_ms() - start_ms) < PROFILE_START_WAIT_MS)
     {
     }
 
