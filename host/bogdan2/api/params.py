@@ -5,15 +5,15 @@ from typing import Final, override
 
 from bogdan2._utils.math import ceil_div
 
-AXIS_MIN_MIN: Final[int] = -1000
-AXIS_MAX_MAX: Final[int] = 1000
-AXIS_UNIT_MAX_NM: Final[int] = 1000000
-AXIS_STAGE_RANGE_MIN_NM: Final[int] = -6000000
-AXIS_STAGE_RANGE_MAX_NM: Final[int] = 6000000
+AXIS_MIN_MIN: Final[int] = -1_000
+AXIS_MAX_MAX: Final[int] = 1_000
+AXIS_UNIT_MAX_NM: Final[int] = 1_000_000
+AXIS_STAGE_RANGE_MIN_NM: Final[int] = -6_000_000
+AXIS_STAGE_RANGE_MAX_NM: Final[int] = 6_000_000
 AXIS_STAGE_MIN_STEP_NM: Final[int] = 300
 
-CAPTURE_SAMPLE_INTERVAL_NS_MAX: Final[int] = 10000
-CAPTURE_MAX_SAMPLES: Final[int] = 30000000
+CAPTURE_SAMPLE_INTERVAL_NS_MAX: Final[int] = 10_000
+CAPTURE_MAX_SAMPLES: Final[int] = 30_000_000
 
 
 class AxisParamsInitError(Exception):
