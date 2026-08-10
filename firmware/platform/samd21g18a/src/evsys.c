@@ -4,6 +4,9 @@
  *
  * EVSYS works by routing a "channel" between users and generators. Users listen
  * to events that are created by generators.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/evsys.h"
 #include "platform/samd21g18a/assert.h"

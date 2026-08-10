@@ -4,6 +4,9 @@
  *
  * This implements vector table functions (mostly through dummy handlers) in the
  * SAMD21G18A that define startup behaviour).
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "sam.h" // IWYU pragma: keep
 #include <stddef.h>

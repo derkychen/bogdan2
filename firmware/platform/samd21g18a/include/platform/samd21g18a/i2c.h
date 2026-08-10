@@ -6,6 +6,9 @@
  * generic as possible, though currently it only supports an I2C bus on PA16 and
  * PA17, which is the bus required to communicate with the IND.I/O baseboard
  * I/O.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_I2C_H
 #define PLATFORM_SAMD21G18A_I2C_H

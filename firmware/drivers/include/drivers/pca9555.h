@@ -4,6 +4,9 @@
  *
  * This module provides functionality for PCA9555 writing via I2C.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: For the purposes of this application, this driver is only used for
  *       configuring the range of the analog output.
  */

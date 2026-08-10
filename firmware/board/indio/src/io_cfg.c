@@ -2,6 +2,9 @@
  * @file io_cfg.c
  * @brief Implementation of I/O configurations.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: All MCU expansion port pins and analog output pins are defined. The
  *       ones that are unused are commented out.
  */

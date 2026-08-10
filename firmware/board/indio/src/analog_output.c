@@ -2,6 +2,9 @@
  * @file analog_output.c
  * @brief Implementation of analog output functionality for the IND.I/O.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: The MCP4726 is the chip used to actually perform DAC conversions.
  *       However, the PCA9555 driver is still needed in the configuration of the
  *       output voltage range to 0 to 10 volts.

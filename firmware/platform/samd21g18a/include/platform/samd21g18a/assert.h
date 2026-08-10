@@ -6,6 +6,9 @@
  * breakpoint if an assertion fails. It records assertion data into a global
  * variable. This can be accessed if a debugging chip is used.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: This macro should only be used for checking conditions that fail if
  *       there is a programming error. It should not be used for handling errors
  *       that are expected.

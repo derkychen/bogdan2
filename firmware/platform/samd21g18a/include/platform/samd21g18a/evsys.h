@@ -4,6 +4,9 @@
  *
  * This module provides functions to configure event routing through the
  * SAMD21G18A Event System (EVSYS).
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_EVSYS_H
 #define PLATFORM_SAMD21G18A_EVSYS_H

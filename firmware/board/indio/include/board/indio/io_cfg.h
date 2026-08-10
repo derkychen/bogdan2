@@ -5,6 +5,9 @@
  * This module exposes global handles for I/O through `extern` declarations that
  * can be passed into initialization functions.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: This module only exposes the handles for I/O used in this project.
  */
 #ifndef BOARD_INDIO_IO_CFG_H

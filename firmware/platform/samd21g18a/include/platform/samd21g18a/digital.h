@@ -5,6 +5,9 @@
  * This module provides functionality to control SAMD21G18A GPIOs as digital
  * pins.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: The only actually accessible SAMD21G18A pins on the IND.I/O are located
  *       on the MCU expansion port.
  */

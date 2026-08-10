@@ -4,6 +4,9 @@
  *
  * This module provides bare-bones timing functionality. Waits are usually
  * blocking, so they should be used carefully.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_TIME_H
 #define PLATFORM_SAMD21G18A_TIME_H

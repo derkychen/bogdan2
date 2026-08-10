@@ -7,6 +7,9 @@
  * generic as possible, but currently only supports a pulser on MCU expansion
  * port D7.
  *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
+ *
  * NOTE: If the pulser output is HIGH when an event fires or a software
  *       re-trigger is called, the pulse is restarted. If the pulser is used to
  *       trigger components with its rising edge, this restarting of the pulse

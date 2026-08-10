@@ -1,6 +1,9 @@
 /**
  * @file assert.c
  * @brief Implements the function that handles a failed assertion.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/assert.h"
 #include "sam.h" // IWYU pragma: keep

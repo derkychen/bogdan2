@@ -1,6 +1,9 @@
 /**
  * @file time.c
  * @brief Implementation of timing functionality.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/time.h"
 #include "sam.h" // IWYU pragma: keep

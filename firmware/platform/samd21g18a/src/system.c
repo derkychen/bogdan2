@@ -7,6 +7,9 @@
  * system is initialized, and does not calculate the clock frequency. Although
  * there is no use case for this, if clock frequency is changed elsewhere,
  * `SystemCoreClockUpdate` will have to be rewritten.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "sam.h" // IWYU pragma: keep
 #include <stdbool.h>

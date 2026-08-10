@@ -1,6 +1,9 @@
 /**
  * @file utils.c
  * @brief Implementation of miscellaneous utility functions.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/utils.h"
 #include "sam.h" // IWYU pragma: keep
