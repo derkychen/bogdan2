@@ -12,9 +12,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define SET_DEBOUNCE_TIME_US (1000u)
-#define AXES_TIMEOUT_MS      (10000u)
-#define RELAY_TIMEOUT_MS     (10000u)
+#define PROFILE_START_WAIT_MS (5u)
+#define SET_DEBOUNCE_TIME_US  (1000u)
+#define AXES_TIMEOUT_MS       (10000u)
+#define RELAY_TIMEOUT_MS      (10000u)
 
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
@@ -49,6 +50,14 @@ profiler_profile (profiler_t *profiler, parameters_t const *parameters)
 {
     ASSERT(profiler != NULL);
     ASSERT(parameters != NULL);
+
+    // Short wait to ensure movement occurs after host receives status and
+    // completes required configuration.
+    uint32_t start_ms = time_get_ms();
+
+    while (time_get_ms() - start_ms < PROFILE_START_WAIT_MS)
+    {
+    }
 
     switch (parameters->mode)
     {
