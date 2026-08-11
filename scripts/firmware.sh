@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 #
 # Optionally build firmware and/or clear the `build/` directory and/or flash the
-# binary to the Industruino (this only works if the bootloader is active).
+# binary to the microcontroller (this only works if the bootloader is active).
+#
+# NOTE: Internet connection is required by `FetchContent` if this script is run
+#       on for a preset whose build directory is unpopulated. This can happen
+#       when building for the first time or after the directory was previously
+#       cleared.
 
 set -euo pipefail
 
