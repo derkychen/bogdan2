@@ -23,7 +23,7 @@ extern uint32_t _ezero;
 extern uint32_t _sstack;
 extern uint32_t _estack;
 
-/** @brief Main function defined elsewhere. */
+/** @brief Application entry point defined elsewhere. */
 extern int main(void);
 
 /** @brief Processor reset handler. */

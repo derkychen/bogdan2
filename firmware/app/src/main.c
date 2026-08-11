@@ -2,8 +2,9 @@
  * @file main.c
  * @brief Application program entry point.
  *
- * Implementation of the initialization of hardware and loop that polls the host
- * for beam profiling parameters.
+ * Performs initialization of hardware and loop that polls the host for beam
+ * profiling parameters. The microcontroller controls movement and triggering
+ * upon the reception of parameters.
  */
 #include "app/controller.h"
 #include "app/parameters.h"
@@ -20,19 +21,13 @@ static controller_t x_controller;
 static controller_t y_controller;
 static relay_t      relay;
 static profiler_t   profiler;
+
 static parameters_t parameters = { 0 };
 static char         message[SERIAL_READ_BUFFER_SIZE];
 
 static void init(void);
 static void task(void);
 
-/**
- * @brief Beam profiler firmware application entry point.
- *
- * The microcontroller will poll the serial connection until it receives a set
- * of parameters. It will then control the traversal of the corresponding
- * grid. Once finished, it will resume polling for the next set of parameters.
- */
 int
 main (void)
 {
@@ -83,7 +78,7 @@ init (void)
     time_init();
     usb_init();
 
-    // Initialize baseboard capabilities
+    // Initialize baseboard capabilities.
     io_cfg_init();
 
     // Initialize the beam profiler.
