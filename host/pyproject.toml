@@ -28,23 +28,20 @@ build-backend = "setuptools.build_meta"
 
 [tool.basedpyright]
 typeCheckingMode = "recommended"
-
 allowedUntypedLibraries = [
   "picosdk.functions",
   "picosdk.ps2000a",
   "serial",
 ]
-
 include = [
   "bogdan2",
-  "examples",
+  "typings",
 ]
-
 stubPath = "typings"
 
 [tool.ruff]
 line-length = 79
-src = ["host"]
+src = ["."]
 
 [tool.ruff.lint]
 select = [
@@ -61,12 +58,11 @@ select = [
   "PLR",
   "PGH003",
 ]
-
 preview = true
 dummy-variable-rgx = "^_$"
 
 [tool.ruff.lint.pydocstyle]
-convention = "google"
+convention = "numpy"
 
 [tool.setuptools.packages.find]
 where = ["."]
