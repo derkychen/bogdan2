@@ -1,17 +1,39 @@
 /**
  * @file axis.c
  * @brief Implementation of coordinate system abstraction.
+ *
+ * NOTE: If a different IND.I/O is used, The calibration done here should be
+ *       redone. If it is found that the two analog output channels differ
+ *       substantially, this file will need to be refactored to handle each
+ *       channel separately.
  */
 #include "app/axis.h"
 #include "app/controller.h"
 #include "platform/samd21g18a/assert.h"
 
-#define MIN_MIN            (-1000)
-#define MAX_MAX            (1000)
-#define UNIT_MAX_NM        (1000000u)
-#define STAGE_RANGE_MIN_NM (-6000000)
-#define STAGE_RANGE_MAX_NM (6000000)
-#define STAGE_MIN_STEP_NM  (300u)
+#define MIN_MIN           (-1000)
+#define MAX_MAX           (1000)
+#define UNIT_MAX_NM       (1000000u)
+#define STAGE_MIN_STEP_NM (300u)
+
+// NOTE: The stage range values here differ from the actual stage range. This is
+//       due to the configuration of Analog IN gain and offsets restricting the
+//       range to these bounds.
+//
+// TODO: Change this if Thorlabs replies with a workaround.
+#define STAGE_RANGE_MIN_NM (-3000000)
+#define STAGE_RANGE_MAX_NM (3000000)
+
+// NOTE: These are calibrated constants from voltmeter readings, defining the
+//       lower nonlinear region and the main linear region. Since this main
+//       linear region includes 10 volts, the upper nonlinear region (which
+//       starts at around 10.5 volts) is unaccounted for.
+#define LINEAR_LOW_ANALOG_VALUE  (256u)
+#define LINEAR_LOW_VOLTAGE_MV    (590u)
+#define LINEAR_HIGH_ANALOG_VALUE (3584u)
+#define LINEAR_HIGH_VOLTAGE_MV   (9800u)
+
+static uint16_t voltage_mv_to_analog_value(uint32_t voltage_mv);
 
 axis_status_t
 axis_init (axis_t       *axis,
@@ -57,8 +79,8 @@ axis_init (axis_t       *axis,
     int min_nm = origin_nm + (min * (int)unit_nm);
     int max_nm = origin_nm + (max * (int)unit_nm);
 
-    if (min_nm <= STAGE_RANGE_MIN_NM || min_nm >= STAGE_RANGE_MAX_NM
-        || max_nm <= STAGE_RANGE_MIN_NM || max_nm >= STAGE_RANGE_MAX_NM)
+    if (min_nm < STAGE_RANGE_MIN_NM || min_nm > STAGE_RANGE_MAX_NM
+        || max_nm < STAGE_RANGE_MIN_NM || max_nm > STAGE_RANGE_MAX_NM)
     {
         return AXIS_STATUS_ERR_BOUNDS_OUTSIDE_RANGE;
     }
@@ -89,12 +111,13 @@ axis_set_target (axis_t *axis, int target)
 
     int target_nm = target * (int)axis->unit_nm + axis->origin_nm;
 
-    // Calculate the analog value of the coordinate.
-    uint16_t value = (uint16_t)((((uint64_t)(target_nm - STAGE_RANGE_MIN_NM))
-                                 * ANALOG_OUTPUT_MAX_VALUE)
-                                / (STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM));
+    uint64_t position_nm = (uint64_t)(target_nm - STAGE_RANGE_MIN_NM);
+    uint64_t range_nm    = (uint64_t)(STAGE_RANGE_MAX_NM - STAGE_RANGE_MIN_NM);
+    uint32_t target_mv
+        = (uint32_t)((position_nm * 10000u + range_nm / 2u) / range_nm);
 
-    if (controller_write_analog_in(axis->controller, value)
+    if (controller_write_analog_in(axis->controller,
+                                   voltage_mv_to_analog_value(target_mv))
         != CONTROLLER_STATUS_ANALOG_IN_OK)
     {
         return AXIS_STATUS_ERR_CONTROLLER;
@@ -131,4 +154,41 @@ axis_move_end (axis_t *axis)
     controller_interrupt_disable(axis->controller);
 
     return;
+}
+
+/**
+ * @brief Convert a desired voltage in millivolts to an analog value.
+ *
+ * This is done according to empirical data gathered for both analog channels.
+ */
+static uint16_t
+voltage_mv_to_analog_value (uint32_t voltage_mv)
+{
+    ASSERT(voltage_mv <= 10000u);
+
+    if (voltage_mv == 0u)
+    {
+        return 0u;
+    }
+
+    // Low voltage region (0 to 590 mV).
+    if (voltage_mv <= LINEAR_LOW_VOLTAGE_MV)
+    {
+        return (uint16_t)(((uint64_t)voltage_mv * LINEAR_LOW_ANALOG_VALUE
+                           + (LINEAR_LOW_VOLTAGE_MV / 2u))
+                          / LINEAR_LOW_VOLTAGE_MV);
+    }
+
+    // Main, linear region (590 to 10000 mV),
+    uint64_t numerator = (uint64_t)(voltage_mv - LINEAR_LOW_VOLTAGE_MV)
+                         * (LINEAR_HIGH_ANALOG_VALUE - LINEAR_LOW_ANALOG_VALUE);
+
+    uint32_t analog_value
+        = LINEAR_LOW_ANALOG_VALUE
+          + (uint32_t)((numerator
+                        + ((LINEAR_HIGH_VOLTAGE_MV - LINEAR_LOW_VOLTAGE_MV)
+                           / 2u))
+                       / (LINEAR_HIGH_VOLTAGE_MV - LINEAR_LOW_VOLTAGE_MV));
+
+    return (uint16_t)analog_value;
 }

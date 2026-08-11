@@ -2,6 +2,8 @@
  * @file analog_output.c
  * @brief Implementation of analog output functionality for the IND.I/O.
  *
+ * Enables the writing of raw 12-bit values to the IND.I/O baseboard DAC.
+ *
  * WARNING: Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
