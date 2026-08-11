@@ -1,11 +1,9 @@
-import ctypes
+import ctypes as ct
 
 def assert_pico_ok(status: int) -> None: ...
-def mV2adc(
-    mv: float, range_id: int, max_adc: ctypes.c_int16
-) -> ctypes.c_int16: ...
+def mV2adc(mv: float, range_id: int, max_adc: ct.c_int16) -> ct.c_int16: ...
 def adc2mV(
-    buffer: ctypes.Array[ctypes.c_int16],
+    buffer: ct.Array[ct.c_int16],
     range_id: int,
-    max_adc: ctypes.c_int16,
+    max_adc: ct.c_int16,
 ) -> list[float]: ...
