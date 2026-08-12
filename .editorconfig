@@ -1,3 +1,9 @@
 [*.{c,h}]
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+[*.py]
+charset = utf-8
 indent_style = space
 indent_size = 4
