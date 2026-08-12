@@ -8,8 +8,8 @@
  * points on the given grid.
  *
  * The modified raster is a raster scan that starts and ends on one point: the
- * origin or the point closest to it (referred to as the "anchor"). It
- * alternates between a horizontal and vertical raster for grids where both
+ * origin or the point closest to it (referred to as the "anchor"). It enables
+ * alternation between a horizontal and vertical raster for grids where both
  * dimensions are even or odd. One diagonal movement is used for odd grids, as
  * it takes the same amount of time and a Hamiltonian cycle is not possible.
  *
@@ -90,25 +90,27 @@ typedef struct
  */
 typedef struct
 {
-    bool corners_only; /**< Whether only corners are generated. */
-
-    path_phase_t            phase;            /**< Current traversal phase. */
+    bool                    corners_only;     /**< Only corner generation. */
     path_raster_direction_t raster_direction; /**< Current raster direction. */
 
-    path_coords_t zero; /**< Coordinates of local minimum indices. */
+    path_phase_t   phase; /**< Current traversal phase. */
+    path_indices_t curr;  /**< Local indices of the current position. */
 
+    path_coords_t  zero;   /**< Coordinates of local minimum indices. */
     path_indices_t anchor; /**< Local indices of the anchor. */
-    path_indices_t curr;   /**< Local indices of the current position. */
 
     int num_rows; /**< Local number of rows. */
     int num_cols; /**< Local number of columns. */
 } path_t;
 
 /** @brief Initialize a path. */
-path_status_t path_init(path_t       *path,
-                        bool          corners_only,
-                        path_coords_t min,
-                        path_coords_t max);
+path_status_t path_init(path_t                  *path,
+                        bool                     corners_only,
+                        path_raster_direction_t *prev_raster_direction,
+                        int                      x_min,
+                        int                      x_max,
+                        int                      y_min,
+                        int                      y_max);
 
 /**
  * @brief Get the next position in the path.

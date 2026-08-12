@@ -15,13 +15,12 @@ typedef struct
     path_indices_t end;   /**< Ending indices of the segment. */
 } segment_t;
 
-static path_raster_direction_t prev_raster_direction
-    = PATH_RASTER_DIRECTION_HORIZONTAL;
-
 static int                     num_points(int min, int max);
 static int                     anchor_index(int min_coord, int max_coord);
-static path_raster_direction_t select_raster_direction(int x_num_points,
-                                                       int y_num_points);
+static path_raster_direction_t select_raster_direction(
+    path_raster_direction_t prev_raster_direction,
+    int                     x_num_points,
+    int                     y_num_points);
 static int get_line_col(int current, int anchor, int last, bool corners_only);
 static segment_t      create_segment(int start_row,
                                      int start_col,
@@ -38,17 +37,17 @@ static bool           segment_contains_anchor(segment_t const *segment,
                                               path_indices_t   anchor);
 static int            unit_step(int displacement);
 static path_indices_t advance_line(bool corners_only,
-                                   int  anchor_col,
                                    int  curr_col,
+                                   int  anchor_col,
                                    int  num_cols);
 static path_indices_t advance_raster(bool           corners_only,
-                                     path_indices_t anchor,
                                      path_indices_t curr,
+                                     path_indices_t anchor,
                                      int            num_rows,
                                      int            num_cols);
 static path_indices_t advance(bool           corners_only,
-                              path_indices_t anchor,
                               path_indices_t curr,
+                              path_indices_t anchor,
                               int            num_rows,
                               int            num_cols);
 static path_coords_t  indices_to_coords(
@@ -57,41 +56,46 @@ static path_coords_t  indices_to_coords(
     path_raster_direction_t raster_direction);
 
 path_status_t
-path_init (path_t       *path,
-           bool          corners_only,
-           path_coords_t min,
-           path_coords_t max)
+path_init (path_t                  *path,
+           bool                     corners_only,
+           path_raster_direction_t *prev_raster_direction,
+           int                      x_min,
+           int                      x_max,
+           int                      y_min,
+           int                      y_max)
 {
     ASSERT(path != NULL);
 
-    if ((min.x > max.x) || (min.y > max.y))
+    if ((x_min > x_max) || (y_min > y_max))
     {
         return PATH_STATUS_ERR_BOUNDS_MIN_GREATER_THAN_MAX;
     }
 
-    if (min.x < PATH_COORD_MIN || max.x > PATH_COORD_MAX
-        || min.y < PATH_COORD_MIN || max.y > PATH_COORD_MAX)
+    if (x_min < PATH_COORD_MIN || x_max > PATH_COORD_MAX
+        || y_min < PATH_COORD_MIN || y_max > PATH_COORD_MAX)
     {
         return PATH_STATUS_ERR_BOUNDS_TOO_LARGE;
     }
 
-    if ((max.x - min.x) == INT_MAX || (max.y - min.y) == INT_MAX)
+    if ((x_max - x_min) == INT_MAX || (y_max - y_min) == INT_MAX)
     {
         return PATH_STATUS_ERR_BOUNDS_TOO_LARGE;
     }
 
     path->corners_only = corners_only;
-    path->phase        = PATH_PHASE_READY;
 
-    int x_num_points = num_points(min.x, max.x);
-    int y_num_points = num_points(min.y, max.y);
+    int x_num_points = num_points(x_min, x_max);
+    int y_num_points = num_points(y_min, y_max);
 
-    path->raster_direction
-        = select_raster_direction(x_num_points, y_num_points);
-    path->zero = min;
+    path->raster_direction = select_raster_direction(
+        *prev_raster_direction, x_num_points, y_num_points);
 
-    int anchor_x_index = anchor_index(min.x, max.x);
-    int anchor_y_index = anchor_index(min.y, max.y);
+    path->phase = PATH_PHASE_READY;
+
+    path->zero = (path_coords_t) { .x = x_min, .y = y_min };
+
+    int anchor_x_index = anchor_index(x_min, x_max);
+    int anchor_y_index = anchor_index(y_min, y_max);
 
     if (path->raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL)
     {
@@ -124,7 +128,7 @@ path_init (path_t       *path,
     // Only two-dimensional grids cause raster direction alternation.
     if (x_num_points > 1 && y_num_points > 1)
     {
-        prev_raster_direction = path->raster_direction;
+        *prev_raster_direction = path->raster_direction;
     }
 
     return PATH_STATUS_OK;
@@ -173,8 +177,8 @@ path_next (path_t *path, path_coords_t *coords)
         ASSERT(path->phase == PATH_PHASE_ONGOING);
 
         path->curr = advance(path->corners_only,
-                             path->anchor,
                              path->curr,
+                             path->anchor,
                              path->num_rows,
                              path->num_cols);
 
@@ -233,27 +237,25 @@ anchor_index (int min_coord, int max_coord)
 /**
  * @brief Choose the raster direction.
  *
- * For grids that have only one position, the raster direction is irrelevant, so
- * the previous one is used.
- *
- * For one-dimensional grids, the raster direction is parallel to the line.
- *
- * For two-dimensional grids, if the dimensions of the grid are both even or
- * both odd, either raster direction can be chosen, so the opposite of the
- * previous one is used. Otherwise, the raster direction must be parallel to the
- * odd side.
+ * This selection is based in the user supplied previous raster direction as
+ * well as path geometry.
  */
 static path_raster_direction_t
-select_raster_direction (int x_num_points, int y_num_points)
+select_raster_direction (path_raster_direction_t prev_raster_direction,
+                         int                     x_num_points,
+                         int                     y_num_points)
 {
     ASSERT(x_num_points >= 1);
     ASSERT(y_num_points >= 1);
 
+    // For grids that have only one position, the raster direction is
+    // irrelevant, so the previous one is used.
     if (x_num_points == 1 && y_num_points == 1)
     {
         return prev_raster_direction;
     }
 
+    // For one-dimensional grids, the raster direction is parallel to the line.
     if (y_num_points == 1)
     {
         return PATH_RASTER_DIRECTION_HORIZONTAL;
@@ -264,6 +266,10 @@ select_raster_direction (int x_num_points, int y_num_points)
         return PATH_RASTER_DIRECTION_VERTICAL;
     }
 
+    // For two-dimensional grids, if the dimensions of the grid are both even or
+    // both odd, either raster direction can be chosen, so the opposite of the
+    // previous one is used. Otherwise, the raster direction must be parallel to
+    // the odd side.
     if ((x_num_points & 1) == (y_num_points & 1))
     {
         return (prev_raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL)
@@ -556,7 +562,7 @@ unit_step (int displacement)
 
 /** @brief Load the next position to visit for a one-dimensional grid. */
 static path_indices_t
-advance_line (bool corners_only, int anchor_col, int curr_col, int num_cols)
+advance_line (bool corners_only, int curr_col, int anchor_col, int num_cols)
 {
     ASSERT(num_cols > 1);
 
@@ -569,8 +575,8 @@ advance_line (bool corners_only, int anchor_col, int curr_col, int num_cols)
 /** @brief Load the next position to visit for a two-dimensional grid. */
 static path_indices_t
 advance_raster (bool           corners_only,
-                path_indices_t anchor,
                 path_indices_t curr,
+                path_indices_t anchor,
                 int            num_rows,
                 int            num_cols)
 {
@@ -612,8 +618,8 @@ advance_raster (bool           corners_only,
 /** @brief Load the next position to visit. */
 static path_indices_t
 advance (bool           corners_only,
-         path_indices_t anchor,
          path_indices_t curr,
+         path_indices_t anchor,
          int            num_rows,
          int            num_cols)
 {
@@ -626,10 +632,10 @@ advance (bool           corners_only,
 
     if (num_rows == 1)
     {
-        return advance_line(corners_only, anchor.col, curr.col, num_cols);
+        return advance_line(corners_only, curr.col, anchor.col, num_cols);
     }
 
-    return advance_raster(corners_only, anchor, curr, num_rows, num_cols);
+    return advance_raster(corners_only, curr, anchor, num_rows, num_cols);
 }
 
 /** @brief Convert local indices to coordinates. */

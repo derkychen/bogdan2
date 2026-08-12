@@ -37,10 +37,11 @@ profiler_init (profiler_t     *profiler,
     ASSERT(relay != NULL);
     ASSERT(task != NULL);
 
-    profiler->x_controller = x_controller;
-    profiler->y_controller = y_controller;
-    profiler->relay        = relay;
-    profiler->task         = task;
+    profiler->x_controller          = x_controller;
+    profiler->y_controller          = y_controller;
+    profiler->relay                 = relay;
+    profiler->prev_raster_direction = PATH_RASTER_DIRECTION_HORIZONTAL;
+    profiler->task                  = task;
 
     return;
 }
@@ -116,11 +117,17 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
 
     path_t path;
 
-    path_init(
-        &path,
-        false,
-        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
+    if (path_init(&path,
+                  false,
+                  &profiler->prev_raster_direction,
+                  parameters->x_min,
+                  parameters->x_max,
+                  parameters->y_min,
+                  parameters->y_max)
+        != PATH_STATUS_OK)
+    {
+        return PROFILER_STATUS_ERR_PATH_INIT;
+    };
 
     path_coords_t position;
 
@@ -229,11 +236,17 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
 
     path_t path;
 
-    path_init(
-        &path,
-        false,
-        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
+    if (path_init(&path,
+                  false,
+                  &profiler->prev_raster_direction,
+                  parameters->x_min,
+                  parameters->x_max,
+                  parameters->y_min,
+                  parameters->y_max)
+        != PATH_STATUS_OK)
+    {
+        return PROFILER_STATUS_ERR_PATH_INIT;
+    };
 
     path_coords_t position;
 
@@ -323,13 +336,21 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
 
     path_t path;
 
-    path_init(
-        &path,
-        true,
-        (path_coords_t) { .x = parameters->x_min, .y = parameters->y_min },
-        (path_coords_t) { .x = parameters->x_max, .y = parameters->y_max });
+    if (path_init(&path,
+                  true,
+                  &profiler->prev_raster_direction,
+                  parameters->x_min,
+                  parameters->x_max,
+                  parameters->y_min,
+                  parameters->y_max)
+        != PATH_STATUS_OK)
+    {
+        return PROFILER_STATUS_ERR_PATH_INIT;
+    };
 
     path_coords_t position;
+
+    relay_pulser_event_start(profiler->relay);
 
     while (path_next(&path, &position) == PATH_STATUS_OK)
     {

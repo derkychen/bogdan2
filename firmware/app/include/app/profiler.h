@@ -12,6 +12,7 @@
 
 #include "app/controller.h"
 #include "app/parameters.h"
+#include "app/path.h"
 #include "app/relay.h"
 
 /** @brief Profiler status codes. */
@@ -21,7 +22,7 @@ typedef enum
     PROFILER_STATUS_ERR,
     PROFILER_STATUS_ERR_X_AXIS_INIT,
     PROFILER_STATUS_ERR_Y_AXIS_INIT,
-    PROFILER_STATUS_ERR_PATH_NOT_GENERATED,
+    PROFILER_STATUS_ERR_PATH_INIT,
     PROFILER_STATUS_ERR_TARGET,
     PROFILER_STATUS_ERR_AXES_TIMEOUT,
     PROFILER_STATUS_ERR_RELAY_TIMEOUT,
@@ -29,7 +30,7 @@ typedef enum
 
 /** @brief Task function
  *
- * This function is called in long (approximately longer than 1 millisecond)
+ * This function is called in long (approximately longer than 1 millisecond),
  * blocking loops.
  */
 typedef void (*profiler_task_t)(void);
@@ -39,8 +40,10 @@ typedef struct
 {
     controller_t *x_controller; /**< Controller for the x-axis. */
     controller_t *y_controller; /**< Controller for the y-axis. */
+    relay_t      *relay;        /**< Laser trigger relay. */
 
-    relay_t *relay; /**< Relay. */
+    path_raster_direction_t
+        prev_raster_direction; /**< Previous path raster direction.*/
 
     profiler_task_t task; /**< Task function to be called in blocking delays. */
 } profiler_t;
