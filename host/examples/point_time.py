@@ -8,7 +8,7 @@ from bogdan2.api.params import (
 )
 from bogdan2.api.profiler import Profiler
 
-PORT = "COM5"
+PORT = "COM3"
 
 x = AxisParams(
     min=-5,
@@ -37,5 +37,3 @@ params = ProfilerParams(grid=grid, capture=capture)
 
 with Profiler() as p:
     profile = p.profile(PORT, params)
-
-profile.plot()

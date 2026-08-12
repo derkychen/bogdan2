@@ -9,13 +9,13 @@ import numpy as np
 import serial
 from serial.tools import list_ports
 
-from bogdan2._pdxc2.constants import (
-    ANALOG_IN_GAIN,
-    ANALOG_IN_OFFSET_MV,
-    ANALOG_OUT_GAIN,
-    ANALOG_OUT_OFFSET_MV,
-)
-from bogdan2._pdxc2.controller import Controller
+# from bogdan2._pdxc2.constants import (
+#     ANALOG_IN_GAIN,
+#     ANALOG_IN_OFFSET_MV,
+#     ANALOG_OUT_GAIN,
+#     ANALOG_OUT_OFFSET_MV,
+# )
+# from bogdan2._pdxc2.controller import Controller
 from bogdan2._pico.constants import RANGE_20V
 from bogdan2._pico.scope import Scope, ScopeChannelParams
 from bogdan2._utils.math import ceil_div
