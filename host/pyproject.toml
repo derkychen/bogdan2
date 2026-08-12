@@ -29,9 +29,8 @@ build-backend = "setuptools.build_meta"
 [tool.basedpyright]
 typeCheckingMode = "recommended"
 allowedUntypedLibraries = [
-  "picosdk.functions",
-  "picosdk.ps2000a",
-  "serial",
+  "matplotlib",
+  "picosdk",
 ]
 include = [
   "bogdan2",

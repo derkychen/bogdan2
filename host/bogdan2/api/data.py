@@ -1,8 +1,9 @@
 """Data processing utilities for the beam profiler."""
 
 from dataclasses import dataclass
-from pathlib import Path
 
+import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 import numpy as np
 import numpy.typing as npt
 
@@ -49,12 +50,40 @@ class BeamProfile:
         """Initialize a profile."""
         self._points: list[BeamPoint] = points
 
-    def save(self, path: Path) -> None:
-        """Save profile data to a location."""
-        # TODO: Implement.
-        pass
+    def plot2d(self) -> None:
+        """Visualize beam profile in 2D.
 
-    def plot(self) -> None:
-        """Visualize beam profile."""
-        # TODO: Implement.
-        pass
+        Uses Delauney triangulation to interpolate between points.
+        """
+        x = np.array([p.x_mm for p in self._points])
+        y = np.array([p.y_mm for p in self._points])
+        intensity = np.array([p.intensity for p in self._points])
+
+        triangulation = mtri.Triangulation(x, y)
+
+        fig, ax = plt.subplots()
+
+        heatmap = ax.tripcolor(
+            triangulation,
+            intensity,
+            shading="gouraud",
+            cmap="inferno",
+        )
+
+        _ = ax.scatter(
+            x,
+            y,
+            s=10,
+            c="black",
+            alpha=0.5,
+        )
+
+        _ = ax.set_xlabel("x [mm]")
+        _ = ax.set_ylabel("y [mm]")
+        _ = ax.set_title("Beam Profile")
+
+        ax.set_aspect("equal")
+
+        _ = fig.colorbar(heatmap, ax=ax, label="Intensity")
+
+        plt.show()

@@ -37,3 +37,6 @@ params = ProfilerParams(grid=grid, capture=capture)
 
 with Profiler() as p:
     profile = p.profile(PORT, params)
+
+if profile is not None:
+    profile.plot2d()
