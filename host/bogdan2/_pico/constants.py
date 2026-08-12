@@ -1,4 +1,3 @@
-# ty: ignore[unresolved-attribute]
 """Constants and configurations for importing."""
 
 from typing import Final
