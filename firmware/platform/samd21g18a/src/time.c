@@ -22,32 +22,49 @@ time_init (void)
 uint32_t
 time_get_ms (void)
 {
-    __disable_irq();
-    uint32_t current_ms = ms;
-    __enable_irq();
-
-    return current_ms;
+    return ms;
 }
 
 uint32_t
 time_get_us (void)
 {
-    uint32_t ms_1;
-    uint32_t ms_2;
+    uint32_t ms_value;
     uint32_t systick_value;
+    uint32_t systick_pending;
 
-    do
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+
+    ms_value        = ms;
+    systick_value   = SysTick->VAL;
+    systick_pending = SCB->ICSR & SCB_ICSR_PENDSTSET_Msk;
+
+    // Account for if `SysTick` has wrapped but `SysTick_Handler()` has not
+    // incremented `ms`.
+    if (systick_pending != 0u)
     {
-        ms_1          = ms;
+        ms_value++;
         systick_value = SysTick->VAL;
-        ms_2          = ms;
-    } while (ms_1 != ms_2);
+    }
 
-    uint32_t systick_load   = SysTick->LOAD + 1u;
-    uint32_t elapsed_cycles = systick_load - systick_value;
-    uint32_t elapsed_us     = (elapsed_cycles * 1000u) / systick_load;
+    __set_PRIMASK(primask);
 
-    return (ms_1 * 1000u) + elapsed_us;
+    uint32_t systick_load = SysTick->LOAD + 1u;
+
+    uint32_t elapsed_cycles;
+
+    if (systick_value != 0u)
+    {
+        elapsed_cycles = (SysTick->LOAD - systick_value) + 1u;
+    }
+    else
+    {
+        elapsed_cycles = 0u;
+    }
+
+    uint32_t elapsed_us = (elapsed_cycles * 1000u) / systick_load;
+
+    return (ms_value * 1000u) + elapsed_us;
 }
 
 void
@@ -66,7 +83,7 @@ time_sleep_ms (uint32_t sleep_ms)
 void
 time_sleep_us (uint32_t sleep_us)
 {
-    uint64_t start_time = time_get_us();
+    uint32_t start_time = time_get_us();
 
     while ((time_get_us() - start_time) < sleep_us)
     {
