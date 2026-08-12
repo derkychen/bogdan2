@@ -23,9 +23,10 @@ relay_init (relay_t *relay, pulser_t const *out, eic_pin_t const *in)
     ASSERT(in != NULL);
     ASSERT(out != NULL);
 
-    relay->out   = out;
-    relay->in    = in;
-    relay->count = 0;
+    relay->out     = out;
+    relay->in      = in;
+    relay->channel = evsys_channel_claim();
+    relay->count   = 0;
 
     pulser_configure(relay->out);
 
@@ -33,11 +34,10 @@ relay_init (relay_t *relay, pulser_t const *out, eic_pin_t const *in)
     eic_register_callback_entry(relay->in->line, count_isr, relay);
     eic_interrupt_disable(relay->in->line);
 
-    evsys_channel_t channel = evsys_channel_claim();
-
-    evsys_channel_set_generator(
-        channel, eic_event_generator(relay->in->line), EVSYS_PATH_ASYNCHRONOUS);
-    evsys_user_set_channel(pulser_event_user(relay->out), channel);
+    evsys_channel_set_generator(relay->channel,
+                                eic_event_generator(relay->in->line),
+                                EVSYS_PATH_ASYNCHRONOUS);
+    evsys_user_set_channel(pulser_event_user(relay->out), relay->channel);
 
     pulser_width_set(relay->out, PULSE_WIDTH_TICKS);
 }

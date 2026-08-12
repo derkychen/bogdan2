@@ -21,8 +21,9 @@
 /** @brief Laser pulse counter. */
 typedef struct
 {
-    pulser_t const  *out; /**< Pulser instance that times the pulse. */
-    eic_pin_t const *in;  /**< EIC pin connected to the laser trigger. */
+    pulser_t const  *out;     /**< Pulser instance that times the pulse. */
+    eic_pin_t const *in;      /**< EIC pin connected to the laser trigger. */
+    evsys_channel_t  channel; /**< EVSYS channel between the pulser and EIC. */
 
     volatile uint32_t count; /** The number of pulses counted. */
 } relay_t;
