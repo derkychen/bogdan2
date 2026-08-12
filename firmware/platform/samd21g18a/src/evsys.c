@@ -69,7 +69,7 @@ evsys_channel_claim (void)
     // Channels should not be claimed when none are available.
     ASSERT(false);
 
-    return EVSYS_CHANNEL_0;
+    return EVSYS_CHANNEL_COUNT;
 }
 
 void
