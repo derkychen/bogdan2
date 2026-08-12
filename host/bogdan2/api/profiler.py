@@ -10,10 +10,10 @@ import serial
 from serial.tools import list_ports
 
 from bogdan2._pdxc2.constants import (
-    ANALOG_IN_GAIN_0_TO_10,
-    ANALOG_IN_OFFSET_MV_0_TO_10,
-    ANALOG_OUT_GAIN_N10_TO_10,
-    ANALOG_OUT_OFFSET_MV_N10_TO_10,
+    ANALOG_IN_GAIN,
+    ANALOG_IN_OFFSET_MV,
+    ANALOG_OUT_GAIN,
+    ANALOG_OUT_OFFSET_MV,
 )
 from bogdan2._pdxc2.controller import Controller
 from bogdan2._pico.constants import RANGE_20V
@@ -34,7 +34,7 @@ from bogdan2.api.params import (
     ProfilerParams,
 )
 
-ANALOG_OUT_MIN_MV: Final[float] = -100000.0
+ANALOG_OUT_MIN_MV: Final[float] = -10000.0
 ANALOG_OUT_MAX_MV: Final[float] = 10000.0
 
 X_PDXC2_SERIAL_NUM: Final[bytes] = b"112547939"
@@ -92,18 +92,18 @@ class Profiler:
         self._stack: ExitStack[bool | None]
 
         self._scope: Scope = Scope()
-        self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
-        self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
+        # self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
+        # self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
         self._ser: serial.Serial | None = None
 
     def __enter__(self) -> "Self":
         """Acquire hardware."""
         with ExitStack() as stack:
-            self._x_controller.enable()
-            _ = stack.callback(self._x_controller.close)
-
-            self._y_controller.enable()
-            _ = stack.callback(self._y_controller.close)
+            # self._x_controller.open()
+            # _ = stack.callback(self._x_controller.close)
+            #
+            # self._y_controller.open()
+            # _ = stack.callback(self._y_controller.close)
 
             self._scope.open()
             _ = stack.callback(self._scope.close)
@@ -164,31 +164,31 @@ class Profiler:
         #
         # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
         #       long-term usage.
-        self._x_controller.set_closedloop_params(
-            refspeed=15000000, acceleration=500000000
-        )
-        self._y_controller.set_closedloop_params(
-            refspeed=15000000, acceleration=500000000
-        )
-
-        self._x_controller.set_to_analog_rising_trigger_mode()
-        self._y_controller.set_to_analog_rising_trigger_mode()
-
-        self._x_controller.set_analog_rising_trigger_params(
-            ANALOG_IN_GAIN_0_TO_10,
-            ANALOG_IN_OFFSET_MV_0_TO_10,
-            ANALOG_OUT_GAIN_N10_TO_10,
-            ANALOG_OUT_OFFSET_MV_N10_TO_10,
-        )
-        self._y_controller.set_analog_rising_trigger_params(
-            ANALOG_IN_GAIN_0_TO_10,
-            ANALOG_IN_OFFSET_MV_0_TO_10,
-            ANALOG_OUT_GAIN_N10_TO_10,
-            ANALOG_OUT_OFFSET_MV_N10_TO_10,
-        )
-
-        self._x_controller.persist_settings()
-        self._y_controller.persist_settings()
+        # self._x_controller.set_closedloop_params(
+        #     refspeed=15000000, acceleration=500000000
+        # )
+        # self._y_controller.set_closedloop_params(
+        #     refspeed=15000000, acceleration=500000000
+        # )
+        #
+        # self._x_controller.set_to_analog_rising_trigger_mode()
+        # self._y_controller.set_to_analog_rising_trigger_mode()
+        #
+        # self._x_controller.set_analog_rising_trigger_params(
+        #     ANALOG_IN_GAIN_0_TO_10,
+        #     ANALOG_IN_OFFSET_MV_0_TO_10,
+        #     ANALOG_OUT_GAIN_N10_TO_10,
+        #     ANALOG_OUT_OFFSET_MV_N10_TO_10,
+        # )
+        # self._y_controller.set_analog_rising_trigger_params(
+        #     ANALOG_IN_GAIN_0_TO_10,
+        #     ANALOG_IN_OFFSET_MV_0_TO_10,
+        #     ANALOG_OUT_GAIN_N10_TO_10,
+        #     ANALOG_OUT_OFFSET_MV_N10_TO_10,
+        # )
+        #
+        # self._x_controller.persist_settings()
+        # self._y_controller.persist_settings()
 
         self._scope.setup()
         self._scope.configure_channels(
@@ -238,13 +238,13 @@ class Profiler:
         interval_s = self._scope.get_sample_interval_ns() * 1e-9
 
         x_mm = _mv_to_mm(
-            Reading(vals=np.concatenate(self._scope.channel_single_mv("x_mv")))
+            Reading(vals=np.concatenate(self._scope.channel_bulk_mv("x_mv")))
         )
         y_mm = _mv_to_mm(
-            Reading(vals=np.concatenate(self._scope.channel_single_mv("y_mv")))
+            Reading(vals=np.concatenate(self._scope.channel_bulk_mv("y_mv")))
         )
         intensity = Reading(
-            vals=np.concatenate(self._scope.channel_single_mv("intensity_mv"))
+            vals=np.concatenate(self._scope.channel_bulk_mv("intensity_mv"))
         ).integral(interval_s)
 
         return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
