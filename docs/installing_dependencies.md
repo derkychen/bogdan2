@@ -2,9 +2,20 @@
 
 This document explains the entire process of how to perform the installations (that could not be automated) necessary to run the beam profiler.
 
-## Windows
+These dependencies are:
 
-### Git and Git BASH
+* [Git BASH](https://git-scm.com/install/windows).
+* [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
+* [Thorlabs Kinesis](https://www.thorlabs.com/software-pages/motion_control)
+* `arm-none-eabi-gcc`
+* `bossac`
+* `cmake`
+* `git`
+* `ninja`
+* `python`
+* `uv`
+
+## Git and Git BASH
 
 To install Git and Git BASH follow this link:
 <https://git-scm.com/install/windows>.
@@ -18,19 +29,20 @@ An easy way to run Git BASH is to go to VSCode set your terminal to use Git BASH
 
 Then select Git BASH.
 
-### Command-Line Dependencies With WinGet
+## Command-Line Dependencies With WinGet
 
 On Windows 10 or 11 `winget` is installed by default. In Command Prompt, Windows Powershell, or Git BASH (preferably, since all other setup is run there) run:
 
 ```bash
 winget install -e --id Kitware.CMake # `cmake`
 winget install -e --id Ninja-build.Ninja # `ninja`
+winget install -e --id Python.Python.3.12 # `python` version 3.12
 winget install --id=astral-sh.uv  -e # `uv`
 ```
 
-### Other Dependencies
+## Other Dependencies
 
-#### Command-Line Tools
+### Command-Line Tools
 
 To install `arm-none-eabi-gcc`, follow this link:
 <https://gitlab.arm.com/tooling/gnu-toolchains-for-arm/-/tree/releases/15.3.rel1>
@@ -53,14 +65,10 @@ Phis creates a file called `~/.bash_profile`. The scripts in this file are autom
 
 If future setup does not work, it is very likely that location of the binaries is incorrect, edit the file to instead reference correct locations.
 
-#### Applications
+### Applications
 
 To install PicoSDK, follow this link:
 <https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk>
 
 To install Thorlabs Kinesis, follow this link:
 <https://www.thorlabs.com/software-pages/motion_control>
-
-## Next Steps
-
-Follow the rest of the README.

@@ -14,7 +14,7 @@ Functions are namespaced according to their functionality, which is the same as 
 
 ## Python
 
-Google-style Python docstrings are used.
+Numpy-style Python docstrings are used.
 
 Enforcement of these conventions was done through:
 

@@ -14,7 +14,7 @@ Underneath each code directory, there are `include/` and `src/` directories, whi
 
 ### `app/`
 
-This directory is the primary location that concerns maintainers of this codebase. It defines the application behaviour and logic. It contains sort-of object-oriented abstractions of hardware and concepts used by the beam profiler.
+This directory is the primary location that concerns maintainers of this codebase. It defines the application behaviour and logic. It contains sort-of object-oriented abstractions of hardware and concepts used by the beam profiler. This is the only directory in `firmware` that is (in principle) free to modify, assuming no unsafe practices in general. The rest of the modules in `firmware` are much closer to the hardware and must be handled with more care.
 
 ### `board/indio/`
 
@@ -34,7 +34,7 @@ This directory contains compile options for the SAMD21G18A processor, which is t
 
 #### `options/`
 
-This directory contains warning and feature-related compile options. The CMakeLists Files in other locations use the features and warnings to ensure that errors/warnings are largely ignored for external dependencies (since this is code that is not written by us), and tightens checking on code in this repository so that any warning causes compilation to fail.
+This directory contains warning and feature-related compile options. The CMakeLists files in other locations use the features and warnings to ensure that errors/warnings are largely ignored for external dependencies (since this is code that is not written by us), and tightens checking on code in this repository so that any warning causes compilation to fail.
 
 ### `drivers/`
 
