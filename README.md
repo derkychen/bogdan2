@@ -9,18 +9,26 @@ This beam profiler translates a photodiode in an $x\text{-}y$ plane, capturing i
 
 ## Dependencies:
 
-You must have the following installed in order to set up Bogdan 2.
+You must be on Windows 10 or 11.
 
-* `arm-none-eabi-gcc`
-* `bossac`
-* `cmake`
-* `git`
-* `ninja`
-* `uv`
+Dependencies for just usage:
+
+* [Git BASH](https://git-scm.com/install/windows).
 * [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
 * [Thorlabs Kinesis](https://www.thorlabs.com/software-pages/motion_control)
+* `python`
+* `uv`
 
-If you are on Windows :disappointed:, you are probably sad, but also need to install [Git BASH](https://git-scm.com/install/windows).
+Dependencies for development:
+
+* All of the above.
+* `arm-none-eabi-gcc` (required)
+* `bossac` (required)
+* `clang-format` (optional)
+* `clangd` (optional)
+* `cmake` (required)
+* `git` (required)
+* `ninja` (required)
 
 ## Setup
 
@@ -30,8 +38,7 @@ In the directory that you want the project to clone into, open `bash` and run
 cd i/want/bogdan2/here # Replace with actual location.
 git clone https://github.com/derkychen/bogdan2.git # Clone the repository.
 cd bogdan2 # Change to the project directory.
-chmod +x scripts/setup.sh # Permissions for a dependencies installation script.
-scripts/setup.sh
+scripts/setup.sh # Run the setup script.
 ```
 
 ## Usage
@@ -41,7 +48,7 @@ scripts/setup.sh
 To flash the firmware to the Industruino, double press the RST button on the back of the LCD screen and then open `bash` and run
 
 ```bash
-scripts/firmware.sh -b release -p path/to/usb/port
+scripts/firmware.sh -p release -b -c path/to/usb/port
 ```
 
 Make sure to replace the port with the actual path to your USB port. On Windows it should be `COMx` where `x` is a number.
