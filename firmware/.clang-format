@@ -2,7 +2,6 @@
 #
 # Based on and thanks to Peter Torelli's repository:
 # https://github.com/petertorelli/clang-format-barr-c
-#
 ---
 Language: C
 AccessModifierOffset: -4
