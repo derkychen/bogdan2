@@ -67,13 +67,6 @@ class MCUError(Exception):
     """Host receives an error message from the microcontroller."""
 
 
-def _ser_write_newline_terminated(
-    ser: serial.Serial, params: dict[str, bool | int | str]
-) -> None:
-    """Write a newline-terminated JSON over serial."""
-    _ = ser.write((json.dumps(params) + "\n").encode())
-
-
 def _mv_to_mm(mv: Reading) -> float:
     """Convert x and y millivolt readings into a position."""
     return (
@@ -199,6 +192,14 @@ class Profiler:
         )
         self._scope.disable_trigger_a()
 
+    def _ser_write_newline_terminated(
+        self, data: dict[str, bool | int | str]
+    ) -> None:
+        """Write a newline-terminated JSON over serial."""
+        assert self._ser is not None, "Serial connection must be initialized."
+
+        _ = self._ser.write((json.dumps(data) + "\n").encode())
+
     def _poll_mcu_status(
         self, timeout_s: float = 10.0
     ) -> dict[str, bool | str] | None:
@@ -267,8 +268,7 @@ class Profiler:
 
         assert self._ser is not None, "Serial connection must be initialized."
 
-        _ser_write_newline_terminated(
-            self._ser,
+        self._ser_write_newline_terminated(
             {
                 "mode": "point_count",
                 "x_min": grid.x.min,
@@ -283,7 +283,7 @@ class Profiler:
                 "posttrigger_time_us": ceil_div(
                     self._scope.get_posttrigger_ns(), 1000
                 ),
-            },
+            }
         )
 
         points: list[BeamPoint] = []
@@ -294,6 +294,8 @@ class Profiler:
             if status["ok"]:
                 self._scope.enable_trigger_a()
                 self._scope.configure_bulk_capture(capture.num_pulses)
+
+                self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
                     self._scope.run_capture()
@@ -330,8 +332,7 @@ class Profiler:
 
         assert self._ser is not None, "Serial connection must be initialized."
 
-        _ser_write_newline_terminated(
-            self._ser,
+        self._ser_write_newline_terminated(
             {
                 "mode": "point_time",
                 "x_min": grid.x.min,
@@ -354,6 +355,8 @@ class Profiler:
             if status["ok"]:
                 self._scope.enable_trigger_a()
                 self._scope.configure_single_capture()
+
+                self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
                     self._scope.run_capture()
@@ -388,8 +391,7 @@ class Profiler:
 
         assert self._ser is not None, "Serial connection must be initialized."
 
-        _ser_write_newline_terminated(
-            self._ser,
+        self._ser_write_newline_terminated(
             {
                 "mode": "continuous",
                 "x_min": grid.x.min,
@@ -411,6 +413,8 @@ class Profiler:
             if status["ok"]:
                 self._scope.enable_trigger_a()
                 self._scope.configure_single_capture()
+
+                self._ser_write_newline_terminated({"cmd": "start"})
 
                 while True:
                     self._scope.run_capture()
