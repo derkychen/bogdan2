@@ -11,9 +11,13 @@
 #include "board/indio/io_cfg.h"
 #include "board/indio/analog_output.h"
 #include "drivers/mcp4726.h"
+#include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
+
+#define V10_CONFIGURATION_MAX_ATTEMPTS (10u)
+#define V10_CONFIGURATION_WAIT_MS      (10u)
 
 #if 0
 /**
@@ -199,7 +203,19 @@ io_cfg_init (void)
                   I2C_SCL_FREQUENCY_FAST_HZ,
                   I2C_SCL_RISE_FAST_NS);
 
-    (void)analog_output_configure_v10();
+    uint8_t attempts = 0;
+
+    // TODO: Test if this fixes the observed issues with long-term usage.
+    //       Unexpected behaviour is occurring after multiple power cycles.
+    while (attempts < V10_CONFIGURATION_MAX_ATTEMPTS)
+    {
+        if (analog_output_configure_v10() == ANALOG_OUTPUT_STATUS_OK)
+        {
+            return;
+        }
+    }
+
+    ASSERT(false);
 
     return;
 }
