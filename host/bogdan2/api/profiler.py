@@ -227,9 +227,15 @@ class Profiler:
 
         x_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("x_mv")))
         y_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("y_mv")))
-        intensity = Reading(
+
+        intensity_mv = Reading(
             vals=self._scope.channel_single_mv("intensity_mv")
-        ).integral(interval_s)
+        )
+
+        # TODO: Remove this debug statement.
+        print(intensity_mv)
+
+        intensity = intensity_mv.integral(interval_s)
 
         return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
 
