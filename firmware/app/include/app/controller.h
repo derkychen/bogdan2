@@ -18,8 +18,8 @@
 /** @brief Controller status codes. */
 typedef enum
 {
-    CONTROLLER_STATUS_ANALOG_IN_OK = 0,
-    CONTROLLER_STATUS_ANALOG_IN_ERR,
+    CONTROLLER_STATUS_OK = 0,
+    CONTROLLER_STATUS_ERR,
 } controller_status_t;
 
 /** @brief Interface with the controller I/O and Pico interrupts. */

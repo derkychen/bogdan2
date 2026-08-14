@@ -15,7 +15,6 @@
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
-#include "platform/samd21g18a/time.h"
 
 #define V10_ATTEMPTS_MAX     (10u)
 #define V10_ATTEMPTS_WAIT_US (100u)
@@ -204,17 +203,13 @@ io_cfg_init (void)
                   I2C_SCL_FREQUENCY_STANDARD_HZ,
                   I2C_SCL_RISE_STANDARD_NS);
 
-    for (uint8_t attempts = 0; attempts <= V10_ATTEMPTS_MAX; attempts++)
-    {
-        if (analog_output_configure_v10() == ANALOG_OUTPUT_STATUS_OK)
-        {
-            return;
-        }
+    // DEBUG:
+    mcp4726_write_output_ee(&analog_output_mcp4726_ch1, 2048u);
+    mcp4726_write_output_ee(&analog_output_mcp4726_ch2, 0u);
 
-        time_sleep_us(V10_ATTEMPTS_WAIT_US);
-    }
+    analog_output_status_t status = analog_output_configure_v10();
 
-    ASSERT(false);
+    ASSERT(status == ANALOG_OUTPUT_STATUS_OK);
 
     return;
 }
