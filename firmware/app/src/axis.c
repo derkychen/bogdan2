@@ -116,7 +116,7 @@ axis_set_target (axis_t *axis, int target)
 
     if (controller_write_analog_in(axis->controller,
                                    voltage_mv_to_analog_value(target_mv))
-        != CONTROLLER_STATUS_ANALOG_IN_OK)
+        != CONTROLLER_STATUS_OK)
     {
         return AXIS_STATUS_ERR_CONTROLLER;
     }

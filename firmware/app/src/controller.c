@@ -117,10 +117,10 @@ controller_write_analog_in (controller_t const *controller, uint16_t value)
     if (analog_output_write(controller->analog_in, value)
         != ANALOG_OUTPUT_STATUS_OK)
     {
-        return CONTROLLER_STATUS_ANALOG_IN_ERR;
+        return CONTROLLER_STATUS_ERR;
     }
 
-    return CONTROLLER_STATUS_ANALOG_IN_OK;
+    return CONTROLLER_STATUS_OK;
 }
 
 /** @brief Record the stopping of stage movement. */
