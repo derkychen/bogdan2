@@ -17,14 +17,11 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define START_CMD_SIZE         (13u)
-#define START_POLL_INTERVAL_US (100u)
-#define START_TIMEOUT_MS       (5000u)
-
+#define START_CMD                     ("{\"cmd\":\"start\"}")
+#define START_POLL_INTERVAL_US        (100u)
+#define START_TIMEOUT_MS              (5000u)
 #define IO_CONFIGURE_POLL_INTERVAL_US (100u)
-#define IO_CONFIGURE_TIMEOUT_MS       (5000u)
-
-#define MAIN_LOOP_DELAY_US (100u)
+#define MAIN_LOOP_DELAY_US            (100u)
 
 static controller_t x_controller;
 static controller_t y_controller;
@@ -55,6 +52,9 @@ init (void)
     // Poll initialization of baseboard capabilities.
     while (io_cfg_configure() != IO_CFG_STATUS_OK)
     {
+        usb_task();
+
+        time_sleep_us(IO_CONFIGURE_POLL_INTERVAL_US);
     }
 
     // Initialize the beam profiler hardware. These functions configure the I/O
@@ -89,9 +89,9 @@ poll_message (char const *expected,
     {
         task();
 
-        if (serial_read_line(message, SERIAL_READ_BUFFER_SIZE)
+        if (serial_read_line(message, sizeof message)
                 == SERIAL_STATUS_OK_LINE_RECEIVED
-            && strncmp(message, expected, START_CMD_SIZE) == 0)
+            && strcmp(message, expected) == 0)
         {
             return true;
         }
