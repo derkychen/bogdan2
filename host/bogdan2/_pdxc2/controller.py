@@ -162,7 +162,7 @@ class Controller:
 
         self._set_function_prototypes()
 
-    def enable(self) -> None:
+    def open(self) -> None:
         """Enable the controller."""
         _check_err_status_code(self._lib.TLI_BuildDeviceList)
         _check_err_status_code(self._lib.PDXC2_Open, self._serial_num)
@@ -213,6 +213,14 @@ class Controller:
         raise KinesisStatusFailure(
             "Device did not return trigger parameters within "
             + f"{TRIGGER_PARAMS_REFRESH_TIMEOUT_S} s."
+        )
+
+    def set_control_mode(self, control_mode: int) -> None:
+        """Set the control mode of the Thorlabs PDXC2."""
+        _check_err_status_code(
+            self._lib.PDXC2_SetPositionControlMode,
+            self._serial_num,
+            control_mode,
         )
 
     def set_closedloop_params(

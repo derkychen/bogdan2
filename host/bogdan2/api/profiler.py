@@ -9,13 +9,14 @@ import numpy as np
 import serial
 from serial.tools import list_ports
 
-# from bogdan2._pdxc2.constants import (
-#     ANALOG_IN_GAIN,
-#     ANALOG_IN_OFFSET_MV,
-#     ANALOG_OUT_GAIN,
-#     ANALOG_OUT_OFFSET_MV,
-# )
-# from bogdan2._pdxc2.controller import Controller
+from bogdan2._pdxc2.constants import (
+    # ANALOG_IN_GAIN,
+    # ANALOG_IN_OFFSET_MV,
+    # ANALOG_OUT_GAIN,
+    # ANALOG_OUT_OFFSET_MV,
+    CONTROL_MODE_CLOSED_LOOP,
+)
+from bogdan2._pdxc2.controller import Controller
 from bogdan2._pico.constants import RANGE_20V
 from bogdan2._pico.scope import Scope, ScopeChannelParams
 from bogdan2._utils.math import ceil_div
@@ -87,18 +88,18 @@ class Profiler:
         self._stack: ExitStack[bool | None]
 
         self._scope: Scope = Scope()
-        # self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
-        # self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
+        self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
+        self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
         self._ser: serial.Serial | None = None
 
     def __enter__(self) -> "Self":
         """Acquire hardware."""
         with ExitStack() as stack:
-            # self._x_controller.open()
-            # _ = stack.callback(self._x_controller.close)
-            #
-            # self._y_controller.open()
-            # _ = stack.callback(self._y_controller.close)
+            self._x_controller.open()
+            _ = stack.callback(self._x_controller.close)
+
+            self._y_controller.open()
+            _ = stack.callback(self._y_controller.close)
 
             self._scope.open()
             _ = stack.callback(self._scope.close)
@@ -159,13 +160,16 @@ class Profiler:
         #
         # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
         #       long-term usage.
-        # self._x_controller.set_closedloop_params(
-        #     refspeed=15000000, acceleration=500000000
-        # )
-        # self._y_controller.set_closedloop_params(
-        #     refspeed=15000000, acceleration=500000000
-        # )
-        #
+        self._x_controller.set_control_mode(CONTROL_MODE_CLOSED_LOOP)
+        self._y_controller.set_control_mode(CONTROL_MODE_CLOSED_LOOP)
+
+        self._x_controller.set_closedloop_params(
+            refspeed=15000000, acceleration=500000000
+        )
+        self._y_controller.set_closedloop_params(
+            refspeed=15000000, acceleration=500000000
+        )
+
         # self._x_controller.set_to_analog_rising_trigger_mode()
         # self._y_controller.set_to_analog_rising_trigger_mode()
         #
