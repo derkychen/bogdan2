@@ -31,6 +31,73 @@ static profiler_t   profiler;
 static parameters_t parameters = { 0 };
 static char         message[SERIAL_READ_BUFFER_SIZE];
 
+static void task(void);
+static void init(void);
+static bool poll_message(char const *expected,
+                         uint32_t    poll_interval_us,
+                         uint32_t    timeout_ms);
+
+int
+main (void)
+{
+    init();
+
+    for (;;)
+    {
+        task();
+
+        if (serial_read_line(message, sizeof(message))
+            == SERIAL_STATUS_OK_LINE_RECEIVED)
+        {
+            if (parameters_parse_json(&parameters, message)
+                == PARAMETERS_STATUS_OK_PARSED)
+            {
+                if (io_cfg_configure() != IO_CFG_STATUS_OK)
+                {
+                    serial_write_line(
+                        "{\"ok\":false,\"msg\":\"io_configuration_failed\"}");
+                }
+
+                // Handshake to ensure movement occurs after host receives
+                // status and completes required configuration.
+                //
+                // TODO: Check if this fixes the issue where the oscilloscope
+                //       seems to not trigger on the last point. This is
+                //       possibly an off-by-one error due to host configuration
+                //       racing Trigger OUT from the first point.
+                serial_write_line("{\"ok\":true,\"msg\":\"ready\"}");
+
+                if (!poll_message("{\"cmd\":\"start\"}",
+                                  START_POLL_INTERVAL_US,
+                                  START_TIMEOUT_MS))
+                {
+                    serial_write_line(
+                        "{\"ok\":false,\"msg\":\"start_timeout\"}");
+                    continue;
+                }
+
+                if (profiler_profile(&profiler, &parameters)
+                    == PROFILER_STATUS_OK)
+                {
+                    serial_write_line("{\"ok\":true,\"msg\":\"profile_done\"}");
+                }
+                else
+                {
+                    serial_write_line(
+                        "{\"ok\":false,\"msg\":\"profile_failed\"}");
+                }
+            }
+            else
+            {
+                serial_write_line(
+                    "{\"ok\":false,\"msg\":\"parameters_parse_failed\"}");
+            }
+        }
+
+        time_sleep_us(MAIN_LOOP_DELAY_US);
+    }
+}
+
 /** @brief Task function that should be called repeatedly in the `main` loop. */
 static void
 task (void)
@@ -100,65 +167,4 @@ poll_message (char const *expected,
     }
 
     return false;
-}
-
-int
-main (void)
-{
-    init();
-
-    for (;;)
-    {
-        task();
-
-        if (serial_read_line(message, sizeof(message))
-            == SERIAL_STATUS_OK_LINE_RECEIVED)
-        {
-            if (parameters_parse_json(&parameters, message)
-                == PARAMETERS_STATUS_OK_PARSED)
-            {
-                if (io_cfg_configure() != IO_CFG_STATUS_OK)
-                {
-                    serial_write_line(
-                        "{\"ok\":false,\"msg\":\"io_configuration_failed\"}");
-                }
-
-                // Handshake to ensure movement occurs after host receives
-                // status and completes required configuration.
-                //
-                // TODO: Check if this fixes the issue where the oscilloscope
-                //       seems to not trigger on the last point. This is
-                //       possibly an off-by-one error due to host configuration
-                //       racing Trigger OUT from the first point.
-                serial_write_line("{\"ok\":true,\"msg\":\"ready\"}");
-
-                if (!poll_message("{\"cmd\":\"start\"}",
-                                  START_POLL_INTERVAL_US,
-                                  START_TIMEOUT_MS))
-                {
-                    serial_write_line(
-                        "{\"ok\":false,\"msg\":\"start_timeout\"}");
-                    continue;
-                }
-
-                if (profiler_profile(&profiler, &parameters)
-                    == PROFILER_STATUS_OK)
-                {
-                    serial_write_line("{\"ok\":true,\"msg\":\"profile_done\"}");
-                }
-                else
-                {
-                    serial_write_line(
-                        "{\"ok\":false,\"msg\":\"profile_failed\"}");
-                }
-            }
-            else
-            {
-                serial_write_line(
-                    "{\"ok\":false,\"msg\":\"parameters_parse_failed\"}");
-            }
-        }
-
-        time_sleep_us(MAIN_LOOP_DELAY_US);
-    }
 }
