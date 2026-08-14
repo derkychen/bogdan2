@@ -85,7 +85,7 @@ poll_message (char const *expected,
 {
     uint32_t start_ms = time_get_ms();
 
-    while (time_get_ms() - start_ms >= timeout_ms)
+    while (time_get_ms() - start_ms < timeout_ms)
     {
         task();
 
@@ -95,6 +95,7 @@ poll_message (char const *expected,
         {
             return true;
         }
+
         time_sleep_us(poll_interval_us);
     }
 
