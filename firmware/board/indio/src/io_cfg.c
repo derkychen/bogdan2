@@ -200,12 +200,8 @@ io_cfg_init (void)
     i2c_configure(I2C_MASTER_SERCOM1,
                   &board_i2c_bus_sda,
                   &board_i2c_bus_scl,
-                  I2C_SCL_FREQUENCY_STANDARD_HZ,
-                  I2C_SCL_RISE_STANDARD_NS);
-
-    // DEBUG:
-    mcp4726_write_output_ee(&analog_output_mcp4726_ch1, 2048u);
-    mcp4726_write_output_ee(&analog_output_mcp4726_ch2, 0u);
+                  I2C_SCL_FREQUENCY_FAST_HZ,
+                  I2C_SCL_RISE_FAST_NS);
 
     analog_output_status_t status = analog_output_configure_v10();
 

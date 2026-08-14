@@ -14,9 +14,6 @@
 #include "platform/samd21g18a/time.h"
 #include <stddef.h>
 
-// DEBUG:
-#include "app/serial.h"
-
 #define START_MOVE_PULSE_WIDTH_MS (1u)
 
 static void trigger_out_isr(eic_extint_line_t line, void *context);
@@ -44,14 +41,7 @@ controller_init (controller_t                  *controller,
     eic_register_callback_entry(trigger_out->line, trigger_out_isr, controller);
     eic_interrupt_disable(controller->trigger_out->line);
 
-    if (analog_output_write(analog_in, 0u) == ANALOG_OUTPUT_STATUS_OK)
-    {
-        // DEBUG:
-        serial_write_line("analog output ok");
-    }
-
-    // DEBUG:
-    serial_write_line("analog output err");
+    return;
 }
 
 bool
