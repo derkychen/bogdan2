@@ -15,9 +15,10 @@
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
+#include "platform/samd21g18a/time.h"
 
-#define V10_CONFIGURATION_MAX_ATTEMPTS (10u)
-#define V10_CONFIGURATION_WAIT_MS      (10u)
+#define V10_ATTEMPTS_MAX     (10u)
+#define V10_ATTEMPTS_WAIT_US (100u)
 
 #if 0
 /**
@@ -203,16 +204,19 @@ io_cfg_init (void)
                   I2C_SCL_FREQUENCY_FAST_HZ,
                   I2C_SCL_RISE_FAST_NS);
 
-    uint8_t attempts = 0;
-
     // TODO: Test if this fixes the observed issues with long-term usage.
     //       Unexpected behaviour is occurring after multiple power cycles.
-    while (attempts < V10_CONFIGURATION_MAX_ATTEMPTS)
+    //
+    //       This does not explain why the IND.I/O is receiving parameters,
+    //       though. If bring-up is fails serial communication should not work.
+    for (uint8_t attempts = 0; attempts <= V10_ATTEMPTS_MAX; attempts++)
     {
-        if (analog_output_configure_v10() == ANALOG_OUTPUT_STATUS_OK)
+        if (analog_output_configure_v10() != ANALOG_OUTPUT_STATUS_OK)
         {
             return;
         }
+
+        time_sleep_us(V10_ATTEMPTS_WAIT_US);
     }
 
     ASSERT(false);
