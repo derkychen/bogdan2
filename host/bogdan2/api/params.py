@@ -8,8 +8,12 @@ from bogdan2._utils.math import ceil_div
 AXIS_MIN_MIN: Final[int] = -1_000
 AXIS_MAX_MAX: Final[int] = 1_000
 AXIS_UNIT_MAX_NM: Final[int] = 1_000_000
+
+# TODO: Extend stage range to +/- 6 mm if Thorlabs fixes the gain and offset
+#       bug.
 AXIS_STAGE_RANGE_MIN_NM: Final[int] = -3_000_000
 AXIS_STAGE_RANGE_MAX_NM: Final[int] = 3_000_000
+
 AXIS_STAGE_MIN_STEP_NM: Final[int] = 300
 
 CAPTURE_SAMPLE_INTERVAL_NS_MAX: Final[int] = 10_000

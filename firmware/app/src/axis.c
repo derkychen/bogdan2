@@ -16,11 +16,9 @@
 #define UNIT_MAX_NM       (1000000u)
 #define STAGE_MIN_STEP_NM (300u)
 
-// NOTE: The stage range values here differ from the actual stage range. This is
-//       due to the configuration of Analog IN gain and offsets restricting the
-//       range to these bounds.
-//
-// TODO: Change this if Thorlabs replies with a workaround.
+// TODO: Extend stage range to +/- 6 mm if Thorlabs fixes the gain and offset
+//       bug. Analog IN gain and offset currently restrict stage range to these
+//       values.
 #define STAGE_RANGE_MIN_NM (-3000000)
 #define STAGE_RANGE_MAX_NM (3000000)
 
