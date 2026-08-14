@@ -1,5 +1,5 @@
 /**
- * @file io_cfg.c
+ * @file io.c
  * @brief Implementation of I/O configurations.
  *
  * WARNING: Changes to this file should be made with caution, as it contains
@@ -8,7 +8,7 @@
  * NOTE: All MCU expansion port pins and analog output pins are defined. The
  *       ones that are unused are commented out.
  */
-#include "board/indio/io_cfg.h"
+#include "board/indio/io.h"
 #include "board/indio/analog_output.h"
 #include "drivers/mcp4726.h"
 #include "platform/samd21g18a/digital.h"
@@ -163,38 +163,36 @@ static mcp4726_device_t const analog_output_mcp4726_ch2 = {
     .address = ANALOG_OUTPUT_CH2_MCP4726_ADDRESS,
 };
 
-digital_pin_t const io_cfg_expansion_d4_digital = expansion_d4;
+digital_pin_t const io_expansion_d4_digital = expansion_d4;
 
-digital_pin_t const io_cfg_expansion_d15_digital = expansion_d15;
+digital_pin_t const io_expansion_d15_digital = expansion_d15;
 
-eic_pin_t const io_cfg_expansion_d5_eic = {
+eic_pin_t const io_expansion_d5_eic = {
     .pin  = &expansion_d5,
     .line = 10u,
 };
 
-eic_pin_t const io_cfg_expansion_d6_eic = {
+eic_pin_t const io_expansion_d6_eic = {
     .pin  = &expansion_d6,
     .line = 9u,
 };
 
-eic_pin_t const io_cfg_expansion_d16_eic = {
+eic_pin_t const io_expansion_d16_eic = {
     .pin  = &expansion_d16,
     .line = 7u,
 };
 
-pulser_t const io_cfg_expansion_d7_pulser = {
+pulser_t const io_expansion_d7_pulser = {
     .output = &expansion_d7,
     .timer  = PULSER_TIMER_TCC0,
 };
 
-analog_output_channel_t const io_cfg_analog_output_ch1
-    = analog_output_mcp4726_ch1;
+analog_output_channel_t const io_analog_output_ch1 = analog_output_mcp4726_ch1;
 
-analog_output_channel_t const io_cfg_analog_output_ch2
-    = analog_output_mcp4726_ch2;
+analog_output_channel_t const io_analog_output_ch2 = analog_output_mcp4726_ch2;
 
-io_cfg_status_t
-io_cfg_configure (void)
+void
+io_init (void)
 {
     i2c_configure(I2C_MASTER_SERCOM1,
                   &board_i2c_bus_sda,
@@ -202,10 +200,16 @@ io_cfg_configure (void)
                   I2C_SCL_FREQUENCY_FAST_HZ,
                   I2C_SCL_RISE_FAST_NS);
 
+    return;
+}
+
+io_status_t
+io_configure (void)
+{
     if (analog_output_configure_v10() != ANALOG_OUTPUT_STATUS_OK)
     {
-        return IO_CFG_STATUS_ERR;
+        return IO_STATUS_ERR;
     }
 
-    return IO_CFG_STATUS_OK;
+    return IO_STATUS_OK;
 }

@@ -10,14 +10,13 @@
 #include "app/parameters.h"
 #include "app/profiler.h"
 #include "app/serial.h"
-#include "board/indio/io_cfg.h"
+#include "board/indio/io.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/time.h"
 #include "platform/samd21g18a/usb.h"
 #include <stdbool.h>
 #include <string.h>
 
-#define START_CMD                     ("{\"cmd\":\"start\"}")
 #define START_POLL_INTERVAL_US        (100u)
 #define START_TIMEOUT_MS              (5000u)
 #define IO_CONFIGURE_POLL_INTERVAL_US (100u)
@@ -52,10 +51,11 @@ main (void)
             if (parameters_parse_json(&parameters, message)
                 == PARAMETERS_STATUS_OK_PARSED)
             {
-                if (io_cfg_configure() != IO_CFG_STATUS_OK)
+                if (io_configure() != IO_STATUS_OK)
                 {
                     serial_write_line(
                         "{\"ok\":false,\"msg\":\"io_configuration_failed\"}");
+                    continue;
                 }
 
                 // Handshake to ensure movement occurs after host receives
@@ -116,27 +116,29 @@ init (void)
     time_init();
     usb_init();
 
-    // Poll initialization of baseboard capabilities.
-    while (io_cfg_configure() != IO_CFG_STATUS_OK)
-    {
-        usb_task();
+    // Initialize baseboard capabilities.
+    io_init();
 
+    // Poll the configuration of baseboard I/O until ready.
+    while (io_configure() != IO_STATUS_OK)
+    {
+        task();
         time_sleep_us(IO_CONFIGURE_POLL_INTERVAL_US);
     }
 
     // Initialize the beam profiler hardware. These functions configure the I/O
     // to safe defaults.
     controller_init(&x_controller,
-                    &io_cfg_expansion_d4_digital,
-                    &io_cfg_expansion_d5_eic,
-                    &io_cfg_analog_output_ch1);
+                    &io_expansion_d4_digital,
+                    &io_expansion_d5_eic,
+                    &io_analog_output_ch1);
 
     controller_init(&y_controller,
-                    &io_cfg_expansion_d15_digital,
-                    &io_cfg_expansion_d16_eic,
-                    &io_cfg_analog_output_ch2);
+                    &io_expansion_d15_digital,
+                    &io_expansion_d16_eic,
+                    &io_analog_output_ch2);
 
-    relay_init(&relay, &io_cfg_expansion_d7_pulser, &io_cfg_expansion_d6_eic);
+    relay_init(&relay, &io_expansion_d7_pulser, &io_expansion_d6_eic);
 
     profiler_init(&profiler, &x_controller, &y_controller, &relay, task);
 
