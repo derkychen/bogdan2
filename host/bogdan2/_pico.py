@@ -1,26 +1,19 @@
 """Abstraction of the PicoScope."""
 
+from __future__ import annotations
+
 import ctypes as ct
 import time
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Final
 
 import numpy as np
 import numpy.typing as npt
-from picosdk.functions import assert_pico_ok
+from picosdk.functions import adc2mV, assert_pico_ok, mV2adc
 from picosdk.ps2000a import ps2000a as ps
 
-from bogdan2._pico.channel import Channel
-from bogdan2._pico.constants import (
-    RATIO_MODE_NONE,
-    TRIGGER_RISING,
-)
-from bogdan2._utils.math import ceil_div
-
-CHANNEL_A: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
-CHANNEL_B: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
-CHANNEL_C: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
-CHANNEL_D: Final[int] = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
+from bogdan2._utils import ceil_div
 
 TIMEBASE_MAX_TRIES: Final[int] = 10
 
@@ -29,10 +22,167 @@ class CouldNotFindTimebase(Exception):
     """When searching for a timebase according to sample region fails."""
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ScopeChannelParams:
+class RangeID(IntEnum):
+    V1 = ps.PS2000A_RANGE["PS2000A_1V"]
+    V2 = ps.PS2000A_RANGE["PS2000A_2V"]
+    V5 = ps.PS2000A_RANGE["PS2000A_5V"]
+    V10 = ps.PS2000A_RANGE["PS2000A_10V"]
+    V20 = ps.PS2000A_RANGE["PS2000A_20V"]
+    V50 = ps.PS2000A_RANGE["PS2000A_50V"]
+
+
+class TriggerDirectionID(IntEnum):
+    RISING = ps.PS2000A_THRESHOLD_DIRECTION["PS2000A_RISING"]
+
+
+class _CouplingID(IntEnum):
+    DC = ps.PS2000A_COUPLING["PS2000A_DC"]
+
+
+class _RatioModeID(IntEnum):
+    NONE = ps.PS2000A_RATIO_MODE["PS2000A_RATIO_MODE_NONE"]
+
+
+class _ChannelID(IntEnum):
+    A = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_A"]
+    B = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_B"]
+    C = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_C"]
+    D = ps.PS2000A_CHANNEL["PS2000A_CHANNEL_D"]
+
+
+@dataclass(kw_only=True)
+class ChannelParams:
     name: str
-    range_id: int
+    range_id: RangeID
+
+
+class Channel:
+    """Abstraction for a channel of the PicoScope."""
+
+    def __init__(
+        self,
+        chandle: ct.c_int16,
+        max_adc: ct.c_int16,
+        name: str,
+        channel_id: _ChannelID,
+        range_id: RangeID,
+    ) -> None:
+        """Initialize a PicoScope channel."""
+        self._chandle: ct.c_int16 = chandle
+        self._max_adc: ct.c_int16 = max_adc
+
+        self.name: str = name
+
+        self._channel_id: _ChannelID = channel_id
+        self._range_id: RangeID = range_id
+
+        self._single_buffer: ct.Array[ct.c_int16]
+        self._bulk_buffers: list[ct.Array[ct.c_int16]]
+
+        assert_pico_ok(
+            ps.ps2000aSetChannel(
+                self._chandle,
+                self._channel_id,
+                1,
+                _CouplingID.DC,
+                self._range_id,
+                0.0,
+            )
+        )
+
+    def get_id(self) -> int:
+        """Get the channel s (from the C enumeration)."""
+        return self._channel_id
+
+    def set_trigger(
+        self,
+        direction_id: TriggerDirectionID,
+        threshold_mv: float = 2000.0,
+    ) -> None:
+        """Configure a PicoScope channel as a logical trigger."""
+        trigger_adc: ct.c_int16 = mV2adc(
+            threshold_mv, self._range_id, self._max_adc
+        )
+
+        assert_pico_ok(
+            ps.ps2000aSetSimpleTrigger(
+                self._chandle,
+                1,
+                self._channel_id,
+                trigger_adc,
+                direction_id,
+                0,
+                0,
+            )
+        )
+
+    def single_buffer_create(self, samples: int) -> None:
+        """Allocate the channel buffer."""
+        buffer = (ct.c_int16 * samples)()
+
+        assert_pico_ok(
+            ps.ps2000aSetDataBuffers(
+                self._chandle,
+                self._channel_id,
+                buffer,
+                None,
+                samples,
+                0,
+                _RatioModeID.NONE,
+            )
+        )
+
+        self._single_buffer = buffer
+
+    def bulk_buffer_create(self, samples: int, captures: int) -> None:
+        """Add an acquisition buffer segment to a channel buffer."""
+        buffers = []
+        self._bulk_buffers = buffers
+
+        for i in range(captures):
+            segment = (ct.c_int16 * (samples))()
+
+            self._bulk_buffers.append(segment)
+
+            assert_pico_ok(
+                ps.ps2000aSetDataBuffer(
+                    self._chandle,
+                    self._channel_id,
+                    segment,
+                    samples,
+                    i,
+                    _RatioModeID.NONE,
+                )
+            )
+
+    def disable_trigger(self) -> None:
+        """Disable a Picoscope channel trigger."""
+        assert_pico_ok(
+            ps.ps2000aSetSimpleTrigger(self._chandle, 0, 0, 0, 0, 0, 0)
+        )
+
+    def single_mv(self) -> npt.NDArray[np.float64]:
+        """Get a reading in millivolts from the channel buffer."""
+        return np.array(
+            adc2mV(
+                self._single_buffer,
+                self._range_id,
+                self._max_adc,
+            )
+        )
+
+    def bulk_mv(self) -> list[npt.NDArray[np.float64]]:
+        """Get an array of readings in millivolts from the channel buffer."""
+        return [
+            np.array(
+                adc2mV(
+                    adc_sample,
+                    self._range_id,
+                    self._max_adc,
+                )
+            )
+            for adc_sample in self._bulk_buffers
+        ]
 
 
 class Scope:
@@ -80,43 +230,46 @@ class Scope:
         self,
     ) -> None:
         """Set up the PicoScope."""
-        self._set_max_adc()
+        assert_pico_ok(
+            ps.ps2000aMaximumValue(self._chandle, ct.byref(self._max_adc))
+        )
+
         self._timebase = 1
 
     def configure_channels(
         self,
-        a_params: ScopeChannelParams,
-        b_params: ScopeChannelParams,
-        c_params: ScopeChannelParams,
-        d_params: ScopeChannelParams,
+        a_params: ChannelParams,
+        b_params: ChannelParams,
+        c_params: ChannelParams,
+        d_params: ChannelParams,
     ) -> None:
         """Configure PicoScope channel names and ranges."""
         self._a = Channel(
             self._chandle,
             self._max_adc,
             a_params.name,
-            CHANNEL_A,
+            _ChannelID.A,
             a_params.range_id,
         )
         self._b = Channel(
             self._chandle,
             self._max_adc,
             b_params.name,
-            CHANNEL_B,
+            _ChannelID.B,
             b_params.range_id,
         )
         self._c = Channel(
             self._chandle,
             self._max_adc,
             c_params.name,
-            CHANNEL_C,
+            _ChannelID.C,
             c_params.range_id,
         )
         self._d = Channel(
             self._chandle,
             self._max_adc,
             d_params.name,
-            CHANNEL_D,
+            _ChannelID.D,
             d_params.range_id,
         )
 
@@ -165,8 +318,8 @@ class Scope:
 
             self._sample_interval_ns = int(dt_ns.value)
 
+            # Recompute sample region with the selected timebase
             if self._sample_interval_ns >= sample_interval_ns:
-                # Recompute sample region with the selected timebase
                 self._timebase = timebase
 
                 self._pretrigger_samples = ceil_div(
@@ -192,11 +345,13 @@ class Scope:
 
         self._a.disable_trigger()
 
-    def enable_trigger_a(self, threshold_mv: float = 2000.0) -> None:
+    def enable_trigger_a(
+        self, direction_id: TriggerDirectionID, threshold_mv: float = 2000.0
+    ) -> None:
         """Enable triggering of the PicoScope."""
         assert self._a is not None, "Channel not initialized."
 
-        self._a.set_trigger(TRIGGER_RISING, threshold_mv=threshold_mv)
+        self._a.set_trigger(direction_id, threshold_mv=threshold_mv)
 
     def configure_single_capture(self) -> None:
         """Create buffers for a single capture.
@@ -261,9 +416,7 @@ class Scope:
         ready = ct.c_int16(0)
 
         while ready.value == 0:
-            assert_pico_ok(
-                ps.ps2000aIsReady(self._chandle, ct.byref(ready))
-            )
+            assert_pico_ok(ps.ps2000aIsReady(self._chandle, ct.byref(ready)))
 
             elapsed = time.time() - start
 
@@ -285,7 +438,7 @@ class Scope:
                 0,
                 ct.byref(samples_u32),
                 1,
-                RATIO_MODE_NONE,
+                _RatioModeID.NONE,
                 0,
                 ct.byref(overflow),
             )
@@ -307,7 +460,7 @@ class Scope:
                 0,
                 self._num_captures - 1,
                 0,
-                RATIO_MODE_NONE,
+                _RatioModeID.NONE,
                 overflow,
             )
         )
@@ -330,9 +483,3 @@ class Scope:
         """Close the PicoScope."""
         assert_pico_ok(ps.ps2000aStop(self._chandle))
         assert_pico_ok(ps.ps2000aCloseUnit(self._chandle))
-
-    def _set_max_adc(self) -> None:
-        """Set the internal maximum ADC value."""
-        assert_pico_ok(
-            ps.ps2000aMaximumValue(self._chandle, ct.byref(self._max_adc))
-        )

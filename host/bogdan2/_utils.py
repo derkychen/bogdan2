@@ -1,4 +1,4 @@
-"""Math-related utility functions."""
+"""Miscellaneous utility functions."""
 
 
 def ceil_div(num: int, denom: int) -> int:

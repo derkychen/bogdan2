@@ -9,17 +9,9 @@ import numpy as np
 import serial
 from serial.tools import list_ports
 
-from bogdan2._pdxc2.constants import (
-    # ANALOG_IN_GAIN,
-    # ANALOG_IN_OFFSET_MV,
-    # ANALOG_OUT_GAIN,
-    # ANALOG_OUT_OFFSET_MV,
-    CONTROL_MODE_CLOSED_LOOP,
-)
-from bogdan2._pdxc2.controller import Controller
-from bogdan2._pico.constants import RANGE_20V
-from bogdan2._pico.scope import Scope, ScopeChannelParams
-from bogdan2._utils.math import ceil_div
+from bogdan2._pdxc2 import Controller, ControlModeID, TriggerModeID
+from bogdan2._pico import ChannelParams, RangeID, Scope, TriggerDirectionID
+from bogdan2._utils import ceil_div
 from bogdan2.api.data import (
     BeamPoint,
     BeamProfile,
@@ -37,13 +29,16 @@ from bogdan2.api.params import (
 
 # TODO: Change `ANALOG_OUT_MIN_MV` to -10 volts when Thorlabs fixes the gain
 #       and offset bug.
-ANALOG_OUT_MIN_MV: Final[float] = 0.0
-ANALOG_OUT_MAX_MV: Final[float] = 10000.0
+MIN_MV: Final[float] = 0.0
+MAX_MV: Final[float] = 10000.0
 
-X_PDXC2_SERIAL_NUM: Final[bytes] = b"112547939"
-Y_PDXC2_SERIAL_NUM: Final[bytes] = b"112512664"
+X_PDXC2_SERIAL_NUM: Final[str] = "112547939"
+Y_PDXC2_SERIAL_NUM: Final[str] = "112512664"
 
-CALIBRATION_REFRESH_S: Final[float] = 0.100
+ANALOG_IN_GAIN: Final[float] = 1.0
+ANALOG_IN_OFFSET_MV: Final[float] = -10000.0
+ANALOG_OUT_GAIN: Final[float] = 1.0
+ANALOG_OUT_OFFSET_MV: Final[float] = 0.0
 
 PORT_WAIT_TIMEOUT_S: Final[float] = 10.0
 PORT_POLL_INTERVAL_S: Final[float] = 0.01
@@ -73,9 +68,9 @@ class MCUError(Exception):
 def _mv_to_mm(mv: Reading) -> float:
     """Convert x and y millivolt readings into a position."""
     return (
-        (mv.mean - ANALOG_OUT_MIN_MV)
+        (mv.mean - MIN_MV)
         * (AXIS_STAGE_RANGE_MAX_NM - AXIS_STAGE_RANGE_MIN_NM)
-        / (ANALOG_OUT_MAX_MV - ANALOG_OUT_MIN_MV)
+        / (MAX_MV - MIN_MV)
         * 1e-6
     )
 
@@ -160,41 +155,38 @@ class Profiler:
         #
         # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
         #       long-term usage.
-        self._x_controller.set_control_mode(CONTROL_MODE_CLOSED_LOOP)
-        self._y_controller.set_control_mode(CONTROL_MODE_CLOSED_LOOP)
-
-        self._x_controller.set_closedloop_params(
+        self._x_controller.ensure_closedloop_params(
             refspeed=15000000, acceleration=500000000
         )
-        self._y_controller.set_closedloop_params(
+        self._y_controller.ensure_closedloop_params(
             refspeed=15000000, acceleration=500000000
         )
 
-        # self._x_controller.set_to_analog_rising_trigger_mode()
-        # self._y_controller.set_to_analog_rising_trigger_mode()
-        #
-        # self._x_controller.set_analog_rising_trigger_params(
-        #     ANALOG_IN_GAIN_0_TO_10,
-        #     ANALOG_IN_OFFSET_MV_0_TO_10,
-        #     ANALOG_OUT_GAIN_N10_TO_10,
-        #     ANALOG_OUT_OFFSET_MV_N10_TO_10,
-        # )
-        # self._y_controller.set_analog_rising_trigger_params(
-        #     ANALOG_IN_GAIN_0_TO_10,
-        #     ANALOG_IN_OFFSET_MV_0_TO_10,
-        #     ANALOG_OUT_GAIN_N10_TO_10,
-        #     ANALOG_OUT_OFFSET_MV_N10_TO_10,
-        # )
-        #
-        # self._x_controller.persist_settings()
-        # self._y_controller.persist_settings()
+        self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
+        self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
+
+        self._x_controller.ensure_analog_rising_trigger_params(
+            ANALOG_IN_GAIN,
+            ANALOG_IN_OFFSET_MV,
+            ANALOG_OUT_GAIN,
+            ANALOG_OUT_OFFSET_MV,
+        )
+        self._y_controller.ensure_analog_rising_trigger_params(
+            ANALOG_IN_GAIN,
+            ANALOG_IN_OFFSET_MV,
+            ANALOG_OUT_GAIN,
+            ANALOG_OUT_OFFSET_MV,
+        )
+
+        self._x_controller.ensure_trigger_mode(TriggerModeID.ANALOG_RISING)
+        self._y_controller.ensure_trigger_mode(TriggerModeID.ANALOG_RISING)
 
         self._scope.setup()
         self._scope.configure_channels(
-            ScopeChannelParams(name="trigger_mv", range_id=RANGE_20V),
-            ScopeChannelParams(name="x_mv", range_id=RANGE_20V),
-            ScopeChannelParams(name="y_mv", range_id=RANGE_20V),
-            ScopeChannelParams(name="intensity_mv", range_id=RANGE_20V),
+            ChannelParams(name="trigger_mv", range_id=RangeID.V20),
+            ChannelParams(name="x_mv", range_id=RangeID.V20),
+            ChannelParams(name="y_mv", range_id=RangeID.V20),
+            ChannelParams(name="intensity_mv", range_id=RangeID.V20),
         )
         self._scope.disable_trigger_a()
 
@@ -298,7 +290,7 @@ class Profiler:
 
         if status is not None:
             if status["ok"]:
-                self._scope.enable_trigger_a()
+                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_bulk_capture(capture.num_pulses)
 
                 self._ser_write_newline_terminated({"cmd": "start"})
@@ -359,7 +351,7 @@ class Profiler:
 
         if status is not None:
             if status["ok"]:
-                self._scope.enable_trigger_a()
+                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
 
                 self._ser_write_newline_terminated({"cmd": "start"})
@@ -417,7 +409,7 @@ class Profiler:
 
         if status is not None:
             if status["ok"]:
-                self._scope.enable_trigger_a()
+                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
 
                 self._ser_write_newline_terminated({"cmd": "start"})
