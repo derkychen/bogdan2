@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Final, override
 
-from bogdan2._utils.math import ceil_div
+from bogdan2._utils import ceil_div
 
 AXIS_MIN_MIN: Final[int] = -1_000
 AXIS_MAX_MAX: Final[int] = 1_000
