@@ -10,6 +10,7 @@ authors = [
 ]
 dependencies = [
   "matplotlib",
+  "pythonnet"
   "numpy",
   "picosdk",
   "pyserial",
