@@ -151,6 +151,12 @@ class Profiler:
 
     def _configure(self) -> None:
         """Configure the profiler hardware."""
+        self._x_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
+        self._y_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
+
+        self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
+        self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
+
         # Use fast settings.
         #
         # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
@@ -161,9 +167,6 @@ class Profiler:
         self._y_controller.ensure_closedloop_params(
             refspeed=15000000, acceleration=500000000
         )
-
-        self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
-        self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
 
         self._x_controller.ensure_analog_rising_trigger_params(
             ANALOG_IN_GAIN,
