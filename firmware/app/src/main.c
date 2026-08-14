@@ -126,8 +126,7 @@ init (void)
         time_sleep_us(IO_CONFIGURE_POLL_INTERVAL_US);
     }
 
-    // Initialize the beam profiler hardware. These functions configure the I/O
-    // to safe defaults.
+    // Initialize the beam profiler hardware.
     controller_init(&x_controller,
                     &io_expansion_d4_digital,
                     &io_expansion_d5_eic,

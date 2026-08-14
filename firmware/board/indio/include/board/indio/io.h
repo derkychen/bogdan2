@@ -62,8 +62,10 @@ void io_init(void);
  * Currently only configures analog outputs to produce 0 to 10 volts.
  *
  * NOTE: This function must be called if the baseboard is power cycled, as the
- *       voltage range configuration is lost each time. This can happen while
- *       the processor is powered.
+ *       voltage range configuration is lost each time. This can happen when the
+ *       baseboard is unplugged while the processor is powered. Processor I/O do
+ *       not need to be handled by this function since a power cycle of the
+ *       processor means a clean reset.
  */
 io_status_t io_configure(void);
 
