@@ -1,4 +1,4 @@
-# Bogdan 2: Revenge of the Industruino
+# Bogdan 2: Analog Boogaloo
 
 This repository contains all the code used to set up and operate Bogdan 2, a beam profiler whose concept was conceived by Dr. Sascha Epp, our supervisor. Its purpose was mainly to solve two problems:
 
@@ -57,7 +57,7 @@ Make sure to replace the port with the actual path to your USB port. On Windows 
 
 #### Installation
 
-To install the Bogdan 2 host API run (ideally in a virtual environment)
+To install the Bogdan 2 host API (ideally in a virtual environment) run
 
 ```bash
 uv pip install -e i/put/bogdan2/here/bogdan2/host # Replace with actual location

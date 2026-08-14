@@ -24,7 +24,7 @@ NOTE: This may already be installed on your system.
 
 An easy way to run Git BASH is to go to VSCode set your terminal to use Git BASH:
 
-1. `Ctrl+Shift+P` to open the Command Palette
+1. Ctrl + Shift + P to open the Command Palette
 2. From the Command Palette, navigate to "Terminal: Select Default Profile"
 
 Then select Git BASH.
@@ -61,7 +61,7 @@ echo 'export PATH="$PATH:/c/Program Files/Arm/GNU Toolchain mingw-w64-x86_64-arm
 echo 'export PATH="$PATH:/c/Program Files (x86)/BOSSA"' >> ~/.bash_profile
 ```
 
-Phis creates a file called `~/.bash_profile`. The scripts in this file are automatically run by Git BASH. In this case, the scripts append location of the binaries to your `PATH`.
+This creates a file called `~/.bash_profile`. The scripts in this file are automatically run by Git BASH. In this case, the scripts append location of the binaries to your `PATH`.
 
 If future setup does not work, it is very likely that location of the binaries is incorrect, edit the file to instead reference correct locations.
 
