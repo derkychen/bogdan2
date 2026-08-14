@@ -1,6 +1,6 @@
 """Abstraction of the PicoScope."""
 
-import ctypes
+import ctypes as ct
 import time
 from dataclasses import dataclass
 from typing import Final
@@ -42,8 +42,8 @@ class Scope:
         self,
     ) -> None:
         """Initialize the PicoScope."""
-        self._chandle: ctypes.c_int16 = ctypes.c_int16()
-        self._max_adc: ctypes.c_int16 = ctypes.c_int16()
+        self._chandle: ct.c_int16 = ct.c_int16()
+        self._max_adc: ct.c_int16 = ct.c_int16()
         self._timebase: int
 
         self._pretrigger_samples: int
@@ -74,7 +74,7 @@ class Scope:
 
     def open(self) -> None:
         """Open the PicoScope and set the internal C handle."""
-        assert_pico_ok(ps.ps2000aOpenUnit(ctypes.byref(self._chandle), None))
+        assert_pico_ok(ps.ps2000aOpenUnit(ct.byref(self._chandle), None))
 
     def setup(
         self,
@@ -148,8 +148,8 @@ class Scope:
         temp_total_samples = temp_pretrigger_samples + temp_posttrigger_samples
 
         for timebase in range(1, TIMEBASE_MAX_TRIES):
-            dt_ns = ctypes.c_float()
-            returned_max_samples = ctypes.c_int32()
+            dt_ns = ct.c_float()
+            returned_max_samples = ct.c_int32()
 
             # NOTE: `assert_pico_ok` is not called here as it always reports an
             #       error. This behaviour is could be a bug.
@@ -157,9 +157,9 @@ class Scope:
                 self._chandle,
                 timebase,
                 temp_total_samples,
-                ctypes.byref(dt_ns),
+                ct.byref(dt_ns),
                 0,
-                ctypes.byref(returned_max_samples),
+                ct.byref(returned_max_samples),
                 0,
             )
 
@@ -215,13 +215,13 @@ class Scope:
         buffers equal to the number of pulses to be captured.
         """
         self._num_captures = num_captures
-        max_samples = ctypes.c_int32()
+        max_samples = ct.c_int32()
 
         assert_pico_ok(
             ps.ps2000aMemorySegments(
                 self._chandle,
                 self._num_captures,
-                ctypes.byref(max_samples),
+                ct.byref(max_samples),
             )
         )
 
@@ -241,7 +241,7 @@ class Scope:
 
     def run_capture(self, timeout_s: float = 10.0) -> None:
         """Capture waveforms on every trigger."""
-        unavailable_ms = ctypes.c_int32()
+        unavailable_ms = ct.c_int32()
 
         assert_pico_ok(
             ps.ps2000aRunBlock(
@@ -250,7 +250,7 @@ class Scope:
                 self._posttrigger_samples,
                 self._timebase,
                 0,
-                ctypes.byref(unavailable_ms),
+                ct.byref(unavailable_ms),
                 0,
                 None,
                 None,
@@ -258,11 +258,11 @@ class Scope:
         )
 
         start = time.time()
-        ready = ctypes.c_int16(0)
+        ready = ct.c_int16(0)
 
         while ready.value == 0:
             assert_pico_ok(
-                ps.ps2000aIsReady(self._chandle, ctypes.byref(ready))
+                ps.ps2000aIsReady(self._chandle, ct.byref(ready))
             )
 
             elapsed = time.time() - start
@@ -276,18 +276,18 @@ class Scope:
 
     def transfer_single_values(self) -> None:
         """Transfer single capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(self._total_samples)
-        overflow = ctypes.c_int16()
+        samples_u32 = ct.c_uint32(self._total_samples)
+        overflow = ct.c_int16()
 
         assert_pico_ok(
             ps.ps2000aGetValues(
                 self._chandle,
                 0,
-                ctypes.byref(samples_u32),
+                ct.byref(samples_u32),
                 1,
                 RATIO_MODE_NONE,
                 0,
-                ctypes.byref(overflow),
+                ct.byref(overflow),
             )
         )
 
@@ -297,13 +297,13 @@ class Scope:
 
     def transfer_bulk_values(self) -> None:
         """Transfer bulk capture from PicoScope memory to host."""
-        samples_u32 = ctypes.c_uint32(self._total_samples)
-        overflow = (ctypes.c_int16 * self._num_captures)()
+        samples_u32 = ct.c_uint32(self._total_samples)
+        overflow = (ct.c_int16 * self._num_captures)()
 
         assert_pico_ok(
             ps.ps2000aGetValuesBulk(
                 self._chandle,
-                ctypes.byref(samples_u32),
+                ct.byref(samples_u32),
                 0,
                 self._num_captures - 1,
                 0,
@@ -334,5 +334,5 @@ class Scope:
     def _set_max_adc(self) -> None:
         """Set the internal maximum ADC value."""
         assert_pico_ok(
-            ps.ps2000aMaximumValue(self._chandle, ctypes.byref(self._max_adc))
+            ps.ps2000aMaximumValue(self._chandle, ct.byref(self._max_adc))
         )

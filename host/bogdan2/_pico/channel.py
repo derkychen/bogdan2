@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import ctypes
+import ctypes as ct
 from typing import Final
 
 import numpy as np
@@ -20,23 +20,23 @@ class Channel:
 
     def __init__(
         self,
-        chandle: ctypes.c_int16,
-        max_adc: ctypes.c_int16,
+        chandle: ct.c_int16,
+        max_adc: ct.c_int16,
         name: str,
         channel_id: int,
         range_id: int,
     ) -> None:
         """Initialize a PicoScope channel."""
-        self._chandle: ctypes.c_int16 = chandle
-        self._max_adc: ctypes.c_int16 = max_adc
+        self._chandle: ct.c_int16 = chandle
+        self._max_adc: ct.c_int16 = max_adc
 
         self.name: str = name
 
         self._channel_id: int = channel_id
         self._range_id: int = range_id
 
-        self._single_buffer: ctypes.Array[ctypes.c_int16]
-        self._bulk_buffers: list[ctypes.Array[ctypes.c_int16]]
+        self._single_buffer: ct.Array[ct.c_int16]
+        self._bulk_buffers: list[ct.Array[ct.c_int16]]
 
         assert_pico_ok(
             ps.ps2000aSetChannel(
@@ -59,7 +59,7 @@ class Channel:
         threshold_mv: float = 2000.0,
     ) -> None:
         """Configure a PicoScope channel as a logical trigger."""
-        trigger_adc: ctypes.c_int16 = mV2adc(
+        trigger_adc: ct.c_int16 = mV2adc(
             threshold_mv, self._range_id, self._max_adc
         )
 
@@ -77,7 +77,7 @@ class Channel:
 
     def single_buffer_create(self, samples: int) -> None:
         """Allocate the channel buffer."""
-        buffer = (ctypes.c_int16 * samples)()
+        buffer = (ct.c_int16 * samples)()
 
         assert_pico_ok(
             ps.ps2000aSetDataBuffers(
@@ -99,7 +99,7 @@ class Channel:
         self._bulk_buffers = buffers
 
         for i in range(captures):
-            segment = (ctypes.c_int16 * (samples))()
+            segment = (ct.c_int16 * (samples))()
 
             self._bulk_buffers.append(segment)
 
