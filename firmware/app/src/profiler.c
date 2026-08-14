@@ -7,23 +7,14 @@
 #include "app/parameters.h"
 #include "app/path.h"
 #include "app/relay.h"
-#include "app/serial.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/time.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
-
-#define START_BUFFER_SIZE      (64u)
-#define START_CMD_SIZE         (13u)
-#define START_POLL_INTERVAL_US (100u)
-#define START_WAIT_TIMEOUT_MS  (5000u)
 
 #define SET_DEBOUNCE_TIME_US (1000u)
 #define AXES_TIMEOUT_MS      (10000u)
 #define RELAY_TIMEOUT_MS     (10000u)
-
-static char start_buffer[START_BUFFER_SIZE];
 
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
@@ -59,26 +50,6 @@ profiler_profile (profiler_t *profiler, parameters_t const *parameters)
 {
     ASSERT(profiler != NULL);
     ASSERT(parameters != NULL);
-
-    // Handshake to ensure movement occurs after host receives status and
-    // completes required configuration.
-    //
-    // TODO: Check if this fixes the issue where the oscilloscope seems to not
-    //       trigger on the last point. This is possibly an off-by-one error due
-    //       to host configuration racing Trigger OUT from the first point.
-    uint32_t start_ms = time_get_ms();
-
-    while (serial_read_line(start_buffer, START_BUFFER_SIZE)
-               == SERIAL_STATUS_OK_LINE_RECEIVED
-           && strncmp(start_buffer, "{\"cmd\":\"start\"}", START_CMD_SIZE) == 0)
-    {
-        if (time_get_ms() - start_ms >= START_WAIT_TIMEOUT_MS)
-        {
-            return PROFILER_STATUS_ERR_START_TIMEOUT;
-        }
-
-        time_sleep_us(START_POLL_INTERVAL_US);
-    }
 
     switch (parameters->mode)
     {

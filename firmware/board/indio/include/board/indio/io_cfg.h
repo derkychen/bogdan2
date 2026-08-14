@@ -18,6 +18,13 @@
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/pulser.h"
 
+/** @brief I/O configuration status codes. */
+typedef enum
+{
+    IO_CFG_STATUS_OK = 0,
+    IO_CFG_STATUS_ERR,
+} io_cfg_status_t;
+
 /** @brief Handle for the IND.I/O expansion port pin D4/A6 as a digital pin. */
 extern digital_pin_t const io_cfg_expansion_d4_digital;
 
@@ -43,6 +50,6 @@ extern analog_output_channel_t const io_cfg_analog_output_ch1;
 extern analog_output_channel_t const io_cfg_analog_output_ch2;
 
 /** @brief Initialize the IND.I/O baseboard capabilities. */
-void io_cfg_init(void);
+io_cfg_status_t io_cfg_configure(void);
 
 #endif

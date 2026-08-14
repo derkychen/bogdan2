@@ -11,7 +11,6 @@
 #include "board/indio/io_cfg.h"
 #include "board/indio/analog_output.h"
 #include "drivers/mcp4726.h"
-#include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/digital.h"
 #include "platform/samd21g18a/eic.h"
 #include "platform/samd21g18a/i2c.h"
@@ -194,8 +193,8 @@ analog_output_channel_t const io_cfg_analog_output_ch1
 analog_output_channel_t const io_cfg_analog_output_ch2
     = analog_output_mcp4726_ch2;
 
-void
-io_cfg_init (void)
+io_cfg_status_t
+io_cfg_configure (void)
 {
     i2c_configure(I2C_MASTER_SERCOM1,
                   &board_i2c_bus_sda,
@@ -203,9 +202,10 @@ io_cfg_init (void)
                   I2C_SCL_FREQUENCY_FAST_HZ,
                   I2C_SCL_RISE_FAST_NS);
 
-    analog_output_status_t status = analog_output_configure_v10();
+    if (analog_output_configure_v10() != ANALOG_OUTPUT_STATUS_OK)
+    {
+        return IO_CFG_STATUS_ERR;
+    }
 
-    ASSERT(status == ANALOG_OUTPUT_STATUS_OK);
-
-    return;
+    return IO_CFG_STATUS_OK;
 }

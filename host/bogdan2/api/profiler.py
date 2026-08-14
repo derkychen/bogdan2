@@ -231,7 +231,7 @@ class Profiler:
             vals=self._scope.channel_single_mv("intensity_mv")
         )
 
-        # TODO: Remove this debug statement.
+        # TODO: Remove when debugging is finished.
         print(intensity_mv)
 
         intensity = intensity_mv.integral(interval_s)
