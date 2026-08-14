@@ -15,8 +15,6 @@
 #include <stdint.h>
 
 #define SCL_LATENCY_CYCLES (10u)
-#define SCL_FREQUENCY_HZ   (I2C_SCL_FREQUENCY_STANDARD_HZ)
-#define SCL_RISE_NS        (I2C_SCL_RISE_STANDARD_NS)
 #define COMMAND_CONTINUE   (2u)
 #define COMMAND_STOP       (3u)
 #define TIMEOUT_COUNT      (100000u)

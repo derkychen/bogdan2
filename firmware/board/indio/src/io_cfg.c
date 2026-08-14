@@ -201,17 +201,12 @@ io_cfg_init (void)
     i2c_configure(I2C_MASTER_SERCOM1,
                   &board_i2c_bus_sda,
                   &board_i2c_bus_scl,
-                  I2C_SCL_FREQUENCY_FAST_HZ,
-                  I2C_SCL_RISE_FAST_NS);
+                  I2C_SCL_FREQUENCY_STANDARD_HZ,
+                  I2C_SCL_RISE_STANDARD_NS);
 
-    // TODO: Test if this fixes the observed issues with long-term usage.
-    //       Unexpected behaviour is occurring after multiple power cycles.
-    //
-    //       This does not explain why the IND.I/O is receiving parameters,
-    //       though. If bring-up is fails serial communication should not work.
     for (uint8_t attempts = 0; attempts <= V10_ATTEMPTS_MAX; attempts++)
     {
-        if (analog_output_configure_v10() != ANALOG_OUTPUT_STATUS_OK)
+        if (analog_output_configure_v10() == ANALOG_OUTPUT_STATUS_OK)
         {
             return;
         }
