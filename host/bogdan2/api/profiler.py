@@ -141,7 +141,9 @@ class Profiler:
                 profile = self._profile_mode_continuous(params.grid, capture)
 
             case _:
-                raise InvalidMode(f"Unsupported mode: {type(params.capture).__name__}")
+                raise InvalidMode(
+                    f"Unsupported mode: {type(params.capture).__name__}"
+                )
 
         self._ser.close()
 
@@ -151,9 +153,6 @@ class Profiler:
         """Configure the profiler hardware."""
         self._x_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
         self._y_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
-
-        self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
-        self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
 
         # Use fast settings.
         #
@@ -165,6 +164,9 @@ class Profiler:
         self._y_controller.ensure_closedloop_params(
             refspeed=15000000, acceleration=500000000
         )
+
+        self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
+        self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
 
         self._x_controller.ensure_analog_rising_trigger_params(
             ANALOG_IN_GAIN,
@@ -191,7 +193,9 @@ class Profiler:
         )
         self._scope.disable_trigger_a()
 
-    def _ser_write_newline_terminated(self, data: dict[str, bool | int | str]) -> None:
+    def _ser_write_newline_terminated(
+        self, data: dict[str, bool | int | str]
+    ) -> None:
         """Write a newline-terminated JSON over serial."""
         assert self._ser is not None, "Serial connection must be initialized."
 
@@ -201,7 +205,9 @@ class Profiler:
 
         _ = self._ser.write((raw + "\n").encode())
 
-    def _poll_mcu_status(self, timeout_s: float = 10.0) -> dict[str, bool | str] | None:
+    def _poll_mcu_status(
+        self, timeout_s: float = 10.0
+    ) -> dict[str, bool | str] | None:
         """Read one status line from the MCU, raising on any error status."""
         start = time.time()
 
@@ -228,7 +234,9 @@ class Profiler:
         x_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("x_mv")))
         y_mm = _mv_to_mm(Reading(vals=self._scope.channel_single_mv("y_mv")))
 
-        intensity_mv = Reading(vals=self._scope.channel_single_mv("intensity_mv"))
+        intensity_mv = Reading(
+            vals=self._scope.channel_single_mv("intensity_mv")
+        )
 
         # TODO: Remove when debugging is finished.
         print(intensity_mv)
@@ -277,7 +285,9 @@ class Profiler:
                 "y_unit_nm": grid.y.unit_nm,
                 "y_origin_nm": grid.y.origin_nm,
                 "num_pulses": capture.num_pulses,
-                "posttrigger_time_us": ceil_div(self._scope.get_posttrigger_ns(), 1000),
+                "posttrigger_time_us": ceil_div(
+                    self._scope.get_posttrigger_ns(), 1000
+                ),
             }
         )
 
@@ -422,7 +432,9 @@ class Profiler:
                     if status is not None:
                         if not status["ok"]:
                             error = status["msg"]
-                            raise MCUError(f"Microcontroller error message: {error}")
+                            raise MCUError(
+                                f"Microcontroller error message: {error}"
+                            )
 
                         elif status["ok"] and status["msg"] == "profile_done":
                             self._scope.disable_trigger_a()
