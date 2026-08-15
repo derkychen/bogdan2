@@ -32,6 +32,7 @@ typeCheckingMode = "recommended"
 allowedUntypedLibraries = [
   "matplotlib",
   "picosdk",
+  "pythonnet",
 ]
 include = [
   "bogdan2",
