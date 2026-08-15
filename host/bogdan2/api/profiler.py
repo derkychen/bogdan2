@@ -27,8 +27,7 @@ from bogdan2.api.params import (
     ProfilerParams,
 )
 
-# TODO: Change `ANALOG_OUT_MIN_MV` to -10 volts when Thorlabs fixes the gain
-#       and offset bug.
+# TODO: Change to -10 to 10 volts when Thorlabs fixes the gain and offset bug.
 MIN_MV: Final[float] = 0.0
 MAX_MV: Final[float] = 10000.0
 
