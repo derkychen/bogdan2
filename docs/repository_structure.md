@@ -60,18 +60,6 @@ This directory contains host-side functionality, mainly written in Python. Where
 
 This directory contains the main Python package functionality. When `from bogdan2 import ...` is run, functionality from this directory is called.
 
-#### `_pdxc2/`
-
-This directory contains a private module that provides functionality for controlling the Thorlabs PDXC2 controllers, which act as an interface between the microcontroller/computer and the stage that is actually moving. This module is limited in its control of movement (that is the microcontroller's job), its main purpose is to configure the controllers so that they can be controlled by the microcontroller.
-
-#### `_pico/`
-
-This directory contains a private module that provides functionality for acquisition via the PicoScope oscilloscope, which is the device that acts in synchronization with the stages to capture beam measurements.
-
-#### `_utils/`
-
-This directory contains a private module that provides one function: the ceiling division of integers. This function is preferred over `math.ceil` as it retains precision by not introducing floating-point error. This module might be removed if deemed not necessary.
-
 #### `api/`
 
 This directory contains the main API that is used by those who want to write scripts to use/automate beam profiling tasks.
@@ -82,7 +70,7 @@ This directory contains example scripts that perform measurements. They mainly s
 
 ### `typings/`
 
-This directory provides exclusively stub files for type-checking the Python code written in `bogdan2/`
+This directory provides exclusively stub files for type-checking the Python code written in `bogdan2/`. Since the contents of this directory are not important, further nesting will not be explained.
 
 ## `scripts/`
 
