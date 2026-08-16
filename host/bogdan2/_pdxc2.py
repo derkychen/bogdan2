@@ -207,17 +207,27 @@ class Controller:
         self,
         control_mode_id: ControlModeID,
     ) -> None:
-        """Get and (if necessary) set the control mode."""
+        """Get and (if necessary) set the control mode.
+
+        NOTE: The control mode must be requested before it is read otherwise a
+              stale value is returned. This is likely an API quirk.
+        """
         match control_mode_id:
             case ControlModeID.OPEN_LOOP:
                 requested = PiezoControlModeTypes.OpenLoop
             case ControlModeID.CLOSED_LOOP:
                 requested = PiezoControlModeTypes.CloseLoop
 
+        self._device.RequestPositionControlMode()
+        time.sleep(COMMAND_SETTLING_TIME_S)
+
         current = self._device.GetPositionControlMode()
 
         if int(current) != int(control_mode_id):
             self._device.SetPositionControlMode(requested)
+            time.sleep(COMMAND_SETTLING_TIME_S)
+
+            self._device.RequestPositionControlMode()
             time.sleep(COMMAND_SETTLING_TIME_S)
 
             actual = self._device.GetPositionControlMode()
@@ -280,10 +290,10 @@ class Controller:
         print(
             f"Ensured PDXC2 (SN:{self._serial_num}) Analog Rising trigger "
             + "parameters.\n"
-            + f"\t`Analog IN gain`:    {in_gain}\n"
-            + f"\t`Analog IN offset`:  {in_offset}\n"
-            + f"\t`Analog OUT gain`:   {out_gain}\n"
-            + f"\t`Analog OUT offset`: {out_offset}\n"
+            + f"\tAnalog IN gain:    {in_gain}\n"
+            + f"\tAnalog IN offset:  {in_offset}\n"
+            + f"\tAnalog OUT gain:   {out_gain}\n"
+            + f"\tAnalog OUT offset: {out_offset}\n"
         )
 
     def ensure_trigger_mode(
