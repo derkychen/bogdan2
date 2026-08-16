@@ -8,7 +8,7 @@ from bogdan2.api.params import (
 )
 from bogdan2.api.profiler import Profiler
 
-PORT = "COM3"
+PORT = "COM5"
 
 PICOSCOPE_SERIAL_NUM = "10338/0127"
 X_PDXC2_SERIAL_NUM = "112547939"
