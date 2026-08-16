@@ -14,7 +14,6 @@
 #define PLATFORM_SAMD21G18A_I2C_H
 
 #include "platform/samd21g18a/pin.h"
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -54,7 +53,7 @@ typedef enum
     I2C_SERCOM_PAD3,
 } i2c_sercom_pad_t;
 
-/** @brief I2C slave address type. */
+/** @brief I2C slave address type (seven-bit). */
 typedef uint8_t i2c_slave_address_t;
 
 /** @brief Type for I2C pins. */
@@ -64,37 +63,32 @@ typedef struct
     i2c_sercom_pad_t pad; /**< SERCOM pad. */
 } i2c_pin_t;
 
-/** @brief I2C configuration structure. */
-typedef struct
-{
-} i2c_cfg_t;
+/** @brief Initialize an I2C master. */
+void i2c_init(i2c_master_t     master,
+              i2c_pin_t const *sda,
+              i2c_pin_t const *scl,
+              uint32_t         scl_frequency_hz,
+              uint32_t         scl_rise_ns);
 
 /**
- * @brief Configure one bus connected to the I2C.
+ * @brief Configure an I2C master.
  *
- * There is no I2C initialization function because each bus is tied to a
- * SERCOM instance, whose initialization occurs in this function.
- *
- * NOTE: The structure whose pointer is passed to this function should be
- *       initialized beforehand.
+ * NOTE: This function should only be called after `i2c_init` has been called on
+ *       the same master.
  */
-void i2c_configure(i2c_master_t     master,
-                   i2c_pin_t const *sda,
-                   i2c_pin_t const *scl,
-                   uint32_t         scl_frequency_hz,
-                   uint32_t         scl_rise_ns);
+void i2c_configure(i2c_master_t master);
 
 /** @brief Write bytes to an address. */
-i2c_status_t i2c_write(i2c_master_t   master,
-                       uint8_t        address,
-                       uint8_t const *data,
-                       size_t         data_size);
+i2c_status_t i2c_write(i2c_master_t        master,
+                       i2c_slave_address_t slave_address,
+                       uint8_t const      *data,
+                       size_t              data_size);
 
 /** @brief Read bytes from an address. */
-i2c_status_t i2c_read(i2c_master_t master,
-                      uint8_t      address,
-                      uint8_t     *data,
-                      size_t       data_size);
+i2c_status_t i2c_read(i2c_master_t        master,
+                      i2c_slave_address_t slave_address,
+                      uint8_t            *data,
+                      size_t              data_size);
 
 /**
  * @brief Write bytes to an address and then read data.
@@ -102,11 +96,11 @@ i2c_status_t i2c_read(i2c_master_t master,
  * This is useful for ADC, where a channel must be selected via an initial
  * write in order to obtain a reading.
  */
-i2c_status_t i2c_write_read(i2c_master_t   master,
-                            uint8_t        address,
-                            uint8_t const *write_data,
-                            size_t         write_size,
-                            uint8_t       *read_data,
-                            size_t         read_size);
+i2c_status_t i2c_write_read(i2c_master_t        master,
+                            i2c_slave_address_t slave_address,
+                            uint8_t const      *write_data,
+                            size_t              write_size,
+                            uint8_t            *read_data,
+                            size_t              read_size);
 
 #endif

@@ -56,6 +56,8 @@ typedef struct
     uint16_t gclk_id;   /**< GCLK ID for the SERCOM instance. */
 } master_data_t;
 
+static baud_t master_bauds[I2C_SERCOM_COUNT];
+
 static route_t const routes[] = {
     {
         .pin_port_group          = 0u,
@@ -107,7 +109,6 @@ static master_data_t const master_data[I2C_SERCOM_COUNT] = {
 };
 
 static inline uint32_t ceiling_divide(uint64_t numerator, uint32_t denominator);
-static inline Sercom  *master_get_sercom(i2c_master_t master);
 static void            baud_calculate(baud_t  *baud,
                                       uint32_t clock_frequency_hz,
                                       uint32_t scl_frequency_hz,
@@ -117,29 +118,29 @@ static inline void     sercom_set_command(Sercom *sercom, uint32_t command);
 static i2c_status_t    sercom_poll_master_ready(Sercom *sercom);
 static i2c_status_t    sercom_poll_slave_ready(Sercom *sercom);
 static void            sercom_send_stop(Sercom *sercom);
+static void            sercom_try_stop(Sercom *sercom);
 static i2c_status_t    sercom_read_bytes(Sercom  *sercom,
                                          uint8_t *data,
                                          size_t   data_size);
 static pin_peripheral_function_t pin_peripheral_function(
     i2c_pin_t const *i2c_pin, i2c_master_t master);
 static void pin_configure(i2c_pin_t const *i2c_pin, i2c_master_t master);
+static inline Sercom *master_get_sercom(i2c_master_t master);
+static void           master_configure(i2c_master_t master);
 
 void
-i2c_configure (i2c_master_t     master,
-               i2c_pin_t const *sda,
-               i2c_pin_t const *scl,
-               uint32_t         scl_frequency_hz,
-               uint32_t         scl_rise_ns)
+i2c_init (i2c_master_t     master,
+          i2c_pin_t const *sda,
+          i2c_pin_t const *scl,
+          uint32_t         scl_frequency_hz,
+          uint32_t         scl_rise_ns)
 {
     ASSERT(master < I2C_SERCOM_COUNT);
     ASSERT(sda != NULL);
     ASSERT(scl != NULL);
 
-    uint32_t frequency_hz = scl_frequency_hz;
-    uint32_t rise_ns      = scl_rise_ns;
-
-    baud_t baud;
-    baud_calculate(&baud, SystemCoreClock, frequency_hz, rise_ns);
+    baud_calculate(
+        &master_bauds[master], SystemCoreClock, scl_frequency_hz, scl_rise_ns);
 
     utils_apbc_enable(master_data[master].apbc_mask);
     utils_gclk0_enable(master_data[master].gclk_id);
@@ -147,34 +148,17 @@ i2c_configure (i2c_master_t     master,
     pin_configure(sda, master);
     pin_configure(scl, master);
 
-    Sercom *sercom = master_get_sercom(master);
+    master_configure(master);
 
-    sercom->I2CM.CTRLA.bit.SWRST = 1u;
+    return;
+}
 
-    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SWRST);
+void
+i2c_configure (i2c_master_t master)
+{
+    ASSERT(master < I2C_SERCOM_COUNT);
 
-    sercom->I2CM.CTRLA.bit.ENABLE = 0u;
-
-    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_ENABLE);
-
-    sercom->I2CM.CTRLA.reg
-        = SERCOM_I2CM_CTRLA_MODE_I2C_MASTER | SERCOM_I2CM_CTRLA_SDAHOLD(2u);
-
-    // Enable smart mode for handling ACK behaviour after DATA reads.
-    sercom->I2CM.CTRLB.reg = SERCOM_I2CM_CTRLB_SMEN;
-
-    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
-
-    sercom->I2CM.BAUD.bit.BAUD    = baud.baud;
-    sercom->I2CM.BAUD.bit.BAUDLOW = baud.baudlow;
-
-    sercom->I2CM.CTRLA.bit.ENABLE = 1u;
-
-    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_ENABLE);
-
-    sercom->I2CM.STATUS.bit.BUSSTATE = 1u;
-
-    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
+    master_configure(master);
 
     return;
 }
@@ -196,7 +180,7 @@ i2c_write (i2c_master_t        master,
 
     if (status != I2C_STATUS_OK)
     {
-        sercom_send_stop(sercom);
+        sercom_try_stop(sercom);
         return status;
     }
 
@@ -208,7 +192,7 @@ i2c_write (i2c_master_t        master,
 
         if (status != I2C_STATUS_OK)
         {
-            sercom_send_stop(sercom);
+            sercom_try_stop(sercom);
 
             return status;
         }
@@ -267,7 +251,7 @@ i2c_write_read (i2c_master_t        master,
 
     if (status != I2C_STATUS_OK)
     {
-        sercom_send_stop(sercom);
+        sercom_try_stop(sercom);
         return status;
     }
 
@@ -279,7 +263,7 @@ i2c_write_read (i2c_master_t        master,
 
         if (status != I2C_STATUS_OK)
         {
-            sercom_send_stop(sercom);
+            sercom_try_stop(sercom);
             return status;
         }
     }
@@ -297,13 +281,6 @@ ceiling_divide (uint64_t numerator, uint32_t denominator)
 {
     return (uint32_t)((numerator + (uint64_t)denominator - 1u)
                       / (uint64_t)denominator);
-}
-
-/** @brief Get the SERCOM registers for an I2C master. */
-static inline Sercom *
-master_get_sercom (i2c_master_t master)
-{
-    return master_data[master].sercom;
 }
 
 /** @brief Calculate BAUD and BAUDLOW. */
@@ -372,7 +349,9 @@ sercom_poll_master_ready (Sercom *sercom)
 
     while ((sercom->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_MB) == 0u)
     {
-        if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
+        if ((sercom->I2CM.STATUS.reg
+             & (SERCOM_I2CM_STATUS_BUSERR | SERCOM_I2CM_STATUS_ARBLOST))
+            != 0u)
         {
             return I2C_STATUS_ERR_BUS;
         }
@@ -403,7 +382,9 @@ sercom_poll_slave_ready (Sercom *sercom)
 
     while ((sercom->I2CM.INTFLAG.reg & SERCOM_I2CM_INTFLAG_SB) == 0u)
     {
-        if ((sercom->I2CM.STATUS.reg & SERCOM_I2CM_STATUS_BUSERR) != 0u)
+        if ((sercom->I2CM.STATUS.reg
+             & (SERCOM_I2CM_STATUS_BUSERR | SERCOM_I2CM_STATUS_ARBLOST))
+            != 0u)
         {
             return I2C_STATUS_ERR_BUS;
         }
@@ -431,6 +412,19 @@ sercom_send_stop (Sercom *sercom)
     return;
 }
 
+/** #brief Try to terminate transaction */
+static void
+sercom_try_stop (Sercom *sercom)
+{
+    uint8_t flags = sercom->I2CM.INTFLAG.reg;
+
+    if ((flags & (SERCOM_I2CM_INTFLAG_MB | SERCOM_I2CM_INTFLAG_SB)) != 0u)
+    {
+        sercom_send_stop(sercom);
+    }
+}
+
+/** @brief Read bytes from a SERCOM instance. */
 static i2c_status_t
 sercom_read_bytes (Sercom *sercom, uint8_t *data, size_t data_size)
 {
@@ -452,7 +446,7 @@ sercom_read_bytes (Sercom *sercom, uint8_t *data, size_t data_size)
 
         if (status != I2C_STATUS_OK)
         {
-            sercom_send_stop(sercom);
+            sercom_try_stop(sercom);
             return status;
         }
 
@@ -521,6 +515,45 @@ pin_configure (i2c_pin_t const *i2c_pin, i2c_master_t master)
     pin_set_cfg(i2c_pin->pin, true, true, false, false);
 
     pin_set_peripheral_function(i2c_pin->pin, peripheral_function);
+
+    return;
+}
+
+/** @brief Get the SERCOM registers for an I2C master. */
+static inline Sercom *
+master_get_sercom (i2c_master_t master)
+{
+    return master_data[master].sercom;
+}
+
+/** @brief Configure an I2C master after initialization. */
+static void
+master_configure (i2c_master_t master)
+{
+    Sercom       *sercom = master_get_sercom(master);
+    baud_t const *baud   = &master_bauds[master];
+
+    sercom->I2CM.CTRLA.bit.SWRST = 1u;
+
+    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SWRST);
+
+    sercom->I2CM.CTRLA.reg
+        = SERCOM_I2CM_CTRLA_MODE_I2C_MASTER | SERCOM_I2CM_CTRLA_SDAHOLD(2u);
+
+    sercom->I2CM.CTRLB.reg = SERCOM_I2CM_CTRLB_SMEN;
+
+    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
+
+    sercom->I2CM.BAUD.bit.BAUD    = baud->baud;
+    sercom->I2CM.BAUD.bit.BAUDLOW = baud->baudlow;
+
+    sercom->I2CM.CTRLA.bit.ENABLE = 1u;
+
+    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_ENABLE);
+
+    sercom->I2CM.STATUS.bit.BUSSTATE = 1u;
+
+    sercom_poll_sync_mask(sercom, SERCOM_I2CM_SYNCBUSY_SYSOP);
 
     return;
 }
