@@ -1,11 +1,6 @@
 # Bogdan 2: Analog Boogaloo
 
-This repository contains all the code used to set up and operate Bogdan 2, a beam profiler whose concept was conceived by Dr. Sascha Epp, our supervisor. Its purpose was mainly to solve two problems:
-
-1. Difficulty triggering conventional beam profilers for very low frequency pulsed lasers.
-2. Damage on detectors requiring the replacement of the entire beam profiler, which is costly and inefficient.
-
-This beam profiler translates a photodiode in an $x\text{-}y$ plane, capturing intensities at different positions through an oscilloscope. It solves Problem 1 by using its own triggering mechanism that detects laser pulses. It constructs the beam profile across many pulses. It solves Problem 2 as the replacement of the photodiode as a detector is much less costly and easier than the replacement of an entire beam profiler.
+This repository contains all the code used to set up and operate Bogdan 2, a beam profiler whose concept was conceived by Dr. Sascha Epp, our supervisor. Its purpose was to solve a problem: Profiling of different beams or damaged detectors requiring the replacement of entire beam profilers, which is costly and inefficient. Instead of employing the conventional, camera-like approach, this beam profiler translates a single detector in an $x\text{-}y$ plane, capturing intensities at different positions through an oscilloscope. As a result, if it is used for different beams, or if its detector is broken, it only requires the replacement of a single detector.
 
 ## Dependencies:
 
