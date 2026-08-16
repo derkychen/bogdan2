@@ -31,7 +31,6 @@ from bogdan2.api.params import (
 MIN_MV: Final[float] = 0.0
 MAX_MV: Final[float] = 10000.0
 
-
 ANALOG_IN_GAIN: Final[float] = 1.0
 ANALOG_IN_OFFSET_MV: Final[float] = -10000.0
 ANALOG_OUT_GAIN: Final[float] = 1.0
