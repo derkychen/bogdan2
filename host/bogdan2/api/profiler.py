@@ -31,6 +31,8 @@ from bogdan2.api.params import (
 MIN_MV: Final[float] = 0.0
 MAX_MV: Final[float] = 10000.0
 
+PICOSCOPE_SERIAL_NUM: Final[str] = "10338/0127"
+
 X_PDXC2_SERIAL_NUM: Final[str] = "112547939"
 Y_PDXC2_SERIAL_NUM: Final[str] = "112512664"
 
@@ -81,7 +83,7 @@ class Profiler:
         """Initialize the profiler. Acquires no hardware."""
         self._stack: ExitStack[bool | None]
 
-        self._scope: Scope = Scope()
+        self._scope: Scope = Scope(PICOSCOPE_SERIAL_NUM)
         self._x_controller: Controller = Controller(X_PDXC2_SERIAL_NUM)
         self._y_controller: Controller = Controller(Y_PDXC2_SERIAL_NUM)
         self._ser: serial.Serial | None = None

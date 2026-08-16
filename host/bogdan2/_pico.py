@@ -188,10 +188,10 @@ class Channel:
 class Scope:
     """Abstraction of the PicoScope."""
 
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self, serial_num: str) -> None:
         """Initialize the PicoScope."""
+        self._serial_num: str = serial_num
+
         self._chandle: ct.c_int16 = ct.c_int16()
         self._max_adc: ct.c_int16 = ct.c_int16()
         self._timebase: int
@@ -224,7 +224,11 @@ class Scope:
 
     def open(self) -> None:
         """Open the PicoScope and set the internal C handle."""
-        assert_pico_ok(ps.ps2000aOpenUnit(ct.byref(self._chandle), None))
+        assert_pico_ok(
+            ps.ps2000aOpenUnit(
+                ct.byref(self._chandle), self._serial_num.encode()
+            )
+        )
 
     def setup(
         self,
