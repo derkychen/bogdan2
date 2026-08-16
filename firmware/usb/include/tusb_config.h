@@ -1,6 +1,9 @@
 /**
  * @file tusb_config.h
  * @brief TinyUSB configuration macros.
+ *
+ * WARNING: Changes to this file should be made with caution, as it contains
+ *          low-level logic that can be broken.
  */
 #ifndef TUSB_CONFIG_H
 #define TUSB_CONFIG_H
