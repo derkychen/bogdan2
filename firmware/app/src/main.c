@@ -60,11 +60,6 @@ main (void)
 
                 // Handshake to ensure movement occurs after host receives
                 // status and completes required configuration.
-                //
-                // TODO: Check if this fixes the issue where the oscilloscope
-                //       seems to not trigger on the last point. This is
-                //       possibly an off-by-one error due to host configuration
-                //       racing Trigger OUT from the first point.
                 serial_write_line("{\"ok\":true,\"msg\":\"ready\"}");
 
                 if (!poll_message("{\"cmd\":\"start\"}",
