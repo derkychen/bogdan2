@@ -91,7 +91,11 @@ if [[ "$BUILD" == true ]]; then
   cmake -S "$FIRMWARE_DIR" --preset "$CMAKE_PRESET"
   cmake --build "$PRESET_BUILD_DIR"
 
-  ln -sfn "$PRESET_BUILD_DIR"/compile_commands.json "$FIRMWARE_DIR"/compile_commands.json
+  if [[ "$PRESET" == 'debug' ]]; then
+    ln -sfn \
+      "$PRESET_BUILD_DIR/compile_commands.json" \
+      "$FIRMWARE_DIR/compile_commands.json"
+  fi
 fi
 
 # Optionally flash firmware to a port.
