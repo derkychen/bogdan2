@@ -6,24 +6,20 @@ This repository contains all the code used to set up and operate Bogdan 2, a bea
 
 You must be on Windows 10 or 11.
 
-Dependencies for just usage:
+Dependencies:
 
 * [Git BASH](https://git-scm.com/install/windows).
 * [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
 * [Thorlabs Kinesis](https://www.thorlabs.com/software-pages/motion_control)
-* `python`
-* `uv`
-
-Dependencies for development:
-
-* All of the above.
-* `arm-none-eabi-gcc` (required)
-* `bossac` (required)
+* `arm-none-eabi-gcc`
+* `bossac`
 * `clang-format` (optional)
 * `clangd` (optional)
-* `cmake` (required)
-* `git` (required)
-* `ninja` (required)
+* `cmake`
+* `git`
+* `ninja`
+* `python`
+* `uv`
 
 ## Setup
 
