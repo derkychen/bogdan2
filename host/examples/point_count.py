@@ -9,7 +9,6 @@ from bogdan2.api.params import (
 from bogdan2.api.profiler import Profiler
 
 PORT = "COM5"
-
 PICOSCOPE_SERIAL_NUM = "10338/0127"
 X_PDXC2_SERIAL_NUM = "112547939"
 Y_PDXC2_SERIAL_NUM = "112512664"
@@ -40,9 +39,9 @@ capture = PointCountCaptureParams(
 params = ProfilerParams(grid=grid, capture=capture)
 
 with Profiler(
-    PICOSCOPE_SERIAL_NUM, X_PDXC2_SERIAL_NUM, Y_PDXC2_SERIAL_NUM
+    PORT, PICOSCOPE_SERIAL_NUM, X_PDXC2_SERIAL_NUM, Y_PDXC2_SERIAL_NUM
 ) as p:
-    profile = p.profile(PORT, params)
+    profile = p.profile(params)
 
 if profile is not None:
     profile.plot2d()

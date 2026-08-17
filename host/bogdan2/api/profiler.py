@@ -76,6 +76,7 @@ class Profiler:
 
     def __init__(
         self,
+        port: str,
         picoscope_serial_num: str,
         x_pdxc2_serial_num: str,
         y_pdxc2_serial_num: str,
@@ -83,6 +84,7 @@ class Profiler:
         """Initialize the profiler. Acquires no hardware."""
         self._stack: ExitStack[bool | None]
 
+        self._port: str = port
         self._scope: Scope = Scope(picoscope_serial_num)
         self._x_controller: Controller = Controller(x_pdxc2_serial_num)
         self._y_controller: Controller = Controller(y_pdxc2_serial_num)
@@ -91,14 +93,14 @@ class Profiler:
     def __enter__(self) -> "Self":
         """Acquire hardware."""
         with ExitStack() as stack:
+            self._scope.open()
+            _ = stack.callback(self._scope.close)
+
             self._x_controller.open()
             _ = stack.callback(self._x_controller.close)
 
             self._y_controller.open()
             _ = stack.callback(self._y_controller.close)
-
-            self._scope.open()
-            _ = stack.callback(self._scope.close)
 
             self._configure()
 
@@ -112,7 +114,7 @@ class Profiler:
             self._ser.close()
         self._stack.close()
 
-    def profile(self, port: str, params: ProfilerParams) -> BeamProfile | None:
+    def profile(self, params: ProfilerParams) -> BeamProfile | None:
         """Run profiling with a set of parameters."""
         start = time.time()
 
@@ -122,12 +124,12 @@ class Profiler:
 
             available_ports = [p.device for p in list_ports.comports()]
 
-            if port in available_ports:
+            if self._port in available_ports:
                 break
 
             time.sleep(PORT_POLL_INTERVAL_S)
 
-        self._ser = serial.Serial(port, BAUD_RATE, timeout=1.0)
+        self._ser = serial.Serial(self._port, BAUD_RATE, timeout=1.0)
 
         profile = None
 
