@@ -43,7 +43,7 @@ _Static_assert(
 _Static_assert(SERIAL_NUMBER_LENGTH <= STRING_DESCRIPTOR_MAX_CHARACTERS,
                "USB string descriptor length is too small for serial number.");
 
-static tusb_desc_device_t const usb_device_descriptor
+static tusb_desc_device_t const device_descriptor
     = { .bLength         = sizeof(tusb_desc_device_t),
         .bDescriptorType = TUSB_DESC_DEVICE,
         .bcdUSB          = BCD,
@@ -64,7 +64,7 @@ static tusb_desc_device_t const usb_device_descriptor
 
         .bNumConfigurations = 0x01u };
 
-static uint8_t const usb_configuration_descriptor[]
+static uint8_t const configuration_descriptor[]
     = { TUD_CONFIG_DESCRIPTOR(1,
                               ITF_NUMBER_TOTAL,
                               0,
@@ -80,15 +80,78 @@ static uint8_t const usb_configuration_descriptor[]
                            EP_NUMBER_CDC_IN,
                            64) };
 
-static char const *const usb_string_descriptors[]
-    = { (const char[]) { 0x09, 0x04 },
-        "MPSD",
-        "Bogdan 2 Beam Profiler",
-        NULL,
-        "CDC Interface" };
+static char const *const string_descriptors[] = { (const char[]) { 0x09, 0x04 },
+                                                  "MPSD",
+                                                  "Bogdan 2 Beam Profiler",
+                                                  NULL,
+                                                  "CDC Interface" };
 
 static char serial_number[SERIAL_NUMBER_LENGTH + 1u];
 static bool serial_number_initialized = false;
+
+static char const *get_serial_number(void);
+
+uint8_t const *
+tud_descriptor_device_cb (void)
+{
+    return (uint8_t const *)&device_descriptor;
+}
+
+uint8_t const *
+tud_descriptor_configuration_cb (uint8_t index)
+{
+    (void)index;
+
+    return configuration_descriptor;
+}
+
+uint16_t const *
+tud_descriptor_string_cb (uint8_t index, uint16_t langid)
+{
+    (void)langid;
+
+    static uint16_t descriptor_string[STRING_DESCRIPTOR_MAX_CHARACTERS + 1u];
+    uint8_t         chr_count;
+
+    if (index == 0u)
+    {
+        descriptor_string[1] = 0x0409u;
+        chr_count            = 1u;
+    }
+    else
+    {
+        if (index
+            >= (sizeof(string_descriptors) / sizeof(string_descriptors[0])))
+        {
+            return NULL;
+        }
+
+        char const *str;
+
+        if (index == STRING_INDEX_SERIAL_NUMBER)
+        {
+            str = get_serial_number();
+        }
+        else
+        {
+            str = string_descriptors[index];
+        }
+
+        chr_count = 0u;
+
+        while ((str[chr_count] != '\0')
+               && (chr_count < STRING_DESCRIPTOR_MAX_CHARACTERS))
+        {
+            descriptor_string[1u + chr_count] = (uint16_t)str[chr_count];
+            chr_count++;
+        }
+    }
+
+    descriptor_string[0]
+        = (uint16_t)((TUSB_DESC_STRING << 8u) | (2u * chr_count + 2u));
+
+    return descriptor_string;
+}
 
 /**
  * @brief Get the unique 128-bit processor serial number as a hexadecimal
@@ -134,66 +197,4 @@ get_serial_number (void)
     }
 
     return serial_number;
-}
-
-uint8_t const *
-tud_descriptor_device_cb (void)
-{
-    return (uint8_t const *)&usb_device_descriptor;
-}
-
-uint8_t const *
-tud_descriptor_configuration_cb (uint8_t index)
-{
-    (void)index;
-
-    return usb_configuration_descriptor;
-}
-
-uint16_t const *
-tud_descriptor_string_cb (uint8_t index, uint16_t langid)
-{
-    (void)langid;
-
-    static uint16_t descriptor_string[STRING_DESCRIPTOR_MAX_CHARACTERS + 1u];
-    uint8_t         chr_count;
-
-    if (index == 0u)
-    {
-        descriptor_string[1] = 0x0409u;
-        chr_count            = 1u;
-    }
-    else
-    {
-        if (index >= (sizeof(usb_string_descriptors)
-                      / sizeof(usb_string_descriptors[0])))
-        {
-            return NULL;
-        }
-
-        char const *str;
-
-        if (index == STRING_INDEX_SERIAL_NUMBER)
-        {
-            str = get_serial_number();
-        }
-        else
-        {
-            str = usb_string_descriptors[index];
-        }
-
-        chr_count = 0u;
-
-        while ((str[chr_count] != '\0')
-               && (chr_count < STRING_DESCRIPTOR_MAX_CHARACTERS))
-        {
-            descriptor_string[1u + chr_count] = (uint16_t)str[chr_count];
-            chr_count++;
-        }
-    }
-
-    descriptor_string[0]
-        = (uint16_t)((TUSB_DESC_STRING << 8u) | (2u * chr_count + 2u));
-
-    return descriptor_string;
 }
