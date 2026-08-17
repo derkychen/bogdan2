@@ -73,19 +73,19 @@ target_link_options(firmware.elf PRIVATE
 )
 
 add_custom_command(
-    TARGET firmware.elf
-    POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY}
-        -O binary
-        $<TARGET_FILE:firmware.elf>
-        "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
-    COMMAND ${CMAKE_OBJCOPY}
-        -O ihex
-        $<TARGET_FILE:firmware.elf>
-        "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
-    COMMAND ${CMAKE_SIZE}
-        $<TARGET_FILE:firmware.elf>
-    BYPRODUCTS
-        "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
-        "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
+  TARGET firmware.elf
+  POST_BUILD
+  COMMAND ${CMAKE_OBJCOPY}
+    -O binary
+    $<TARGET_FILE:firmware.elf>
+    "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
+  COMMAND ${CMAKE_OBJCOPY}
+    -O ihex
+    $<TARGET_FILE:firmware.elf>
+    "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
+  COMMAND ${CMAKE_SIZE}
+    $<TARGET_FILE:firmware.elf>
+  BYPRODUCTS
+    "${CMAKE_CURRENT_BINARY_DIR}/firmware.bin"
+    "${CMAKE_CURRENT_BINARY_DIR}/firmware.hex"
 )
