@@ -31,6 +31,7 @@ build-backend = "setuptools.build_meta"
 typeCheckingMode = "recommended"
 allowedUntypedLibraries = [
   "matplotlib",
+  "mpl_toolkits",
   "picosdk",
   "pythonnet",
 ]
