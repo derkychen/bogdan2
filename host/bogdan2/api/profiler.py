@@ -260,7 +260,7 @@ class Profiler:
         )
 
         intensity_mv = Reading(
-            vals=np.concatenate(self._scope.channel_single_mv("intensity_mv"))
+            vals=np.concatenate(self._scope.channel_bulk_mv("intensity_mv"))
         )
 
         # TODO: Remove when debugging is finished.
