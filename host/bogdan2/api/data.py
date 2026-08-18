@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
 import numpy.typing as npt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -51,13 +52,8 @@ class BeamProfile:
         self._points: list[BeamPoint] = points
 
     def plot2d(self) -> None:
-        """Visualize beam profile in 2D.
-
-        Uses Delauney triangulation to interpolate between points.
-        """
-        x = np.array([p.x_mm for p in self._points])
-        y = np.array([p.y_mm for p in self._points])
-        intensity = np.array([p.intensity for p in self._points])
+        """Visualize beam profile in 2D."""
+        x, y, intensity = self._arrays()
 
         triangulation = mtri.Triangulation(x, y)
 
@@ -87,3 +83,64 @@ class BeamProfile:
         _ = fig.colorbar(heatmap, ax=ax, label="Intensity")
 
         plt.show()
+
+    def plot3d(self) -> None:
+        """Visualize beam profile in 3D."""
+        x, y, intensity = self._arrays()
+
+        triangulation = mtri.Triangulation(x, y)
+
+        fig = plt.figure()
+
+        ax = fig.add_subplot(projection="3d")
+        assert isinstance(ax, Axes3D)
+
+        surface = ax.plot_trisurf(
+            triangulation,
+            intensity,
+            cmap="inferno",
+            linewidth=0.2,
+            antialiased=True,
+        )
+
+        _ = ax.scatter(
+            x,
+            y,
+            # NOTE: Matplotlib incorrectly types `zs` as `int`.
+            intensity,  # pyright: ignore[reportArgumentType]
+            s=10,
+            c="black",
+            alpha=0.5,
+        )
+
+        _ = ax.set_xlabel("x [mm]")
+        _ = ax.set_ylabel("y [mm]")
+        _ = ax.set_zlabel("Intensity")
+        _ = ax.set_title("Beam Profile")
+
+        _ = fig.colorbar(surface, ax=ax, label="Intensity", shrink=0.7)
+
+        plt.show()
+
+    def _arrays(
+        self,
+    ) -> tuple[
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+    ]:
+        """Profile as three NumPy arrays."""
+        x = np.asarray(
+            [point.x_mm for point in self._points],
+            dtype=np.float64,
+        )
+        y = np.asarray(
+            [point.y_mm for point in self._points],
+            dtype=np.float64,
+        )
+        intensity = np.asarray(
+            [point.intensity for point in self._points],
+            dtype=np.float64,
+        )
+
+        return x, y, intensity
