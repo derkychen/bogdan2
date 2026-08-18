@@ -163,23 +163,25 @@ class Channel:
 
     def single_mv(self) -> npt.NDArray[np.float64]:
         """Get a reading in millivolts from the channel buffer."""
-        return np.array(
+        return np.asarray(
             adc2mV(
                 self._single_buffer,
                 self._range_id,
                 self._max_adc,
-            )
+            ),
+            dtype=np.float64,
         )
 
     def bulk_mv(self) -> list[npt.NDArray[np.float64]]:
         """Get an array of readings in millivolts from the channel buffer."""
         return [
-            np.array(
+            np.asarray(
                 adc2mV(
                     adc_sample,
                     self._range_id,
                     self._max_adc,
-                )
+                ),
+                dtype=np.float64,
             )
             for adc_sample in self._bulk_buffers
         ]
