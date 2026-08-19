@@ -93,8 +93,8 @@ typedef struct
     bool                    corners_only;     /**< Only corner generation. */
     path_raster_direction_t raster_direction; /**< Current raster direction. */
 
-    path_phase_t   phase; /**< Current traversal phase. */
-    path_indices_t curr;  /**< Local indices of the current position. */
+    path_phase_t   phase;   /**< Current traversal phase. */
+    path_indices_t current; /**< Local indices of the current position. */
 
     path_coords_t  zero;   /**< Coordinates of local minimum indices. */
     path_indices_t anchor; /**< Local indices of the anchor. */

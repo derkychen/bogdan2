@@ -26,10 +26,10 @@ static segment_t      create_segment(int start_row,
                                      int start_col,
                                      int end_row,
                                      int end_col);
-static segment_t      get_even_segment(path_indices_t curr,
+static segment_t      get_even_segment(path_indices_t current,
                                        int            num_rows,
                                        int            num_cols);
-static segment_t      get_odd_segment(path_indices_t curr,
+static segment_t      get_odd_segment(path_indices_t current,
                                       int            num_rows,
                                       int            num_cols);
 static bool           index_between(int index, int start, int end);
@@ -37,16 +37,16 @@ static bool           segment_contains_anchor(segment_t const *segment,
                                               path_indices_t   anchor);
 static int            unit_step(int displacement);
 static path_indices_t advance_line(bool corners_only,
-                                   int  curr_col,
+                                   int  current_col,
                                    int  anchor_col,
                                    int  num_cols);
 static path_indices_t advance_raster(bool           corners_only,
-                                     path_indices_t curr,
+                                     path_indices_t current,
                                      path_indices_t anchor,
                                      int            num_rows,
                                      int            num_cols);
 static path_indices_t advance(bool           corners_only,
-                              path_indices_t curr,
+                              path_indices_t current,
                               path_indices_t anchor,
                               int            num_rows,
                               int            num_cols);
@@ -123,7 +123,7 @@ path_init (path_t                  *path,
         ASSERT(((path->num_rows & 1) == 0) || ((path->num_cols & 1) != 0));
     }
 
-    path->curr = path->anchor;
+    path->current = path->anchor;
 
     // Only two-dimensional grids cause raster direction alternation.
     if (x_num_points > 1 && y_num_points > 1)
@@ -154,8 +154,8 @@ path_next (path_t *path, path_coords_t *coords)
     ASSERT(path->num_cols >= 1);
     ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
     ASSERT(path->anchor.col >= 0 && path->anchor.col < path->num_cols);
-    ASSERT(path->curr.row >= 0 && path->curr.row < path->num_rows);
-    ASSERT(path->curr.col >= 0 && path->curr.col < path->num_cols);
+    ASSERT(path->current.row >= 0 && path->current.row < path->num_rows);
+    ASSERT(path->current.col >= 0 && path->current.col < path->num_cols);
 
     // Manage traversal phase.
     //
@@ -176,21 +176,22 @@ path_next (path_t *path, path_coords_t *coords)
     {
         ASSERT(path->phase == PATH_PHASE_ONGOING);
 
-        path->curr = advance(path->corners_only,
-                             path->curr,
-                             path->anchor,
-                             path->num_rows,
-                             path->num_cols);
+        path->current = advance(path->corners_only,
+                                path->current,
+                                path->anchor,
+                                path->num_rows,
+                                path->num_cols);
 
-        if (path->curr.row == path->anchor.row
-            && path->curr.col == path->anchor.col)
+        if (path->current.row == path->anchor.row
+            && path->current.col == path->anchor.col)
         {
             path->phase = PATH_PHASE_DONE;
         }
     }
 
     // Convert the local indices into the actual coordinate.
-    *coords = indices_to_coords(path->curr, path->zero, path->raster_direction);
+    *coords
+        = indices_to_coords(path->current, path->zero, path->raster_direction);
 
     return PATH_STATUS_OK;
 }
@@ -380,13 +381,13 @@ create_segment (int start_row, int start_col, int end_row, int end_col)
  * horizontal "prongs" in the local space.
  */
 static segment_t
-get_even_segment (path_indices_t curr, int num_rows, int num_cols)
+get_even_segment (path_indices_t current, int num_rows, int num_cols)
 {
     ASSERT(num_rows > 1);
     ASSERT((num_rows & 1) == 0);
     ASSERT(num_cols > 1);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(current.row >= 0 && current.row < num_rows);
+    ASSERT(current.col >= 0 && current.col < num_cols);
 
     int last_row = num_rows - 1;
     int last_col = num_cols - 1;
@@ -396,49 +397,53 @@ get_even_segment (path_indices_t curr, int num_rows, int num_cols)
     if (num_cols == 2)
     {
         // Handle the local left side of the rectangle.
-        if (curr.col == 0 && curr.row < last_row)
+        if (current.col == 0 && current.row < last_row)
         {
-            return create_segment(curr.row, curr.col, last_row, curr.col);
+            return create_segment(
+                current.row, current.col, last_row, current.col);
         }
 
         // Handle the local top side of the rectangle.
-        if (curr.col == 0)
+        if (current.col == 0)
         {
-            ASSERT(curr.row == last_row);
+            ASSERT(current.row == last_row);
 
-            return create_segment(curr.row, curr.col, curr.row, 1);
+            return create_segment(current.row, current.col, current.row, 1);
         }
 
         // Handle the local right side of the rectangle.
-        if (curr.row > 0)
+        if (current.row > 0)
         {
-            return create_segment(curr.row, curr.col, 0, curr.col);
+            return create_segment(current.row, current.col, 0, current.col);
         }
 
         // Handle the local bottom side of the rectangle.
-        return create_segment(curr.row, curr.col, curr.row, 0);
+        return create_segment(current.row, current.col, current.row, 0);
     }
 
     // Handle the local left side of the raster (| part of the E).
-    if (curr.col == 0)
+    if (current.col == 0)
     {
-        return (curr.row < last_row)
-                   ? create_segment(curr.row, curr.col, last_row, curr.col)
-                   : create_segment(curr.row, curr.col, curr.row, last_col);
+        return (current.row < last_row)
+                   ? create_segment(
+                         current.row, current.col, last_row, current.col)
+                   : create_segment(
+                         current.row, current.col, current.row, last_col);
     }
 
     // Handle the local bottom of the raster (_ part of the E).
-    if (curr.row == 0)
+    if (current.row == 0)
     {
-        return create_segment(curr.row, curr.col, curr.row, 0);
+        return create_segment(current.row, current.col, current.row, 0);
     }
 
     // Handle the prongs in the raster (-s in the E).
-    int end_col = ((curr.row & 1) != 0) ? last_col : 1;
+    int end_col = ((current.row & 1) != 0) ? last_col : 1;
 
-    return (curr.col != end_col)
-               ? create_segment(curr.row, curr.col, curr.row, end_col)
-               : create_segment(curr.row, curr.col, curr.row - 1, curr.col);
+    return (current.col != end_col)
+               ? create_segment(current.row, current.col, current.row, end_col)
+               : create_segment(
+                     current.row, current.col, current.row - 1, current.col);
 }
 
 /**
@@ -450,69 +455,78 @@ get_even_segment (path_indices_t curr, int num_rows, int num_cols)
  * diagonal and a "squiggle" back to the local origin.
  */
 static segment_t
-get_odd_segment (path_indices_t curr, int num_rows, int num_cols)
+get_odd_segment (path_indices_t current, int num_rows, int num_cols)
 {
     ASSERT(num_rows > 1);
     ASSERT((num_rows & 1) != 0);
     ASSERT(num_cols > 1);
     ASSERT((num_cols & 1) != 0);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(current.row >= 0 && current.row < num_rows);
+    ASSERT(current.col >= 0 && current.col < num_cols);
 
     int last_row = num_rows - 1;
     int last_col = num_cols - 1;
 
     // Handle the local left side of the raster (| part of the E).
-    if (curr.col == 0)
+    if (current.col == 0)
     {
-        return (curr.row < last_row)
-                   ? create_segment(curr.row, curr.col, last_row, curr.col)
-                   : create_segment(curr.row, curr.col, curr.row, last_col);
+        return (current.row < last_row)
+                   ? create_segment(
+                         current.row, current.col, last_row, current.col)
+                   : create_segment(
+                         current.row, current.col, current.row, last_col);
     }
 
     // Handle the prongs in the raster (-s in the E).
-    if (curr.row >= 2)
+    if (current.row >= 2)
     {
-        int end_col = ((curr.row & 1) != 0) ? 1 : last_col;
+        int end_col = ((current.row & 1) != 0) ? 1 : last_col;
 
-        return (curr.col != end_col)
-                   ? create_segment(curr.row, curr.col, curr.row, end_col)
-                   : create_segment(curr.row, curr.col, curr.row - 1, curr.col);
+        return (current.col != end_col)
+                   ? create_segment(
+                         current.row, current.col, current.row, end_col)
+                   : create_segment(current.row,
+                                    current.col,
+                                    current.row - 1,
+                                    current.col);
     }
 
     // Handle the local downward, upper horizontal, and diagonal segments at
     // bottom prong squiggle (bottom of the _ in the E).
-    if (curr.row == 1)
+    if (current.row == 1)
     {
-        if ((curr.col & 1) == 0)
+        if ((current.col & 1) == 0)
         {
-            return create_segment(curr.row, curr.col, curr.row, curr.col - 1);
+            return create_segment(
+                current.row, current.col, current.row, current.col - 1);
         }
 
-        return (curr.col == last_col - 1)
-                   ? create_segment(curr.row, curr.col, 0, last_col)
-                   : create_segment(curr.row, curr.col, 0, curr.col);
+        return (current.col == last_col - 1)
+                   ? create_segment(current.row, current.col, 0, last_col)
+                   : create_segment(current.row, current.col, 0, current.col);
     }
 
     // Handle the last segment that returns to the local origin.
-    ASSERT(curr.row == 0);
+    ASSERT(current.row == 0);
 
-    if (curr.col == 1)
+    if (current.col == 1)
     {
-        return create_segment(curr.row, curr.col, curr.row, 0);
+        return create_segment(current.row, current.col, current.row, 0);
     }
 
     // Handle the segment two units in length that is formed after the diagonal.
-    if (curr.col == last_col)
+    if (current.col == last_col)
     {
-        return create_segment(curr.row, curr.col, curr.row, curr.col - 2);
+        return create_segment(
+            current.row, current.col, current.row, current.col - 2);
     }
 
     // Handle the local upward and lower horizontal segments at the local bottom
     // side of the bottom prong squiggle (bottom of the _ in the E).
-    return ((curr.col & 1) == 0)
-               ? create_segment(curr.row, curr.col, 1, curr.col)
-               : create_segment(curr.row, curr.col, curr.row, curr.col - 1);
+    return ((current.col & 1) == 0)
+               ? create_segment(current.row, current.col, 1, current.col)
+               : create_segment(
+                     current.row, current.col, current.row, current.col - 1);
 }
 
 /** @brief Check if an index lies between a start and an end index. */
@@ -562,20 +576,21 @@ unit_step (int displacement)
 
 /** @brief Load the next position to visit for a one-dimensional grid. */
 static path_indices_t
-advance_line (bool corners_only, int curr_col, int anchor_col, int num_cols)
+advance_line (bool corners_only, int current_col, int anchor_col, int num_cols)
 {
     ASSERT(num_cols > 1);
 
     return (path_indices_t) {
         .row = 0,
-        .col = get_line_col(curr_col, anchor_col, num_cols - 1, corners_only),
+        .col
+        = get_line_col(current_col, anchor_col, num_cols - 1, corners_only),
     };
 }
 
 /** @brief Load the next position to visit for a two-dimensional grid. */
 static path_indices_t
 advance_raster (bool           corners_only,
-                path_indices_t curr,
+                path_indices_t current,
                 path_indices_t anchor,
                 int            num_rows,
                 int            num_cols)
@@ -584,15 +599,15 @@ advance_raster (bool           corners_only,
     ASSERT(num_cols > 1);
     ASSERT(anchor.row >= 0 && anchor.row < num_rows);
     ASSERT(anchor.col >= 0 && anchor.col < num_cols);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(current.row >= 0 && current.row < num_rows);
+    ASSERT(current.col >= 0 && current.col < num_cols);
 
     segment_t segment = ((num_rows & 1) == 0)
-                            ? get_even_segment(curr, num_rows, num_cols)
-                            : get_odd_segment(curr, num_rows, num_cols);
+                            ? get_even_segment(current, num_rows, num_cols)
+                            : get_odd_segment(current, num_rows, num_cols);
 
-    ASSERT(segment.start.row == curr.row);
-    ASSERT(segment.start.col == curr.col);
+    ASSERT(segment.start.row == current.row);
+    ASSERT(segment.start.col == current.col);
 
     // Stop the closing segment at the anchor.
     if (segment_contains_anchor(&segment, anchor))
@@ -618,7 +633,7 @@ advance_raster (bool           corners_only,
 /** @brief Load the next position to visit. */
 static path_indices_t
 advance (bool           corners_only,
-         path_indices_t curr,
+         path_indices_t current,
          path_indices_t anchor,
          int            num_rows,
          int            num_cols)
@@ -627,15 +642,15 @@ advance (bool           corners_only,
     ASSERT(num_cols > 1);
     ASSERT(anchor.row >= 0 && anchor.row < num_rows);
     ASSERT(anchor.col >= 0 && anchor.col < num_cols);
-    ASSERT(curr.row >= 0 && curr.row < num_rows);
-    ASSERT(curr.col >= 0 && curr.col < num_cols);
+    ASSERT(current.row >= 0 && current.row < num_rows);
+    ASSERT(current.col >= 0 && current.col < num_cols);
 
     if (num_rows == 1)
     {
-        return advance_line(corners_only, curr.col, anchor.col, num_cols);
+        return advance_line(corners_only, current.col, anchor.col, num_cols);
     }
 
-    return advance_raster(corners_only, curr, anchor, num_rows, num_cols);
+    return advance_raster(corners_only, current, anchor, num_rows, num_cols);
 }
 
 /** @brief Convert local indices to coordinates. */
