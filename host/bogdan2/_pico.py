@@ -244,6 +244,7 @@ class Scope:
 
     def configure_channels(
         self,
+        *,
         a_params: ChannelParams,
         b_params: ChannelParams,
         c_params: ChannelParams,
@@ -288,9 +289,10 @@ class Scope:
 
     def set_sample_region(
         self,
+        *,
         pretrigger_time_ns: int,
         posttrigger_time_ns: int,
-        sample_interval_ns: int = 4,
+        sample_interval_ns: int,
     ) -> None:
         """Set the PicoScope sample region and corresponding timebase.
 
@@ -352,7 +354,7 @@ class Scope:
         self._a.disable_trigger()
 
     def enable_trigger_a(
-        self, direction_id: TriggerDirectionID, threshold_mv: float = 2000.0
+        self, direction_id: TriggerDirectionID, *, threshold_mv: float = 2000.0
     ) -> None:
         """Enable triggering of the PicoScope."""
         assert self._a is not None, "Channel not initialized."
@@ -400,7 +402,7 @@ class Scope:
         for _, channel in self._channels.items():
             channel.bulk_buffer_create(self._total_samples, self._num_captures)
 
-    def run_capture(self, timeout_s: float = 10.0) -> None:
+    def run_capture(self, *, timeout_s: float = 10.0) -> None:
         """Capture waveforms on every trigger."""
         unavailable_ms = ct.c_int32()
 

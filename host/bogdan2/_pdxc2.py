@@ -36,7 +36,7 @@ PROPORTIONAL: Final[int] = 8192
 INTEGRAL: Final[int] = 8192
 DIFFERENTIAL: Final[int] = 0
 
-UINT32_MAX: Final[int] = 0xFFFFFFFF
+UINT32_MAX: Final[int] = 0xFFFF_FFFF
 
 for _assembly in (
     "Thorlabs.MotionControl.DeviceManagerCLI.dll",
@@ -155,6 +155,7 @@ class Controller:
 
     def ensure_closedloop_params(
         self,
+        *,
         refspeed: int,
         acceleration: int,
     ) -> None:
@@ -245,6 +246,7 @@ class Controller:
 
     def ensure_analog_rising_trigger_params(
         self,
+        *,
         in_gain: float,
         in_offset: float,
         out_gain: float,

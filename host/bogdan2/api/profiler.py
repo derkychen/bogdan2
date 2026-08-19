@@ -29,16 +29,16 @@ from bogdan2.api.params import (
 
 # TODO: Change to -10 to 10 volts when Thorlabs fixes the gain and offset bug.
 MIN_MV: Final[float] = 0.0
-MAX_MV: Final[float] = 10000.0
+MAX_MV: Final[float] = 10_000.0
 
 ANALOG_IN_GAIN: Final[float] = 1.0
-ANALOG_IN_OFFSET_MV: Final[float] = -10000.0
+ANALOG_IN_OFFSET_MV: Final[float] = -10_000.0
 ANALOG_OUT_GAIN: Final[float] = 1.0
 ANALOG_OUT_OFFSET_MV: Final[float] = 0.0
 
 PORT_WAIT_TIMEOUT_S: Final[float] = 10.0
 PORT_POLL_INTERVAL_S: Final[float] = 0.01
-BAUD_RATE: Final[int] = 115200
+BAUD_RATE: Final[int] = 115_200
 
 
 class InvalidMode(Exception):
@@ -162,26 +162,26 @@ class Profiler:
         # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
         #       long-term usage.
         self._x_controller.ensure_closedloop_params(
-            refspeed=15000000, acceleration=500000000
+            refspeed=15_000_000, acceleration=500_000_000
         )
         self._y_controller.ensure_closedloop_params(
-            refspeed=15000000, acceleration=500000000
+            refspeed=15_000_000, acceleration=500_000_000
         )
 
         self._x_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
         self._y_controller.ensure_control_mode(ControlModeID.CLOSED_LOOP)
 
         self._x_controller.ensure_analog_rising_trigger_params(
-            ANALOG_IN_GAIN,
-            ANALOG_IN_OFFSET_MV,
-            ANALOG_OUT_GAIN,
-            ANALOG_OUT_OFFSET_MV,
+            in_gain=ANALOG_IN_GAIN,
+            in_offset=ANALOG_IN_OFFSET_MV,
+            out_gain=ANALOG_OUT_GAIN,
+            out_offset=ANALOG_OUT_OFFSET_MV,
         )
         self._y_controller.ensure_analog_rising_trigger_params(
-            ANALOG_IN_GAIN,
-            ANALOG_IN_OFFSET_MV,
-            ANALOG_OUT_GAIN,
-            ANALOG_OUT_OFFSET_MV,
+            in_gain=ANALOG_IN_GAIN,
+            in_offset=ANALOG_IN_OFFSET_MV,
+            out_gain=ANALOG_OUT_GAIN,
+            out_offset=ANALOG_OUT_OFFSET_MV,
         )
 
         self._x_controller.ensure_trigger_mode(TriggerModeID.ANALOG_RISING)
@@ -189,10 +189,10 @@ class Profiler:
 
         self._scope.setup()
         self._scope.configure_channels(
-            ChannelParams(name="trigger_mv", range_id=RangeID.V20),
-            ChannelParams(name="x_mv", range_id=RangeID.V20),
-            ChannelParams(name="y_mv", range_id=RangeID.V20),
-            ChannelParams(name="intensity_mv", range_id=RangeID.V20),
+            a_params=ChannelParams(name="trigger_mv", range_id=RangeID.V20),
+            b_params=ChannelParams(name="x_mv", range_id=RangeID.V20),
+            c_params=ChannelParams(name="y_mv", range_id=RangeID.V20),
+            d_params=ChannelParams(name="intensity_mv", range_id=RangeID.V20),
         )
         self._scope.disable_trigger_a()
 

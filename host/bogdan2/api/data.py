@@ -1,6 +1,7 @@
 """Data processing utilities for the beam profiler."""
 
 import csv
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,128 @@ import numpy.typing as npt
 from mpl_toolkits.mplot3d import Axes3D
 
 MIN_TRIANGULATION_NUM_POINTS: Final[int] = 3
+
+
+@dataclass(frozen=True, slots=True)
+class _Moments:
+    m00: float
+    m10: float
+    m01: float
+    m20: float
+    m11: float
+    m02: float
+
+
+def _triangulation(
+    xs: npt.NDArray[np.float64], ys: npt.NDArray[np.float64]
+) -> mtri.Triangulation:
+    """Get a triangulation from coordinates of beam samples."""
+    assert xs.shape == ys.shape, "Axis arrays have incompatible shapes."
+    assert xs.ndim == 1, "Axis arrays must be one-dimensional."
+    assert np.all(np.isfinite(xs))
+    assert np.all(np.isfinite(ys))
+
+    if len(xs) < MIN_TRIANGULATION_NUM_POINTS:
+        raise ValueError(
+            "At least three beam profile points are required for"
+            + "triangulation."
+        )
+
+    return mtri.Triangulation(xs, ys)
+
+
+def _process_intensities(
+    intensities: npt.NDArray[np.float64],
+    *,
+    background: float,
+    noise_stddev: float | None,
+    threshold_sigma: float,
+) -> npt.NDArray[np.float64]:
+    """Subtract background and apply noise threshold."""
+    if not math.isfinite(background):
+        raise ValueError("Background must be finite.")
+
+    if threshold_sigma < 0.0 or not math.isfinite(threshold_sigma):
+        raise ValueError("Threshold sigma must be finite and non-negative.")
+
+    corrected = intensities - background
+
+    if noise_stddev is None:
+        return np.maximum(corrected, 0.0)
+
+    if noise_stddev < 0.0 or not math.isfinite(noise_stddev):
+        raise ValueError(
+            "Noise standard deviation must be finite and non-negative."
+        )
+
+    threshold = threshold_sigma * noise_stddev
+
+    return np.where(
+        corrected > threshold,
+        corrected,
+        0.0,
+    )
+
+
+def _integrated_moments(
+    triangulation: mtri.Triangulation,
+    xs_mm: npt.NDArray[np.float64],
+    ys_mm: npt.NDArray[np.float64],
+    intensities: npt.NDArray[np.float64],
+) -> _Moments:
+    """Integrate spatial moments of the interpolated beam profile."""
+    triangles = np.asarray(
+        triangulation.triangles,
+        dtype=np.intp,
+    )
+
+    triangle_xs = xs_mm[triangles]
+    triangle_ys = ys_mm[triangles]
+    triangle_intensities = intensities[triangles]
+
+    areas = 0.5 * np.abs(
+        (triangle_xs[:, 1] - triangle_xs[:, 0])
+        * (triangle_ys[:, 2] - triangle_ys[:, 0])
+        - (triangle_xs[:, 2] - triangle_xs[:, 0])
+        * (triangle_ys[:, 1] - triangle_ys[:, 0])
+    )
+
+    barycentric = np.asarray(
+        (
+            (1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0),
+            (0.6, 0.2, 0.2),
+            (0.2, 0.6, 0.2),
+            (0.2, 0.2, 0.6),
+        ),
+        dtype=np.float64,
+    )
+
+    quadrature_weights = np.asarray(
+        (
+            -27.0 / 48.0,
+            25.0 / 48.0,
+            25.0 / 48.0,
+            25.0 / 48.0,
+        ),
+        dtype=np.float64,
+    )
+
+    qx = triangle_xs @ barycentric.T
+    qy = triangle_ys @ barycentric.T
+    qi = triangle_intensities @ barycentric.T
+
+    weighted_intensity = (
+        areas[:, np.newaxis] * quadrature_weights[np.newaxis, :] * qi
+    )
+
+    return _Moments(
+        m00=float(np.sum(weighted_intensity)),
+        m10=float(np.sum(weighted_intensity * qx)),
+        m01=float(np.sum(weighted_intensity * qy)),
+        m20=float(np.sum(weighted_intensity * qx * qx)),
+        m11=float(np.sum(weighted_intensity * qx * qy)),
+        m02=float(np.sum(weighted_intensity * qy * qy)),
+    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -48,6 +171,30 @@ class BeamPoint:
     x_mm: float
     y_mm: float
     intensity: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BeamGeometry:
+    """ISO-style second-moment beam geometry."""
+
+    centroid_x_mm: float
+    centroid_y_mm: float
+
+    d4sigma_semimajor_mm: float
+    d4sigma_semiminor_mm: float
+
+    orientation_rad: float
+    ellipticity: float
+
+    @property
+    def d4sigma_major_diameter_mm(self) -> float:
+        """D4sigma major-axis diameter."""
+        return 2.0 * self.d4sigma_semimajor_mm
+
+    @property
+    def d4sigma_minor_diameter_mm(self) -> float:
+        """D4sigma minor-axis diameter."""
+        return 2.0 * self.d4sigma_semiminor_mm
 
 
 class BeamProfile:
@@ -143,12 +290,10 @@ class BeamProfile:
         """Visualize beam profile in 2D."""
         xs_mm, ys_mm, intensities = self._arrays()
 
-        triangulation = mtri.Triangulation(xs_mm, ys_mm)
-
         fig, ax = plt.subplots()
 
         heatmap = ax.tripcolor(
-            triangulation,
+            _triangulation(xs_mm, ys_mm),
             intensities,
             shading="gouraud",
             cmap="inferno",
@@ -176,15 +321,13 @@ class BeamProfile:
         """Visualize beam profile in 3D."""
         xs_mm, ys_mm, intensities = self._arrays()
 
-        triangulation = mtri.Triangulation(xs_mm, ys_mm)
-
         fig = plt.figure()
 
         ax = fig.add_subplot(projection="3d")
         assert isinstance(ax, Axes3D)
 
         surface = ax.plot_trisurf(
-            triangulation,
+            _triangulation(xs_mm, ys_mm),
             intensities,
             cmap="inferno",
             linewidth=0.2,
@@ -239,6 +382,102 @@ class BeamProfile:
             x_mm=xs_mm,
             y_mm=ys_mm,
             intensity=intensities,
+        )
+
+    def geometry(  # noqa: PLR0914  # Named intermediates are for readability.
+        self,
+        background: float = 0.0,
+        noise_stddev: float | None = None,
+        threshold_sigma: float = 3.0,
+    ) -> BeamGeometry:
+        """Calculate ISO-style second-moment beam geometry."""
+        xs_mm, ys_mm, intensities = self._arrays()
+
+        processed = _process_intensities(
+            intensities,
+            background=background,
+            noise_stddev=noise_stddev,
+            threshold_sigma=threshold_sigma,
+        )
+
+        triangulation = _triangulation(xs_mm, ys_mm)
+
+        moments = _integrated_moments(
+            triangulation,
+            xs_mm,
+            ys_mm,
+            processed,
+        )
+
+        if moments.m00 <= 0.0:
+            raise ValueError("Beam profile contains no positive signal.")
+
+        centroid_x_mm = moments.m10 / moments.m00
+        centroid_y_mm = moments.m01 / moments.m00
+
+        sigma_xx = moments.m20 / moments.m00 - centroid_x_mm**2
+        sigma_xy = moments.m11 / moments.m00 - centroid_x_mm * centroid_y_mm
+        sigma_yy = moments.m02 / moments.m00 - centroid_y_mm**2
+
+        covariance = np.asarray(
+            (
+                (sigma_xx, sigma_xy),
+                (sigma_xy, sigma_yy),
+            ),
+            dtype=np.float64,
+        )
+
+        eigenvalues, eigenvectors = cast(
+            tuple[
+                npt.NDArray[np.float64],
+                npt.NDArray[np.float64],
+            ],
+            np.linalg.eigh(covariance),
+        )
+
+        minor_variance = float(eigenvalues.flat[0])
+        major_variance = float(eigenvalues.flat[1])
+
+        tolerance = (
+            100.0
+            * np.finfo(np.float64).eps
+            * max(
+                abs(sigma_xx),
+                abs(sigma_xy),
+                abs(sigma_yy),
+            )
+        )
+
+        if minor_variance < -tolerance:
+            raise ValueError(
+                "Beam covariance matrix has a negative eigenvalue."
+            )
+
+        minor_variance = max(minor_variance, 0.0)
+
+        if major_variance <= 0.0:
+            raise ValueError("Beam profile has zero spatial extent.")
+
+        major_vector = np.asarray(
+            eigenvectors[:, 1],
+            dtype=np.float64,
+        )
+
+        major_x = float(major_vector.flat[0])
+        major_y = float(major_vector.flat[1])
+
+        orientation_rad = math.atan2(major_y, major_x) % math.pi
+
+        semimajor_mm = 2.0 * math.sqrt(major_variance)
+        semiminor_mm = 2.0 * math.sqrt(minor_variance)
+
+        return BeamGeometry(
+            centroid_x_mm=centroid_x_mm,
+            centroid_y_mm=centroid_y_mm,
+            d4sigma_semimajor_mm=semimajor_mm,
+            d4sigma_semiminor_mm=semiminor_mm,
+            orientation_rad=orientation_rad,
+            ellipticity=semiminor_mm / semimajor_mm,
         )
 
     def _arrays(

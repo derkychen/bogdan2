@@ -45,3 +45,6 @@ with Profiler(
 
 if profile is not None:
     profile.plot2d()
+    profile.plot3d()
+
+    print(profile.geometry())
