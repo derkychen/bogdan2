@@ -2,7 +2,7 @@
 
 This document explains the entire process of how to perform the installations (that could not be automated) necessary to run the beam profiler.
 
-These dependencies are:
+The mandatory dependencies are:
 
 * [Git BASH](https://git-scm.com/install/windows).
 * [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)

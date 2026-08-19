@@ -21,6 +21,12 @@ Enforcement of these conventions was done through:
 * `ruff` for formatting and surface-level linting.
 * `basedpyright` for comprehensive static type-checking.
 
+Other conventions:
+
+* Literals with more than 5 digits are separated with underscores for readability.
+
+* Some mandatory arguments are also keyword arguments for better readability.
+
 ## Miscellaneous
 
 ### Shell Scripts

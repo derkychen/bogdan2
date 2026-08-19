@@ -8,18 +8,18 @@ You must be on Windows 10 or 11.
 
 Dependencies:
 
-* [Git BASH](https://git-scm.com/install/windows).
+* [Git BASH](https://git-scm.com/install/windows)
 * [PicoSDK](https://www.picotech.com/library/our-oscilloscope-software-development-kit-sdk)
 * [Thorlabs Kinesis](https://www.thorlabs.com/software-pages/motion_control)
 * `arm-none-eabi-gcc`
 * `bossac`
-* `clang-format` (optional)
-* `clangd` (optional)
 * `cmake`
 * `git`
 * `ninja`
 * `python`
 * `uv`
+* `clang-format` (optional)
+* `clangd` (optional)
 
 ## Setup
 
