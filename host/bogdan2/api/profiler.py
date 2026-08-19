@@ -1,6 +1,7 @@
 """Main profiling functionality."""
 
 import json
+from random import sample
 import time
 from contextlib import ExitStack
 from typing import Final, Self, cast
@@ -273,9 +274,9 @@ class Profiler:
     ) -> BeamProfile | None:
         """Profile a beam in `point_count` mode."""
         self._scope.set_sample_region(
-            capture.pretrigger_time_ns,
-            capture.posttrigger_time_ns,
-            capture.sample_interval_ns,
+            pretrigger_time_ns=capture.pretrigger_time_ns,
+            posttrigger_time_ns=capture.posttrigger_time_ns,
+            sample_interval_ns=capture.sample_interval_ns,
         )
 
         assert self._ser is not None, "Serial connection must be initialized."
@@ -337,9 +338,9 @@ class Profiler:
     ) -> BeamProfile | None:
         """Profile a beam in `point_time` mode."""
         self._scope.set_sample_region(
-            capture.pretrigger_time_ns,
-            capture.posttrigger_time_ns,
-            capture.sample_interval_ns,
+            pretrigger_time_ns=capture.pretrigger_time_ns,
+            posttrigger_time_ns=capture.posttrigger_time_ns,
+            sample_interval_ns=capture.sample_interval_ns,
         )
 
         assert self._ser is not None, "Serial connection must be initialized."
@@ -396,9 +397,9 @@ class Profiler:
     ) -> BeamProfile | None:
         """Profile a beam in `continuous` mode."""
         self._scope.set_sample_region(
-            capture.pretrigger_time_ns,
-            capture.posttrigger_time_ns,
-            capture.sample_interval_ns,
+            pretrigger_time_ns=capture.pretrigger_time_ns,
+            posttrigger_time_ns=capture.posttrigger_time_ns,
+            sample_interval_ns=capture.sample_interval_ns,
         )
 
         assert self._ser is not None, "Serial connection must be initialized."
