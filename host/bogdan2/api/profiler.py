@@ -1,7 +1,6 @@
 """Main profiling functionality."""
 
 import json
-from random import sample
 import time
 from contextlib import ExitStack
 from typing import Final, Self, cast
@@ -212,15 +211,34 @@ class Profiler:
     def _poll_mcu_status(
         self, timeout_s: float = 10.0
     ) -> dict[str, bool | str] | None:
-        """Read one status line from the MCU, raising on any error status."""
-        start = time.time()
-
+        """Read one status line from the MCU, raising on any errors."""
         assert self._ser is not None, "Serial connection must be initialized."
+
+        start = time.time()
 
         while time.time() - start < timeout_s:
             line = self._ser.readline()
+
             if not line:
                 continue
+
+            try:
+                status_dict = cast(dict[str, bool | str], json.loads(line))
+                return status_dict
+
+            except json.JSONDecodeError as e:
+                raise InvalidJSONFromMCU(
+                    f"Invalid JSON from microcontroller: {e}"
+                ) from e
+
+    def _check_mcu_status(self) -> dict[str, bool | str] | None:
+        """Read one status line from the MCU if it is available."""
+        assert self._ser is not None, "Serial connection must be initialized."
+
+        data = self._ser.read(self._ser.in_waiting)
+
+        if b"\n" in data:
+            line = data.split(b"\n", 1)[0]
 
             try:
                 status_dict = cast(dict[str, bool | str], json.loads(line))
@@ -311,6 +329,8 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
+                    print(self._check_mcu_status())
+
                     self._scope.run_capture()
                     self._scope.transfer_bulk_values()
 
@@ -372,6 +392,8 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
+                    print(self._check_mcu_status())
+
                     self._scope.run_capture()
                     self._scope.transfer_single_values()
 
@@ -430,12 +452,14 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 while True:
+                    print(self._check_mcu_status())
+
                     self._scope.run_capture()
                     self._scope.transfer_single_values()
 
                     points.append(self._beam_point_single())
 
-                    status = self._poll_mcu_status(timeout_s=0.010)
+                    status = self._check_mcu_status()
 
                     if status is not None:
                         if not status["ok"]:

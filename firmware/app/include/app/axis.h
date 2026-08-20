@@ -20,7 +20,7 @@ typedef enum
     AXIS_STATUS_ERR_MIN_TOO_SMALL,
     AXIS_STATUS_ERR_MIN_GREATER_THAN_MAX,
     AXIS_STATUS_ERR_MAX_TOO_LARGE,
-    AXIS_STATUS_ERR_UNIT_SMALLER_THAN_MIN_STEP,
+    AXIS_STATUS_ERR_UNIT_TOO_SMALL,
     AXIS_STATUS_ERR_UNIT_TOO_LARGE,
     AXIS_STATUS_ERR_ORIGIN_OUTSIDE_RANGE,
     AXIS_STATUS_ERR_BOUNDS_OUTSIDE_RANGE,
@@ -59,7 +59,10 @@ axis_status_t axis_set_target(axis_t *axis, int target);
 /** @brief Start the axis' movement to its target. */
 void axis_move_start(axis_t *axis);
 
-/** @brief Update state variables when the stage is at its destination. */
+/** @brief Disable monitoring axis movement. */
 void axis_move_end(axis_t *axis);
+
+/** @brief Safely disable the axis on movement errors. */
+void axis_move_abort(axis_t *axis);
 
 #endif

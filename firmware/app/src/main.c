@@ -16,6 +16,7 @@
 #include "platform/samd21g18a/usb.h"
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
 #define START_POLL_INTERVAL_US        (100u)
 #define START_TIMEOUT_MS              (5000u)
@@ -28,13 +29,14 @@ static relay_t      relay;
 static profiler_t   profiler;
 
 static parameters_t parameters = { 0 };
-static char         message[SERIAL_READ_BUFFER_SIZE];
+static char         message_in[SERIAL_READ_BUFFER_SIZE];
+static char         message_out[64];
 
 static void task(void);
 static void init(void);
-static bool poll_message(char const *expected,
-                         uint32_t    poll_interval_us,
-                         uint32_t    timeout_ms);
+static bool poll_message_in(char const *expected,
+                            uint32_t    poll_interval_us,
+                            uint32_t    timeout_ms);
 
 int
 main (void)
@@ -45,10 +47,10 @@ main (void)
     {
         task();
 
-        if (serial_read_line(message, sizeof(message))
+        if (serial_read_line(message_in, sizeof(message_in))
             == SERIAL_STATUS_OK_LINE_RECEIVED)
         {
-            if (parameters_parse_json(&parameters, message)
+            if (parameters_parse_json(&parameters, message_in)
                 == PARAMETERS_STATUS_OK_PARSED)
             {
                 if (io_configure() != IO_STATUS_OK)
@@ -62,24 +64,30 @@ main (void)
                 // status and completes required configuration.
                 serial_write_line("{\"ok\":true,\"msg\":\"ready\"}");
 
-                if (!poll_message("{\"cmd\":\"start\"}",
-                                  START_POLL_INTERVAL_US,
-                                  START_TIMEOUT_MS))
+                if (!poll_message_in("{\"cmd\":\"start\"}",
+                                     START_POLL_INTERVAL_US,
+                                     START_TIMEOUT_MS))
                 {
                     serial_write_line(
                         "{\"ok\":false,\"msg\":\"start_timeout\"}");
                     continue;
                 }
 
-                if (profiler_profile(&profiler, &parameters)
-                    == PROFILER_STATUS_OK)
+                profiler_status_t status
+                    = profiler_profile(&profiler, &parameters);
+
+                if (status == PROFILER_STATUS_OK)
                 {
                     serial_write_line("{\"ok\":true,\"msg\":\"profile_done\"}");
                 }
                 else
                 {
-                    serial_write_line(
-                        "{\"ok\":false,\"msg\":\"profile_failed\"}");
+                    snprintf(message_out,
+                             sizeof(message_out),
+                             "{\"ok\":false,\"msg\":\"profile_failed %d\"}",
+                             (int)status);
+
+                    serial_write_line(message_out);
                 }
             }
             else
@@ -93,7 +101,7 @@ main (void)
     }
 }
 
-/** @brief Task function that should be called repeatedly in the `main` loop. */
+/** @brief Task function that should be called in blocking loops. */
 static void
 task (void)
 {
@@ -142,9 +150,9 @@ init (void)
 
 /** @brief Poll the serial connection for a message. */
 static bool
-poll_message (char const *expected,
-              uint32_t    poll_interval_us,
-              uint32_t    timeout_ms)
+poll_message_in (char const *expected,
+                 uint32_t    poll_interval_us,
+                 uint32_t    timeout_ms)
 {
     uint32_t start_ms = time_get_ms();
 
@@ -152,9 +160,9 @@ poll_message (char const *expected,
     {
         task();
 
-        if (serial_read_line(message, sizeof message)
+        if (serial_read_line(message_in, sizeof message_in)
                 == SERIAL_STATUS_OK_LINE_RECEIVED
-            && strcmp(message, expected) == 0)
+            && strcmp(message_in, expected) == 0)
         {
             return true;
         }

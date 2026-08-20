@@ -41,10 +41,13 @@ uint32_t relay_count_get(relay_t const *relay);
 void relay_count_end(relay_t *relay);
 
 /** @brief Arm the relay to fire one-shot pulses through the event system. */
-void relay_pulser_event_start(relay_t *relay);
+void relay_pulser_start(relay_t *relay);
 
 /** @brief Disarm the relay's pulser. */
-void relay_pulser_event_end(relay_t *relay);
+void relay_pulser_end(relay_t *relay);
+
+/** @brief Safely disable the relay pulser on movement errors. */
+void relay_pulser_abort(relay_t *relay);
 
 /** @brief Re-trigger the pulser pin. */
 void relay_pulser_retrigger(relay_t const *relay);

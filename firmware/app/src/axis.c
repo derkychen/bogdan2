@@ -11,10 +11,10 @@
 #include "app/controller.h"
 #include "platform/samd21g18a/assert.h"
 
-#define MIN_MIN           (-1000)
-#define MAX_MAX           (1000)
-#define UNIT_MAX_NM       (1000000u)
-#define STAGE_MIN_STEP_NM (300u)
+#define MIN_MIN     (-1000)
+#define MAX_MAX     (1000)
+#define UNIT_MIN_NM (2000u)
+#define UNIT_MAX_NM (1000000u)
 
 // TODO: Extend stage range to +/- 6 mm if Thorlabs fixes the gain and offset
 //       bug. Analog IN gain and offset currently restrict stage range to these
@@ -59,9 +59,9 @@ axis_init (axis_t       *axis,
         return AXIS_STATUS_ERR_MIN_GREATER_THAN_MAX;
     }
 
-    if (unit_nm < STAGE_MIN_STEP_NM)
+    if (unit_nm < UNIT_MIN_NM)
     {
-        return AXIS_STATUS_ERR_UNIT_SMALLER_THAN_MIN_STEP;
+        return AXIS_STATUS_ERR_UNIT_TOO_SMALL;
     }
 
     if (unit_nm > UNIT_MAX_NM)
@@ -130,15 +130,12 @@ axis_move_start (axis_t *axis)
     ASSERT(axis != NULL);
     ASSERT(axis->controller != NULL);
 
-    controller_interrupt_enable(axis->controller);
-
-    // NOTE: Setting the state of the stage to moving before pulsing the
-    //       controller Trigger IN is important in ensuring accurate state
-    //       tracking in the unlikely circumstance that the stage's movement
-    //       terminates before the pulse is over, since
-    //       `controller_pulse_trigger_in` is blocking.
-    controller_set_stage_moving(axis->controller, true);
-    controller_pulse_trigger_in(axis->controller);
+    if (controller_should_move(axis->controller))
+    {
+        controller_set_stage_moving(axis->controller, true);
+        controller_interrupt_enable(axis->controller);
+        controller_pulse_trigger_in(axis->controller);
+    }
 
     return;
 }
@@ -150,6 +147,19 @@ axis_move_end (axis_t *axis)
     ASSERT(axis->controller != NULL);
 
     controller_interrupt_disable(axis->controller);
+
+    return;
+}
+
+void
+axis_move_abort (axis_t *axis)
+{
+    ASSERT(axis != NULL);
+    ASSERT(axis->controller != NULL);
+
+    controller_set_stage_moving(axis->controller, false);
+    controller_interrupt_disable(axis->controller);
+    controller_invalidate_current(axis->controller);
 
     return;
 }

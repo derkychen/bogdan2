@@ -77,7 +77,7 @@ relay_count_end (relay_t *relay)
 }
 
 void
-relay_pulser_event_start (relay_t *relay)
+relay_pulser_start (relay_t *relay)
 {
     ASSERT(relay != NULL);
     ASSERT(relay->in != NULL);
@@ -88,12 +88,21 @@ relay_pulser_event_start (relay_t *relay)
 }
 
 void
-relay_pulser_event_end (relay_t *relay)
+relay_pulser_end (relay_t *relay)
 {
     ASSERT(relay != NULL);
     ASSERT(relay->in != NULL);
 
     eic_event_disable(relay->in->line);
+
+    return;
+}
+
+void
+relay_pulser_abort (relay_t *relay)
+{
+    relay_count_end(relay);
+    relay_pulser_end(relay);
 
     return;
 }

@@ -14,7 +14,8 @@
 #include "platform/samd21g18a/time.h"
 #include <stddef.h>
 
-#define START_MOVE_PULSE_WIDTH_MS (1u)
+#define INVALID_ANALOG_VALUE      (UINT16_MAX)
+#define TRIGGER_IN_PULSE_WIDTH_MS (4u)
 
 static void trigger_out_isr(eic_extint_line_t line, void *context);
 
@@ -29,10 +30,13 @@ controller_init (controller_t                  *controller,
     ASSERT(trigger_out != NULL);
     ASSERT(analog_in != NULL);
 
-    controller->trigger_in   = trigger_in;
-    controller->trigger_out  = trigger_out;
-    controller->analog_in    = analog_in;
-    controller->stage_moving = false;
+    controller->trigger_in  = trigger_in;
+    controller->trigger_out = trigger_out;
+    controller->analog_in   = analog_in;
+
+    controller->stage_moving         = false;
+    controller->target_analog_value  = INVALID_ANALOG_VALUE;
+    controller->current_analog_value = INVALID_ANALOG_VALUE;
 
     digital_pin_cfg_set_output(trigger_in);
     digital_pin_level_set_low(trigger_in);
@@ -50,6 +54,16 @@ controller_get_stage_moving (controller_t const *controller)
     ASSERT(controller != NULL);
 
     return controller->stage_moving;
+}
+
+bool
+controller_should_move (controller_t const *controller)
+{
+    ASSERT(controller != NULL);
+    ASSERT(controller->target_analog_value != INVALID_ANALOG_VALUE);
+
+    return (controller->target_analog_value
+            != controller->current_analog_value);
 }
 
 void
@@ -92,17 +106,19 @@ controller_pulse_trigger_in (controller_t const *controller)
     ASSERT(controller->trigger_in != NULL);
 
     digital_pin_level_set_high(controller->trigger_in);
-    time_sleep_ms(START_MOVE_PULSE_WIDTH_MS);
+    time_sleep_ms(TRIGGER_IN_PULSE_WIDTH_MS);
     digital_pin_level_set_low(controller->trigger_in);
 
     return;
 }
 
 controller_status_t
-controller_write_analog_in (controller_t const *controller, uint16_t value)
+controller_write_analog_in (controller_t *controller, uint16_t value)
 {
     ASSERT(controller != NULL);
     ASSERT(controller->analog_in != NULL);
+    ASSERT(value <= ANALOG_OUTPUT_MAX_VALUE);
+    ASSERT(!controller->stage_moving);
 
     if (analog_output_write(controller->analog_in, value)
         != ANALOG_OUTPUT_STATUS_OK)
@@ -110,7 +126,17 @@ controller_write_analog_in (controller_t const *controller, uint16_t value)
         return CONTROLLER_STATUS_ERR;
     }
 
+    controller->target_analog_value = value;
+
     return CONTROLLER_STATUS_OK;
+}
+
+void
+controller_invalidate_current (controller_t *controller)
+{
+    ASSERT(controller != NULL);
+
+    controller->current_analog_value = INVALID_ANALOG_VALUE;
 }
 
 /** @brief Record the stopping of stage movement. */
@@ -123,7 +149,8 @@ trigger_out_isr (eic_extint_line_t line, void *context)
 
     controller_t *controller = (controller_t *)context;
 
-    controller_set_stage_moving(controller, false);
+    controller->stage_moving         = false;
+    controller->current_analog_value = controller->target_analog_value;
 
     return;
 }

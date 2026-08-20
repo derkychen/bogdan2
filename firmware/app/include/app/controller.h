@@ -29,7 +29,9 @@ typedef struct
     analog_output_channel_t const *analog_in;  /**< Connected to Analog IN. */
     eic_pin_t const *trigger_out;              /**< Connected to Trigger OUT. */
 
-    volatile bool stage_moving; /**< Whether the stage is moving. */
+    volatile bool     stage_moving;         /**< Whether the stage is moving. */
+    volatile uint16_t target_analog_value;  /**< Target Analog IN value. */
+    volatile uint16_t current_analog_value; /**< Current Analog IN value. */
 } controller_t;
 
 /** @brief Initialize and configure a controller. */
@@ -38,7 +40,7 @@ void controller_init(controller_t                  *controller,
                      eic_pin_t const               *trigger_out,
                      analog_output_channel_t const *analog_in);
 
-/** @brief Return whether the stage is moving or not. */
+/** @brief Whether the stage is moving or not. */
 bool controller_get_stage_moving(controller_t const *controller);
 
 /**
@@ -48,6 +50,14 @@ bool controller_get_stage_moving(controller_t const *controller);
  * `stage_moving` to `true`.
  */
 void controller_set_stage_moving(controller_t *controller, bool stage_moving);
+
+/**
+ * @brief Whether the stage should move or not.
+ *
+ * That is, whether the supplied target position differs from the analog value
+ * of the current position.
+ */
+bool controller_should_move(controller_t const *controller);
 
 /** @brief Disable the controller's interrupt line. */
 void controller_interrupt_disable(controller_t const *controller);
@@ -62,7 +72,15 @@ void controller_interrupt_enable(controller_t const *controller);
 void controller_pulse_trigger_in(controller_t const *controller);
 
 /** @brief Set the target of the stage through the controller Analog IN. */
-controller_status_t controller_write_analog_in(controller_t const *controller,
-                                               uint16_t            dac_value);
+controller_status_t controller_write_analog_in(controller_t *controller,
+                                               uint16_t      dac_value);
+
+/**
+ * @brief Invalidate the current position.
+ *
+ * This should be called when location is uncertain, for example after a
+ * movement timeout.
+ */
+void controller_invalidate_current(controller_t *controller);
 
 #endif

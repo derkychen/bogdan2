@@ -12,9 +12,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define SET_DEBOUNCE_TIME_US (1000u)
-#define AXES_TIMEOUT_MS      (10000u)
-#define RELAY_TIMEOUT_MS     (10000u)
+#define TARGET_SET_DEBOUNCE_TIME_US (500u)
+#define AXES_TIMEOUT_MS             (10000u)
+#define RELAY_TIMEOUT_MS            (10000u)
 
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
@@ -131,7 +131,7 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
             goto cleanup;
         }
 
-        time_sleep_us(SET_DEBOUNCE_TIME_US);
+        time_sleep_us(TARGET_SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
@@ -155,7 +155,7 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
 
         // Count pulses.
         relay_count_start(profiler->relay);
-        relay_pulser_event_start(profiler->relay);
+        relay_pulser_start(profiler->relay);
 
         start_ms = time_get_ms();
 
@@ -171,7 +171,7 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         }
 
         relay_count_end(profiler->relay);
-        relay_pulser_event_end(profiler->relay);
+        relay_pulser_end(profiler->relay);
 
         uint32_t start_us = time_get_us();
 
@@ -181,15 +181,14 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         }
     }
 
-    status = PROFILER_STATUS_OK;
+    return PROFILER_STATUS_OK;
 
 // NOTE: Only idempotent functions should be called here.
 cleanup:
-    axis_move_end(&x);
-    axis_move_end(&y);
+    axis_move_abort(&x);
+    axis_move_abort(&y);
 
-    relay_count_end(profiler->relay);
-    relay_pulser_event_end(profiler->relay);
+    relay_pulser_abort(profiler->relay);
 
     return status;
 }
@@ -250,7 +249,7 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
             goto cleanup;
         }
 
-        time_sleep_us(SET_DEBOUNCE_TIME_US);
+        time_sleep_us(TARGET_SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
@@ -282,14 +281,14 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
         }
     }
 
-    status = PROFILER_STATUS_OK;
+    return PROFILER_STATUS_OK;
 
 // NOTE: Only idempotent functions should be called here. No relay functions are
 //       called here because the event path is not configured, and pulses are
 //       only sent through software re-triggering.
 cleanup:
-    axis_move_end(&x);
-    axis_move_end(&y);
+    axis_move_abort(&x);
+    axis_move_abort(&y);
 
     return status;
 }
@@ -341,7 +340,7 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
 
     path_coords_t position;
 
-    relay_pulser_event_start(profiler->relay);
+    relay_pulser_start(profiler->relay);
 
     while (path_next(&path, &position) == PATH_STATUS_OK)
     {
@@ -352,7 +351,7 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
             goto cleanup;
         }
 
-        time_sleep_us(SET_DEBOUNCE_TIME_US);
+        time_sleep_us(TARGET_SET_DEBOUNCE_TIME_US);
 
         // Move to the next point.
         axis_move_start(&x);
@@ -375,16 +374,16 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
         axis_move_end(&y);
     }
 
-    relay_pulser_event_end(profiler->relay);
+    relay_pulser_end(profiler->relay);
 
-    status = PROFILER_STATUS_OK;
+    return PROFILER_STATUS_OK;
 
 // NOTE: Only idempotent functions should be called here.
 cleanup:
-    axis_move_end(&x);
-    axis_move_end(&y);
+    axis_move_abort(&x);
+    axis_move_abort(&y);
 
-    relay_pulser_event_end(profiler->relay);
+    relay_pulser_abort(profiler->relay);
 
     return status;
 }
