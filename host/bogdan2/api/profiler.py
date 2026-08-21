@@ -416,8 +416,6 @@ class Profiler:
                 for i in range(1, grid.num_points + 1):
                     print(f"Point #{i}")
 
-                    self._ser_write_newline_terminated({"cmd": "go_to_point"})
-
                     try:
                         self._scope.arm_capture()
                         self._ser_write_newline_terminated(
