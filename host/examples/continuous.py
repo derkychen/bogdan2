@@ -14,15 +14,15 @@ X_PDXC2_SERIAL_NUM = "112547939"
 Y_PDXC2_SERIAL_NUM = "112512664"
 
 x = AxisParams(
-    min=-5,
-    max=5,
+    min=-12,
+    max=12,
     unit_nm=250000,
     origin_nm=0,
 )
 
 y = AxisParams(
-    min=-5,
-    max=5,
+    min=-12,
+    max=12,
     unit_nm=250000,
     origin_nm=0,
 )
@@ -30,8 +30,8 @@ y = AxisParams(
 grid = GridParams(x=x, y=y)
 
 capture = ContinuousCaptureParams(
-    pretrigger_time_ns=100,
-    posttrigger_time_ns=100,
+    pretrigger_time_ns=200,
+    posttrigger_time_ns=200,
     sample_interval_ns=4,
 )
 
@@ -43,7 +43,6 @@ with Profiler(
     profile = p.profile(params)
 
 if profile is not None:
-    profile.plot2d()
-    profile.plot3d()
+    profile.plot()
 
     print(profile.geometry())

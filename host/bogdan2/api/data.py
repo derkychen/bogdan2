@@ -286,71 +286,80 @@ class BeamProfile:
 
         return cls(points)
 
-    def plot2d(self) -> None:
-        """Visualize beam profile in 2D."""
+    def plot(self) -> None:
+        """Visualize the beam profile in 2D and 3D."""
         xs_mm, ys_mm, intensities = self._arrays()
+        triangulation = _triangulation(xs_mm, ys_mm)
 
-        fig, ax = plt.subplots()
+        fig = plt.figure(figsize=(12, 5))
 
-        heatmap = ax.tripcolor(
-            _triangulation(xs_mm, ys_mm),
+        ax2d = fig.add_subplot(1, 2, 1)
+
+        heatmap = ax2d.tripcolor(
+            triangulation,
             intensities,
             shading="gouraud",
             cmap="inferno",
         )
 
-        _ = ax.scatter(
+        _ = ax2d.scatter(
             xs_mm,
             ys_mm,
-            s=10,
+            s=2,
             c="black",
             alpha=0.5,
         )
 
-        _ = ax.set_xlabel("x [mm]")
-        _ = ax.set_ylabel("y [mm]")
-        _ = ax.set_title("Beam Profile")
+        _ = ax2d.set_xlabel("x [mm]")
+        _ = ax2d.set_ylabel("y [mm]")
+        _ = ax2d.set_title("Beam Profile — 2D")
+        ax2d.set_aspect("equal")
 
-        ax.set_aspect("equal")
+        _ = fig.colorbar(
+            heatmap,
+            ax=ax2d,
+            label="Intensity",
+        )
 
-        _ = fig.colorbar(heatmap, ax=ax, label="Intensity")
+        ax3d = fig.add_subplot(
+            1,
+            2,
+            2,
+            projection="3d",
+        )
+        assert isinstance(ax3d, Axes3D)
 
-        plt.show()
-
-    def plot3d(self) -> None:
-        """Visualize beam profile in 3D."""
-        xs_mm, ys_mm, intensities = self._arrays()
-
-        fig = plt.figure()
-
-        ax = fig.add_subplot(projection="3d")
-        assert isinstance(ax, Axes3D)
-
-        surface = ax.plot_trisurf(
-            _triangulation(xs_mm, ys_mm),
+        surface = ax3d.plot_trisurf(
+            triangulation,
             intensities,
             cmap="inferno",
             linewidth=0.2,
             antialiased=True,
         )
 
-        _ = ax.scatter(
+        _ = ax3d.scatter(
             xs_mm,
             ys_mm,
             # NOTE: Matplotlib incorrectly types `zs` as `int`.
             intensities,  # pyright: ignore[reportArgumentType]
-            s=10,
+            s=2,
             c="black",
             alpha=0.5,
         )
 
-        _ = ax.set_xlabel("x [mm]")
-        _ = ax.set_ylabel("y [mm]")
-        _ = ax.set_zlabel("Intensity")
-        _ = ax.set_title("Beam Profile")
+        _ = ax3d.set_xlabel("x [mm]")
+        _ = ax3d.set_ylabel("y [mm]")
+        _ = ax3d.set_zlabel("Intensity")
+        _ = ax3d.set_title("Beam Profile — 3D")
 
-        _ = fig.colorbar(surface, ax=ax, label="Intensity", shrink=0.7)
+        _ = fig.colorbar(
+            surface,
+            ax=ax3d,
+            label="Intensity",
+            shrink=0.7,
+        )
 
+        fig.tight_layout()
         plt.show()
 
     def save_csv(self, path: str | Path) -> None:
