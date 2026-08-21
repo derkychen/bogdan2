@@ -351,28 +351,31 @@ class Profiler:
         self._scope.enable_trigger_a(TriggerDirectionID.RISING)
         self._scope.configure_bulk_capture(capture.num_pulses)
 
+        for i in range(1, grid.num_points + 1):
+            print(f"Point #{i}")
+
+            self._scope.arm_capture()
+            self._ser_write_newline_terminated({"cmd": "go_to_point"})
+
+            try:
+                self._scope.poll_capture()
+            except Exception:
+                _ = self._poll_mcu_status()
+                raise
+
+            self._scope.transfer_bulk_values()
+            points.append(self._beam_point_bulk())
+
+        self._scope.disable_trigger_a()
+
+        profile = BeamProfile(points)
+
         try:
-            for i in range(1, grid.num_points + 1):
-                print(f"Point #{i}")
-
-                self._scope.arm_capture()
-                self._ser_write_newline_terminated({"cmd": "go_to_point"})
-
-                try:
-                    self._scope.poll_capture()
-                except Exception:
-                    _ = self._poll_mcu_status()
-                    raise
-
-                self._scope.transfer_bulk_values()
-                points.append(self._beam_point_bulk())
-
             self._expect_mcu_status("profile_done")
+        except (MCUError, MCUTimeout, MCUProtocolError) as e:
+            print(f"Final movement was not confirmed: {e}")
 
-        finally:
-            self._scope.disable_trigger_a()
-
-        return BeamProfile(points)
+        return profile
 
     def _profile_mode_point_time(
         self, grid: GridParams, capture: PointTimeCaptureParams
@@ -408,28 +411,31 @@ class Profiler:
         self._scope.enable_trigger_a(TriggerDirectionID.RISING)
         self._scope.configure_single_capture()
 
+        for i in range(1, grid.num_points + 1):
+            print(f"Point #{i}")
+
+            self._scope.arm_capture()
+            self._ser_write_newline_terminated({"cmd": "go_to_point"})
+
+            try:
+                self._scope.poll_capture()
+            except Exception:
+                _ = self._poll_mcu_status()
+                raise
+
+            self._scope.transfer_bulk_values()
+            points.append(self._beam_point_single())
+
+        self._scope.disable_trigger_a()
+
+        profile = BeamProfile(points)
+
         try:
-            for i in range(1, grid.num_points + 1):
-                print(f"Point #{i}")
-
-                self._scope.arm_capture()
-                self._ser_write_newline_terminated({"cmd": "go_to_point"})
-
-                try:
-                    self._scope.poll_capture()
-                except Exception:
-                    _ = self._poll_mcu_status()
-                    raise
-
-                self._scope.transfer_single_values()
-                points.append(self._beam_point_single())
-
             self._expect_mcu_status("profile_done")
+        except (MCUError, MCUTimeout, MCUProtocolError) as e:
+            print(f"Final movement was not confirmed: {e}")
 
-        finally:
-            self._scope.disable_trigger_a()
-
-        return BeamProfile(points)
+        return profile
 
     def _profile_mode_continuous(
         self, grid: GridParams, capture: ContinuousCaptureParams
@@ -464,31 +470,28 @@ class Profiler:
         self._scope.enable_trigger_a(TriggerDirectionID.RISING)
         self._scope.configure_single_capture()
 
-        try:
-            i = 1
+        i = 1
 
-            while True:
+        while True:
+            if self._check_mcu_status() == "profile_done":
+                break
+
+            print(f"Point #{i}")
+
+            self._scope.arm_capture()
+
+            try:
+                self._scope.poll_capture(timeout_s=0.20)
+            except TimeoutError:
                 if self._check_mcu_status() == "profile_done":
                     break
+                raise
 
-                print(f"Point #{i}")
+            self._scope.transfer_bulk_values()
+            points.append(self._beam_point_single())
 
-                self._scope.arm_capture()
+            i += 1
 
-                try:
-                    self._scope.poll_capture(timeout_s=0.20)
-                except TimeoutError:
-                    if self._check_mcu_status() == "profile_done":
-                        break
-                    raise
-
-                self._scope.transfer_single_values()
-
-                points.append(self._beam_point_single())
-
-                i += 1
-
-        finally:
-            self._scope.disable_trigger_a()
+        self._scope.disable_trigger_a()
 
         return BeamProfile(points)
