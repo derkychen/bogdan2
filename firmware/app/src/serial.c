@@ -10,29 +10,30 @@
 #include <stdint.h>
 #include <string.h>
 
-static char   line_buffer[SERIAL_READ_BUFFER_SIZE];
-static size_t line_buffer_current_size = 0U;
+static char   line_buf[SERIAL_READ_BUF_SIZE];
+static size_t line_buf_current_size = 0u;
 
-static void line_buffer_reset(void);
-static void line_buffer_copy_to(char *buffer, size_t buffer_size);
+static void            line_buf_reset(void);
+static serial_status_t line_buf_copy_to(serial_buf_t *buf);
 
 void
 serial_init (void)
 {
-    line_buffer_reset();
+    line_buf_reset();
 
     return;
 }
 
 serial_status_t
-serial_read_line (char *buffer, size_t buffer_size)
+serial_read_line (serial_buf_t *buf)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer_size > 0U);
+    ASSERT(buf != NULL);
+    ASSERT(buf->str != NULL);
+    ASSERT(buf->size > 0u);
 
     if (tud_cdc_connected() == false)
     {
-        line_buffer_reset();
+        line_buf_reset();
 
         return SERIAL_STATUS_ERR_DISCONNECTED;
     }
@@ -55,19 +56,18 @@ serial_read_line (char *buffer, size_t buffer_size)
 
         if (byte == '\n')
         {
-            line_buffer_copy_to(buffer, buffer_size);
-            return SERIAL_STATUS_OK_LINE_RECEIVED;
+            return line_buf_copy_to(buf);
         }
 
-        if (line_buffer_current_size < (SERIAL_READ_BUFFER_SIZE - 1u))
+        if (line_buf_current_size < (SERIAL_READ_BUF_SIZE - 1u))
         {
-            line_buffer[line_buffer_current_size] = (char)byte;
-            line_buffer_current_size++;
-            line_buffer[line_buffer_current_size] = '\0';
+            line_buf[line_buf_current_size] = (char)byte;
+            line_buf_current_size++;
+            line_buf[line_buf_current_size] = '\0';
         }
         else
         {
-            line_buffer_reset();
+            line_buf_reset();
             return SERIAL_STATUS_ERR_LINE_BUFFER_OVERFLOW;
         }
     }
@@ -108,28 +108,28 @@ serial_write_line (char const *message)
 
 /** @brief Reset the line buffer. */
 static void
-line_buffer_reset (void)
+line_buf_reset (void)
 {
-    line_buffer_current_size = 0U;
-    line_buffer[0]           = '\0';
+    line_buf_current_size = 0U;
+    line_buf[0]           = '\0';
 
     return;
 }
 
-/** @brief Copy a line from the line buffer into @p buffer. */
-static void
-line_buffer_copy_to (char *buffer, size_t buffer_size)
+/** @brief Copy a line from the line buffer into @p buf. */
+static serial_status_t
+line_buf_copy_to (serial_buf_t *buf)
 {
-    size_t copy_size = line_buffer_current_size;
-
-    if (copy_size > (buffer_size - 1U))
+    if (line_buf_current_size >= buf->size)
     {
-        copy_size = buffer_size - 1U;
+        line_buf_reset();
+        return SERIAL_STATUS_ERR_DEST_BUFFER_OVERFLOW;
     }
 
-    memcpy(buffer, line_buffer, copy_size);
+    memcpy(buf->str, line_buf, line_buf_current_size);
+    buf->str[line_buf_current_size] = '\0';
 
-    buffer[copy_size] = '\0';
+    line_buf_reset();
 
-    line_buffer_reset();
+    return SERIAL_STATUS_OK_LINE_RECEIVED;
 }

@@ -65,6 +65,7 @@ path_init (path_t                  *path,
            int                      y_max)
 {
     ASSERT(path != NULL);
+    ASSERT(prev_raster_direction != NULL);
 
     if ((x_min > x_max) || (y_min > y_max))
     {
@@ -134,22 +135,14 @@ path_init (path_t                  *path,
     return PATH_STATUS_OK;
 }
 
-path_status_t
-path_next (path_t *path, path_coords_t *coords)
+path_coords_t
+path_next_coords (path_t *path)
 {
     ASSERT(path != NULL);
-    ASSERT(coords != NULL);
-
-    ASSERT(path->phase == PATH_PHASE_READY || path->phase == PATH_PHASE_ONGOING
-           || path->phase == PATH_PHASE_DONE);
-
-    if (path->phase == PATH_PHASE_DONE)
-    {
-        return PATH_STATUS_DONE;
-    }
-
     ASSERT(path->raster_direction == PATH_RASTER_DIRECTION_HORIZONTAL
            || path->raster_direction == PATH_RASTER_DIRECTION_VERTICAL);
+    ASSERT(path->phase == PATH_PHASE_READY
+           || path->phase == PATH_PHASE_ONGOING);
     ASSERT(path->num_rows >= 1);
     ASSERT(path->num_cols >= 1);
     ASSERT(path->anchor.row >= 0 && path->anchor.row < path->num_rows);
@@ -160,17 +153,14 @@ path_next (path_t *path, path_coords_t *coords)
     // Manage traversal phase.
     //
     // Phase evolves as `READY` (before generation) to `ONGOING` (during
-    // generation) to `DONE` (generation completed).
+    // generation) to `RETURNING` (when returning to the anchor) to `DONE`
+    // (generation completed). A single-point path instead transitions directly
+    // from `READY` to `DONE`.
     if (path->phase == PATH_PHASE_READY)
     {
-        if (path->num_rows == 1 && path->num_cols == 1)
-        {
-            path->phase = PATH_PHASE_DONE;
-        }
-        else
-        {
-            path->phase = PATH_PHASE_ONGOING;
-        }
+        path->phase = (path->num_rows == 1 && path->num_cols == 1)
+                          ? PATH_PHASE_DONE
+                          : PATH_PHASE_ONGOING;
     }
     else
     {
@@ -185,15 +175,20 @@ path_next (path_t *path, path_coords_t *coords)
         if (path->current.row == path->anchor.row
             && path->current.col == path->anchor.col)
         {
-            path->phase = PATH_PHASE_DONE;
+            path->phase = PATH_PHASE_RETURNING;
         }
     }
 
     // Convert the local indices into the actual coordinate.
-    *coords
-        = indices_to_coords(path->current, path->zero, path->raster_direction);
+    return indices_to_coords(path->current, path->zero, path->raster_direction);
+}
 
-    return PATH_STATUS_OK;
+path_phase_t
+path_get_phase (path_t const *path)
+{
+    ASSERT(path != NULL);
+
+    return path->phase;
 }
 
 /** @brief Get the number of points on a side of the grid. */

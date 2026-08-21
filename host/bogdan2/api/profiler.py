@@ -340,10 +340,10 @@ class Profiler:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_bulk_capture(capture.num_pulses)
 
-                self._ser_write_newline_terminated({"cmd": "start"})
-
                 for i in range(grid.num_points):
                     print(f"Point #{i}")
+
+                    self._ser_write_newline_terminated({"cmd": "go_to_point"})
 
                     try:
                         self._scope.run_capture()
@@ -410,10 +410,10 @@ class Profiler:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
 
-                self._ser_write_newline_terminated({"cmd": "start"})
-
                 for i in range(1, grid.num_points + 1):
                     print(f"Point #{i}")
+
+                    self._ser_write_newline_terminated({"cmd": "go_to_point"})
 
                     try:
                         self._scope.run_capture()
@@ -476,8 +476,6 @@ class Profiler:
             if status["ok"]:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
-
-                self._ser_write_newline_terminated({"cmd": "start"})
 
                 i = 1
 

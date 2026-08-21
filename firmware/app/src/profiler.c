@@ -7,15 +7,21 @@
 #include "app/parameters.h"
 #include "app/path.h"
 #include "app/relay.h"
+#include "app/serial.h"
 #include "platform/samd21g18a/assert.h"
 #include "platform/samd21g18a/time.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
+#define GO_TO_POINT_COMMAND         ("{\"cmd\":\"go_to_point\"}")
+#define IN_TIMEOUT_MS               (5000u)
+#define IN_POLL_INTERVAL_US         (100u)
 #define TARGET_SET_DEBOUNCE_TIME_US (500u)
 #define AXES_TIMEOUT_MS             (10000u)
 #define RELAY_TIMEOUT_MS            (10000u)
 
+static bool poll_in(profiler_t const *profiler, char const *expected);
 static profiler_status_t profile_mode_point_count(
     profiler_t *profiler, parameters_t const *parameters);
 static profiler_status_t profile_mode_point_time(
@@ -28,18 +34,21 @@ profiler_init (profiler_t     *profiler,
                controller_t   *x_controller,
                controller_t   *y_controller,
                relay_t        *relay,
+               serial_buf_t   *in,
                profiler_task_t task)
 {
     ASSERT(profiler != NULL);
     ASSERT(x_controller != NULL);
     ASSERT(y_controller != NULL);
     ASSERT(relay != NULL);
+    ASSERT(in != NULL);
     ASSERT(task != NULL);
 
     profiler->x_controller          = x_controller;
     profiler->y_controller          = y_controller;
     profiler->relay                 = relay;
     profiler->prev_raster_direction = PATH_RASTER_DIRECTION_HORIZONTAL;
+    profiler->in                    = in;
     profiler->task                  = task;
 
     return;
@@ -73,6 +82,28 @@ profiler_profile (profiler_t *profiler, parameters_t const *parameters)
     }
 
     return PROFILER_STATUS_ERR;
+}
+
+/** @brief Poll the serial connection for a message. */
+static bool
+poll_in (profiler_t const *profiler, char const *expected)
+{
+    uint32_t start_ms = time_get_ms();
+
+    while (time_get_ms() - start_ms < IN_TIMEOUT_MS)
+    {
+        profiler->task();
+
+        if (serial_read_line(profiler->in) == SERIAL_STATUS_OK_LINE_RECEIVED
+            && strcmp(profiler->in->str, expected) == 0)
+        {
+            return true;
+        }
+
+        time_sleep_us(IN_POLL_INTERVAL_US);
+    }
+
+    return false;
 }
 
 /** @brief Profile a beam in `POINT_COUNT` mode. */
@@ -120,12 +151,22 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         return PROFILER_STATUS_ERR_PATH_INIT;
     };
 
-    path_coords_t position;
+    path_coords_t coords;
+    path_phase_t  phase;
 
-    while (path_next(&path, &position) == PATH_STATUS_OK)
+    do
     {
-        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
-            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
+        coords = path_next_coords(&path);
+        phase  = path_get_phase(&path);
+
+        if ((phase != PATH_PHASE_RETURNING)
+            && (!poll_in(profiler, GO_TO_POINT_COMMAND)))
+        {
+            return PROFILER_STATUS_ERR_MOVE_COMMAND_TIMEOUT;
+        }
+
+        if (axis_set_target(&x, coords.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, coords.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
@@ -153,33 +194,36 @@ profile_mode_point_count (profiler_t *profiler, parameters_t const *parameters)
         axis_move_end(&x);
         axis_move_end(&y);
 
-        // Count pulses.
-        relay_count_start(profiler->relay);
-        relay_pulser_start(profiler->relay);
-
-        start_ms = time_get_ms();
-
-        while (relay_count_get(profiler->relay) < parameters->num_pulses)
+        if (phase != PATH_PHASE_RETURNING)
         {
-            profiler->task();
+            // Count pulses.
+            relay_count_start(profiler->relay);
+            relay_pulser_start(profiler->relay);
 
-            if ((time_get_ms() - start_ms) >= RELAY_TIMEOUT_MS)
+            start_ms = time_get_ms();
+
+            while (relay_count_get(profiler->relay) < parameters->num_pulses)
             {
-                status = PROFILER_STATUS_ERR_RELAY_TIMEOUT;
-                goto cleanup;
+                profiler->task();
+
+                if ((time_get_ms() - start_ms) >= RELAY_TIMEOUT_MS)
+                {
+                    status = PROFILER_STATUS_ERR_RELAY_TIMEOUT;
+                    goto cleanup;
+                }
+            }
+
+            relay_count_end(profiler->relay);
+            relay_pulser_end(profiler->relay);
+
+            uint32_t start_us = time_get_us();
+
+            while (time_get_us() - start_us < parameters->posttrigger_time_us)
+            {
+                profiler->task();
             }
         }
-
-        relay_count_end(profiler->relay);
-        relay_pulser_end(profiler->relay);
-
-        uint32_t start_us = time_get_us();
-
-        while (time_get_us() - start_us < parameters->posttrigger_time_us)
-        {
-            profiler->task();
-        }
-    }
+    } while (phase == PATH_PHASE_ONGOING);
 
     return PROFILER_STATUS_OK;
 
@@ -238,12 +282,22 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
         return PROFILER_STATUS_ERR_PATH_INIT;
     };
 
-    path_coords_t position;
+    path_coords_t coords;
+    path_phase_t  phase;
 
-    while (path_next(&path, &position) == PATH_STATUS_OK)
+    do
     {
-        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
-            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
+        coords = path_next_coords(&path);
+        phase  = path_get_phase(&path);
+
+        if ((phase != PATH_PHASE_RETURNING)
+            && (!poll_in(profiler, GO_TO_POINT_COMMAND)))
+        {
+            return PROFILER_STATUS_ERR_MOVE_COMMAND_TIMEOUT;
+        }
+
+        if (axis_set_target(&x, coords.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, coords.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
@@ -271,15 +325,18 @@ profile_mode_point_time (profiler_t *profiler, parameters_t const *parameters)
         axis_move_end(&x);
         axis_move_end(&y);
 
-        relay_pulser_retrigger(profiler->relay);
-
-        uint32_t start_us = time_get_us();
-
-        while (time_get_us() - start_us < parameters->wait_time_us)
+        if (phase != PATH_PHASE_RETURNING)
         {
-            profiler->task();
+            relay_pulser_retrigger(profiler->relay);
+
+            uint32_t start_us = time_get_us();
+
+            while (time_get_us() - start_us < parameters->wait_time_us)
+            {
+                profiler->task();
+            }
         }
-    }
+    } while (phase == PATH_PHASE_ONGOING);
 
     return PROFILER_STATUS_OK;
 
@@ -338,14 +395,18 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
         return PROFILER_STATUS_ERR_PATH_INIT;
     };
 
-    path_coords_t position;
-
     relay_pulser_start(profiler->relay);
 
-    while (path_next(&path, &position) == PATH_STATUS_OK)
+    path_coords_t coords;
+    path_phase_t  phase;
+
+    do
     {
-        if (axis_set_target(&x, position.x) != AXIS_STATUS_OK
-            || axis_set_target(&y, position.y) != AXIS_STATUS_OK)
+        coords = path_next_coords(&path);
+        phase  = path_get_phase(&path);
+
+        if (axis_set_target(&x, coords.x) != AXIS_STATUS_OK
+            || axis_set_target(&y, coords.y) != AXIS_STATUS_OK)
         {
             status = PROFILER_STATUS_ERR_TARGET;
             goto cleanup;
@@ -372,7 +433,7 @@ profile_mode_continuous (profiler_t *profiler, parameters_t const *parameters)
 
         axis_move_end(&x);
         axis_move_end(&y);
-    }
+    } while (phase == PATH_PHASE_ONGOING);
 
     relay_pulser_end(profiler->relay);
 

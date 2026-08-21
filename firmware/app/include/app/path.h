@@ -33,7 +33,6 @@
 typedef enum
 {
     PATH_STATUS_OK = 0,
-    PATH_STATUS_DONE,
     PATH_STATUS_ERR_BOUNDS_MIN_GREATER_THAN_MAX,
     PATH_STATUS_ERR_BOUNDS_TOO_LARGE,
 } path_status_t;
@@ -59,6 +58,7 @@ typedef enum
 {
     PATH_PHASE_READY = 0,
     PATH_PHASE_ONGOING,
+    PATH_PHASE_RETURNING,
     PATH_PHASE_DONE,
 } path_phase_t;
 
@@ -123,6 +123,9 @@ path_status_t path_init(path_t                  *path,
  *       same point, eliminating unnecessary movement latency during the next
  *       profile should the grid remain the same.
  */
-path_status_t path_next(path_t *path, path_coords_t *coords);
+path_coords_t path_next_coords(path_t *path);
+
+/** @brief Get the path generation phase. */
+path_phase_t path_get_phase(path_t const *path);
 
 #endif

@@ -140,8 +140,8 @@ _Static_assert(ARRAY_COUNT(parameters_fields) == FIELD_INDEX_COUNT,
 static bool token_is_valid(token_t const *token);
 static bool token_text_equals_str(token_t const *token, char const *string);
 static parse_status_t token_copy(token_t const *token,
-                                 char          *buffer,
-                                 size_t         buffer_size);
+                                 char          *buf,
+                                 size_t         buf_size);
 static parse_status_t token_parse_mode(token_t const     *token,
                                        parameters_mode_t *value);
 static parse_status_t token_parse_int(token_t const *token, int *value);
@@ -332,10 +332,10 @@ token_text_equals_str (token_t const *token, char const *string)
 
 /** @brief Copy a token into a buffer. */
 static parse_status_t
-token_copy (token_t const *token, char *buffer, size_t buffer_size)
+token_copy (token_t const *token, char *buf, size_t buf_size)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer_size > 0u);
+    ASSERT(buf != NULL);
+    ASSERT(buf_size > 0u);
 
     if (!token_is_valid(token))
     {
@@ -344,13 +344,13 @@ token_copy (token_t const *token, char *buffer, size_t buffer_size)
 
     size_t token_length = (size_t)(token->data->end - token->data->start);
 
-    if (token_length >= buffer_size)
+    if (token_length >= buf_size)
     {
         return PARSE_STATUS_ERR;
     }
 
-    memcpy(buffer, &token->json[token->data->start], token_length);
-    buffer[token_length] = '\0';
+    memcpy(buf, &token->json[token->data->start], token_length);
+    buf[token_length] = '\0';
 
     return PARSE_STATUS_OK;
 }
@@ -393,9 +393,9 @@ token_parse_int (token_t const *token, int *value)
         return PARSE_STATUS_ERR;
     }
 
-    char buffer[24];
+    char buf[24];
 
-    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
+    if (token_copy(token, buf, sizeof(buf)) != PARSE_STATUS_OK)
     {
         return PARSE_STATUS_ERR;
     }
@@ -403,9 +403,9 @@ token_parse_int (token_t const *token, int *value)
     errno = 0;
 
     char    *end;
-    intmax_t parsed = strtoimax(buffer, &end, 10);
+    intmax_t parsed = strtoimax(buf, &end, 10);
 
-    if ((errno != 0) || (end == buffer) || (*end != '\0') || (parsed < INT_MIN)
+    if ((errno != 0) || (end == buf) || (*end != '\0') || (parsed < INT_MIN)
         || (parsed > INT_MAX))
     {
         return PARSE_STATUS_ERR;
@@ -428,14 +428,14 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
         return PARSE_STATUS_ERR;
     }
 
-    char buffer[24];
+    char buf[24];
 
-    if (token_copy(token, buffer, sizeof(buffer)) != PARSE_STATUS_OK)
+    if (token_copy(token, buf, sizeof(buf)) != PARSE_STATUS_OK)
     {
         return PARSE_STATUS_ERR;
     }
 
-    if (buffer[0] == '-')
+    if (buf[0] == '-')
     {
         return PARSE_STATUS_ERR;
     }
@@ -444,10 +444,9 @@ token_parse_uint32 (token_t const *token, uint32_t *value)
 
     char *end;
 
-    uintmax_t parsed = strtoumax(buffer, &end, 10);
+    uintmax_t parsed = strtoumax(buf, &end, 10);
 
-    if ((errno != 0) || (end == buffer) || (*end != '\0')
-        || (parsed > UINT32_MAX))
+    if ((errno != 0) || (end == buf) || (*end != '\0') || (parsed > UINT32_MAX))
     {
         return PARSE_STATUS_ERR;
     }

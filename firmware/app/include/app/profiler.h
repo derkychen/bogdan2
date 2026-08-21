@@ -14,12 +14,14 @@
 #include "app/parameters.h"
 #include "app/path.h"
 #include "app/relay.h"
+#include "app/serial.h"
 
 /** @brief Profiler status codes. */
 typedef enum
 {
     PROFILER_STATUS_OK = 0,
     PROFILER_STATUS_ERR,
+    PROFILER_STATUS_ERR_MOVE_COMMAND_TIMEOUT,
     PROFILER_STATUS_ERR_X_AXIS_INIT,
     PROFILER_STATUS_ERR_Y_AXIS_INIT,
     PROFILER_STATUS_ERR_PATH_INIT,
@@ -45,6 +47,7 @@ typedef struct
     path_raster_direction_t
         prev_raster_direction; /**< Previous path raster direction.*/
 
+    serial_buf_t   *in;   /**< Serial reading buffer. */
     profiler_task_t task; /**< Task function to be called in blocking delays. */
 } profiler_t;
 
@@ -53,6 +56,7 @@ void profiler_init(profiler_t     *profiler,
                    controller_t   *x_controller,
                    controller_t   *y_controller,
                    relay_t        *relay,
+                   serial_buf_t   *in,
                    profiler_task_t task);
 
 /** @brief Profile a beam based on parameters. */
