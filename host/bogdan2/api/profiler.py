@@ -204,14 +204,14 @@ class Profiler:
 
         raw = json.dumps(data, separators=(",", ":"))
 
-        print(f"Wrote to MCU: {raw}")
+        print(f"Wrote to microcontroller: {raw}")
 
         _ = self._ser.write((raw + "\n").encode())
 
     def _poll_mcu_status(
         self, timeout_s: float = 10.0
     ) -> dict[str, bool | str] | None:
-        """Read one status line from the MCU, raising on any errors."""
+        """Poll for one line from the microcontroller."""
         assert self._ser is not None, "Serial connection must be initialized."
 
         start = time.time()
@@ -224,6 +224,8 @@ class Profiler:
 
             try:
                 status_dict = cast(dict[str, bool | str], json.loads(line))
+
+                print(f"Read from microcontroller: {status_dict}")
                 return status_dict
 
             except json.JSONDecodeError as e:
@@ -232,7 +234,7 @@ class Profiler:
                 ) from e
 
     def _check_mcu_status(self) -> dict[str, bool | str] | None:
-        """Read one status line from the MCU if it is available."""
+        """Read one line from the microcontroller if it is available."""
         assert self._ser is not None, "Serial connection must be initialized."
 
         data = self._ser.read(self._ser.in_waiting)
@@ -242,6 +244,8 @@ class Profiler:
 
             try:
                 status_dict = cast(dict[str, bool | str], json.loads(line))
+
+                print(f"Read from microcontroller: {status_dict}")
                 return status_dict
 
             except json.JSONDecodeError as e:
@@ -321,7 +325,7 @@ class Profiler:
 
         status = self._poll_mcu_status()
 
-        if status is not None:
+        if status:
             if status["ok"]:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_bulk_capture(capture.num_pulses)
@@ -329,9 +333,16 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
-                    print(self._check_mcu_status())
-
                     self._scope.run_capture()
+
+                    status = self._check_mcu_status()
+
+                    if status and not status["ok"]:
+                        error = status["msg"]
+                        raise MCUError(
+                            f"Microcontroller error message: {error}"
+                        )
+
                     self._scope.transfer_bulk_values()
 
                     points.append(self._beam_point_bulk())
@@ -340,11 +351,7 @@ class Profiler:
 
                 status = self._poll_mcu_status()
 
-                if (
-                    status is not None
-                    and status["ok"]
-                    and status["msg"] == "profile_done"
-                ):
+                if status and status["ok"] and status["msg"] == "profile_done":
                     self._scope.disable_trigger_a()
             else:
                 error = status["msg"]
@@ -384,7 +391,7 @@ class Profiler:
 
         status = self._poll_mcu_status()
 
-        if status is not None:
+        if status:
             if status["ok"]:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
@@ -392,20 +399,23 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 for _ in range(grid.num_points):
-                    print(self._check_mcu_status())
-
                     self._scope.run_capture()
+
+                    status = self._check_mcu_status()
+
+                    if status and not status["ok"]:
+                        error = status["msg"]
+                        raise MCUError(
+                            f"Microcontroller error message: {error}"
+                        )
+
                     self._scope.transfer_single_values()
 
                     points.append(self._beam_point_single())
 
                 status = self._poll_mcu_status()
 
-                if (
-                    status is not None
-                    and status["ok"]
-                    and status["msg"] == "profile_done"
-                ):
+                if status and status["ok"] and status["msg"] == "profile_done":
                     self._scope.disable_trigger_a()
             else:
                 error = status["msg"]
@@ -444,7 +454,7 @@ class Profiler:
 
         status = self._poll_mcu_status()
 
-        if status is not None:
+        if status:
             if status["ok"]:
                 self._scope.enable_trigger_a(TriggerDirectionID.RISING)
                 self._scope.configure_single_capture()
@@ -452,8 +462,6 @@ class Profiler:
                 self._ser_write_newline_terminated({"cmd": "start"})
 
                 while True:
-                    print(self._check_mcu_status())
-
                     self._scope.run_capture()
                     self._scope.transfer_single_values()
 
@@ -461,7 +469,7 @@ class Profiler:
 
                     status = self._check_mcu_status()
 
-                    if status is not None:
+                    if status:
                         if not status["ok"]:
                             error = status["msg"]
                             raise MCUError(
