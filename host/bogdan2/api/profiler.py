@@ -61,6 +61,10 @@ class MCUError(Exception):
     """Host receives an error message from the microcontroller."""
 
 
+class MCUProtocolError(Exception):
+    """Microcontroller returned an unexpected status."""
+
+
 def _mv_to_mm(mv: Reading) -> float:
     """Convert x and y millivolt readings into a position."""
     return (
@@ -69,6 +73,23 @@ def _mv_to_mm(mv: Reading) -> float:
         / (MAX_MV - MIN_MV)
         * 1e-6
     )
+
+
+def _parse_mcu_msg(line: bytes) -> str:
+    """Parse a microcontroller status line and return its message."""
+    try:
+        status = cast(dict[str, bool | str], json.loads(line))
+    except json.JSONDecodeError as e:
+        raise InvalidJSONFromMCU(
+            f"Invalid JSON from microcontroller: {e}"
+        ) from e
+
+    print(f"Read from microcontroller: {status}")
+
+    if not status["ok"]:
+        raise MCUError(f"Microcontroller error: {status['msg']}")
+
+    return cast(str, status["msg"])
 
 
 class Profiler:
@@ -89,6 +110,7 @@ class Profiler:
         self._x_controller: Controller = Controller(x_pdxc2_serial_num)
         self._y_controller: Controller = Controller(y_pdxc2_serial_num)
         self._ser: serial.Serial | None = None
+        self._ser_rx_buf: bytearray = bytearray()
 
     def __enter__(self) -> "Self":
         """Acquire hardware."""
@@ -114,7 +136,7 @@ class Profiler:
             self._ser.close()
         self._stack.close()
 
-    def profile(self, params: ProfilerParams) -> BeamProfile | None:
+    def profile(self, params: ProfilerParams) -> BeamProfile:
         """Run profiling with a set of parameters."""
         start = time.time()
 
@@ -129,28 +151,28 @@ class Profiler:
 
             time.sleep(PORT_POLL_INTERVAL_S)
 
-        self._ser = serial.Serial(self._port, BAUD_RATE, timeout=1.0)
+        self._ser = serial.Serial(self._port, BAUD_RATE, timeout=0.0)
+        self._ser_rx_buf.clear()
 
-        profile = None
+        try:
+            match params.capture:
+                case PointCountCaptureParams() as capture:
+                    return self._profile_mode_point_count(params.grid, capture)
 
-        match params.capture:
-            case PointCountCaptureParams() as capture:
-                profile = self._profile_mode_point_count(params.grid, capture)
+                case PointTimeCaptureParams() as capture:
+                    return self._profile_mode_point_time(params.grid, capture)
 
-            case PointTimeCaptureParams() as capture:
-                profile = self._profile_mode_point_time(params.grid, capture)
+                case ContinuousCaptureParams() as capture:
+                    return self._profile_mode_continuous(params.grid, capture)
 
-            case ContinuousCaptureParams() as capture:
-                profile = self._profile_mode_continuous(params.grid, capture)
+                case _:
+                    raise InvalidMode(
+                        f"Unsupported mode: {type(params.capture).__name__}"
+                    )
 
-            case _:
-                raise InvalidMode(
-                    f"Unsupported mode: {type(params.capture).__name__}"
-                )
-
-        self._ser.close()
-
-        return profile
+        finally:
+            self._ser.close()
+            self._ser = None
 
     def _configure(self) -> None:
         """Configure the profiler hardware."""
@@ -208,60 +230,51 @@ class Profiler:
 
         _ = self._ser.write((raw + "\n").encode())
 
-    def _poll_mcu_status(
-        self, timeout_s: float = 10.0
-    ) -> dict[str, bool | str] | None:
-        """Poll for one line from the microcontroller."""
+    def _check_mcu_status(self) -> str | None:
+        """Check for status from the microcontroller if it is available."""
         assert self._ser is not None, "Serial connection must be initialized."
 
-        start = time.time()
+        num_waiting = self._ser.in_waiting
 
-        while time.time() - start < timeout_s:
-            line = self._ser.readline()
+        if num_waiting:
+            self._ser_rx_buf.extend(self._ser.read(num_waiting))
 
-            if not line:
-                continue
+        newline = self._ser_rx_buf.find(b"\n")
 
-            try:
-                status_dict = cast(
-                    dict[str, bool | str] | None, json.loads(line)
-                )
+        if newline < 0:
+            return None
 
-                if status_dict:
-                    print(f"Read from microcontroller: {status_dict}")
+        line = bytes(self._ser_rx_buf[:newline])
+        del self._ser_rx_buf[: newline + 1]
 
-                return status_dict
+        return _parse_mcu_msg(line)
 
-            except json.JSONDecodeError as e:
-                raise InvalidJSONFromMCU(
-                    f"Invalid JSON from microcontroller: {e}"
-                ) from e
+    def _poll_mcu_status(self, timeout_s: float = 10.0) -> str:
+        """Poll for status from the microcontroller."""
+        deadline = time.monotonic() + timeout_s
+
+        while time.monotonic() < deadline:
+            status = self._check_mcu_status()
+
+            if status is not None:
+                return status
+
+            time.sleep(0.001)
 
         raise MCUTimeout("Timed out waiting for microcontroller status.")
 
-    def _check_mcu_status(self) -> dict[str, bool | str] | None:
-        """Read one line from the microcontroller if it is available."""
-        assert self._ser is not None, "Serial connection must be initialized."
+    def _expect_mcu_status(
+        self,
+        expected: str,
+        timeout_s: float = 10.0,
+    ) -> None:
+        """Wait for a specific microcontroller status."""
+        actual = self._poll_mcu_status(timeout_s)
 
-        data = self._ser.read(self._ser.in_waiting)
-
-        if b"\n" in data:
-            line = data.split(b"\n", 1)[0]
-
-            try:
-                status_dict = cast(
-                    dict[str, bool | str] | None, json.loads(line)
-                )
-
-                if status_dict:
-                    print(f"Read from microcontroller: {status_dict}")
-
-                return status_dict
-
-            except json.JSONDecodeError as e:
-                raise InvalidJSONFromMCU(
-                    f"Invalid JSON from microcontroller: {e}"
-                ) from e
+        if actual != expected:
+            raise MCUProtocolError(
+                f"Expected status {expected!r}, got {actual!r}."
+            )
 
     def _beam_point_single(self) -> BeamPoint:
         """Construct a beam point from a single capture."""
@@ -303,7 +316,7 @@ class Profiler:
 
     def _profile_mode_point_count(
         self, grid: GridParams, capture: PointCountCaptureParams
-    ) -> BeamProfile | None:
+    ) -> BeamProfile:
         """Profile a beam in `point_count` mode."""
         self._scope.set_sample_region(
             pretrigger_time_ns=capture.pretrigger_time_ns,
@@ -331,55 +344,39 @@ class Profiler:
             }
         )
 
+        _ = self._poll_mcu_status()
+
         points: list[BeamPoint] = []
 
-        status = self._poll_mcu_status()
+        self._scope.enable_trigger_a(TriggerDirectionID.RISING)
+        self._scope.configure_bulk_capture(capture.num_pulses)
 
-        if status:
-            if status["ok"]:
-                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
-                self._scope.configure_bulk_capture(capture.num_pulses)
+        try:
+            for i in range(1, grid.num_points + 1):
+                print(f"Point #{i}")
 
-                for i in range(grid.num_points):
-                    print(f"Point #{i}")
+                self._scope.arm_capture()
+                self._ser_write_newline_terminated({"cmd": "go_to_point"})
 
-                    try:
-                        self._scope.arm_capture()
-                        self._ser_write_newline_terminated(
-                            {"cmd": "go_to_point"}
-                        )
-                        self._scope.poll_capture()
+                try:
+                    self._scope.poll_capture()
+                except Exception:
+                    _ = self._poll_mcu_status()
+                    raise
 
-                    except Exception as e:
-                        status = self._poll_mcu_status()
+                self._scope.transfer_bulk_values()
+                points.append(self._beam_point_bulk())
 
-                        if status and not status["ok"]:
-                            error = status["msg"]
+            self._expect_mcu_status("profile_done")
 
-                            raise MCUError(
-                                f"Microcontroller error: {error}"
-                            ) from e
-
-                    self._scope.transfer_bulk_values()
-
-                    points.append(self._beam_point_bulk())
-
-                self._scope.disable_trigger_a()
-
-                status = self._poll_mcu_status()
-
-                if status and status["ok"] and status["msg"] == "profile_done":
-                    self._scope.disable_trigger_a()
-            else:
-                error = status["msg"]
-
-                raise MCUError(f"Microcontroller error: {error}")
+        finally:
+            self._scope.disable_trigger_a()
 
         return BeamProfile(points)
 
     def _profile_mode_point_time(
         self, grid: GridParams, capture: PointTimeCaptureParams
-    ) -> BeamProfile | None:
+    ) -> BeamProfile:
         """Profile a beam in `point_time` mode."""
         self._scope.set_sample_region(
             pretrigger_time_ns=capture.pretrigger_time_ns,
@@ -404,53 +401,39 @@ class Profiler:
             },
         )
 
+        _ = self._poll_mcu_status()
+
         points: list[BeamPoint] = []
 
-        status = self._poll_mcu_status()
+        self._scope.enable_trigger_a(TriggerDirectionID.RISING)
+        self._scope.configure_single_capture()
 
-        if status:
-            if status["ok"]:
-                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
-                self._scope.configure_single_capture()
+        try:
+            for i in range(1, grid.num_points + 1):
+                print(f"Point #{i}")
 
-                for i in range(1, grid.num_points + 1):
-                    print(f"Point #{i}")
+                self._scope.arm_capture()
+                self._ser_write_newline_terminated({"cmd": "go_to_point"})
 
-                    try:
-                        self._scope.arm_capture()
-                        self._ser_write_newline_terminated(
-                            {"cmd": "go_to_point"}
-                        )
-                        self._scope.poll_capture()
+                try:
+                    self._scope.poll_capture()
+                except Exception:
+                    _ = self._poll_mcu_status()
+                    raise
 
-                    except Exception as e:
-                        status = self._poll_mcu_status()
+                self._scope.transfer_single_values()
+                points.append(self._beam_point_single())
 
-                        if status and not status["ok"]:
-                            error = status["msg"]
+            self._expect_mcu_status("profile_done")
 
-                            raise MCUError(
-                                f"Microcontroller error: {error}"
-                            ) from e
-
-                    self._scope.transfer_single_values()
-
-                    points.append(self._beam_point_single())
-
-                status = self._poll_mcu_status()
-
-                if status and status["ok"] and status["msg"] == "profile_done":
-                    self._scope.disable_trigger_a()
-            else:
-                error = status["msg"]
-
-                raise MCUError(f"Microcontroller error: {error}")
+        finally:
+            self._scope.disable_trigger_a()
 
         return BeamProfile(points)
 
     def _profile_mode_continuous(
         self, grid: GridParams, capture: ContinuousCaptureParams
-    ) -> BeamProfile | None:
+    ) -> BeamProfile:
         """Profile a beam in `continuous` mode."""
         self._scope.set_sample_region(
             pretrigger_time_ns=capture.pretrigger_time_ns,
@@ -474,55 +457,38 @@ class Profiler:
             },
         )
 
+        _ = self._poll_mcu_status()
+
         points: list[BeamPoint] = []
 
-        status = self._poll_mcu_status()
+        self._scope.enable_trigger_a(TriggerDirectionID.RISING)
+        self._scope.configure_single_capture()
 
-        if status:
-            if status["ok"]:
-                self._scope.enable_trigger_a(TriggerDirectionID.RISING)
-                self._scope.configure_single_capture()
+        try:
+            i = 1
 
-                i = 1
+            while True:
+                if self._check_mcu_status() == "profile_done":
+                    break
 
-                while True:
-                    print(f"Point #{i}")
+                print(f"Point #{i}")
 
-                    try:
-                        self._scope.arm_capture()
-                        self._scope.poll_capture()
+                self._scope.arm_capture()
 
-                    except Exception as e:
-                        status = self._poll_mcu_status()
+                try:
+                    self._scope.poll_capture(timeout_s=0.20)
+                except TimeoutError:
+                    if self._check_mcu_status() == "profile_done":
+                        break
+                    raise
 
-                        if status and not status["ok"]:
-                            error = status["msg"]
+                self._scope.transfer_single_values()
 
-                            raise MCUError(
-                                f"Microcontroller error: {error}"
-                            ) from e
+                points.append(self._beam_point_single())
 
-                    self._scope.transfer_single_values()
+                i += 1
 
-                    points.append(self._beam_point_single())
-
-                    status = self._check_mcu_status()
-
-                    if status:
-                        if not status["ok"]:
-                            error = status["msg"]
-                            raise MCUError(
-                                f"Microcontroller error message: {error}"
-                            )
-
-                        elif status["ok"] and status["msg"] == "profile_done":
-                            self._scope.disable_trigger_a()
-                            break
-
-                    i += 1
-            else:
-                error = status["msg"]
-
-                raise MCUError(f"Microcontroller error: {error}")
+        finally:
+            self._scope.disable_trigger_a()
 
         return BeamProfile(points)

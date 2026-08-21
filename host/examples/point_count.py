@@ -43,7 +43,5 @@ with Profiler(
 ) as p:
     profile = p.profile(params)
 
-if profile is not None:
-    profile.plot()
-
-    print(profile.geometry())
+profile.plot()
+print(profile.geometry())
