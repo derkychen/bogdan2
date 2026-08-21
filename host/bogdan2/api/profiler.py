@@ -223,15 +223,21 @@ class Profiler:
                 continue
 
             try:
-                status_dict = cast(dict[str, bool | str], json.loads(line))
+                status_dict = cast(
+                    dict[str, bool | str] | None, json.loads(line)
+                )
 
-                print(f"Read from microcontroller: {status_dict}")
+                if status_dict:
+                    print(f"Read from microcontroller: {status_dict}")
+
                 return status_dict
 
             except json.JSONDecodeError as e:
                 raise InvalidJSONFromMCU(
                     f"Invalid JSON from microcontroller: {e}"
                 ) from e
+
+        raise MCUTimeout("Timed out waiting for microcontroller status.")
 
     def _check_mcu_status(self) -> dict[str, bool | str] | None:
         """Read one line from the microcontroller if it is available."""
@@ -243,9 +249,13 @@ class Profiler:
             line = data.split(b"\n", 1)[0]
 
             try:
-                status_dict = cast(dict[str, bool | str], json.loads(line))
+                status_dict = cast(
+                    dict[str, bool | str] | None, json.loads(line)
+                )
 
-                print(f"Read from microcontroller: {status_dict}")
+                if status_dict:
+                    print(f"Read from microcontroller: {status_dict}")
+
                 return status_dict
 
             except json.JSONDecodeError as e:
