@@ -342,7 +342,8 @@ class Profiler:
 
                 self._ser_write_newline_terminated({"cmd": "start"})
 
-                for _ in range(grid.num_points):
+                for i in range(grid.num_points):
+                    print(f"Point #{i}")
                     self._scope.run_capture()
 
                     status = self._check_mcu_status()
@@ -408,7 +409,8 @@ class Profiler:
 
                 self._ser_write_newline_terminated({"cmd": "start"})
 
-                for _ in range(grid.num_points):
+                for i in range(1, grid.num_points + 1):
+                    print(f"Point #{i}")
                     self._scope.run_capture()
 
                     status = self._check_mcu_status()
@@ -471,7 +473,10 @@ class Profiler:
 
                 self._ser_write_newline_terminated({"cmd": "start"})
 
+                i = 1
+
                 while True:
+                    print(f"Point #{i}")
                     self._scope.run_capture()
                     self._scope.transfer_single_values()
 
@@ -489,6 +494,8 @@ class Profiler:
                         elif status["ok"] and status["msg"] == "profile_done":
                             self._scope.disable_trigger_a()
                             break
+
+                    i += 1
             else:
                 error = status["msg"]
 
