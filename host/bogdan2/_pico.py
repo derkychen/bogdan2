@@ -429,12 +429,10 @@ class Scope:
             elapsed = time.time() - start
 
             if elapsed > timeout_s:
-                print(
+                raise TimeoutError(
                     f" WARNING: Picoscope did not capture within {timeout_s} "
                     + "seconds."
                 )
-
-                break
 
             time.sleep(0.001)
 

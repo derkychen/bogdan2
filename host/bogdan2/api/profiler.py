@@ -344,15 +344,18 @@ class Profiler:
 
                 for i in range(grid.num_points):
                     print(f"Point #{i}")
-                    self._scope.run_capture()
 
-                    status = self._check_mcu_status()
+                    try:
+                        self._scope.run_capture()
+                    except Exception as e:
+                        status = self._poll_mcu_status()
 
-                    if status and not status["ok"]:
-                        error = status["msg"]
-                        raise MCUError(
-                            f"Microcontroller error message: {error}"
-                        )
+                        if status and not status["ok"]:
+                            error = status["msg"]
+
+                            raise MCUError(
+                                f"Microcontroller error: {error}"
+                            ) from e
 
                     self._scope.transfer_bulk_values()
 
@@ -411,15 +414,18 @@ class Profiler:
 
                 for i in range(1, grid.num_points + 1):
                     print(f"Point #{i}")
-                    self._scope.run_capture()
 
-                    status = self._check_mcu_status()
+                    try:
+                        self._scope.run_capture()
+                    except Exception as e:
+                        status = self._poll_mcu_status()
 
-                    if status and not status["ok"]:
-                        error = status["msg"]
-                        raise MCUError(
-                            f"Microcontroller error message: {error}"
-                        )
+                        if status and not status["ok"]:
+                            error = status["msg"]
+
+                            raise MCUError(
+                                f"Microcontroller error: {error}"
+                            ) from e
 
                     self._scope.transfer_single_values()
 
@@ -477,7 +483,19 @@ class Profiler:
 
                 while True:
                     print(f"Point #{i}")
-                    self._scope.run_capture()
+
+                    try:
+                        self._scope.run_capture()
+                    except Exception as e:
+                        status = self._poll_mcu_status()
+
+                        if status and not status["ok"]:
+                            error = status["msg"]
+
+                            raise MCUError(
+                                f"Microcontroller error: {error}"
+                            ) from e
+
                     self._scope.transfer_single_values()
 
                     points.append(self._beam_point_single())
