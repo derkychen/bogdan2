@@ -343,10 +343,13 @@ class Profiler:
                 for i in range(grid.num_points):
                     print(f"Point #{i}")
 
-                    self._ser_write_newline_terminated({"cmd": "go_to_point"})
-
                     try:
-                        self._scope.run_capture()
+                        self._scope.arm_capture()
+                        self._ser_write_newline_terminated(
+                            {"cmd": "go_to_point"}
+                        )
+                        self._scope.poll_capture()
+
                     except Exception as e:
                         status = self._poll_mcu_status()
 
@@ -416,7 +419,12 @@ class Profiler:
                     self._ser_write_newline_terminated({"cmd": "go_to_point"})
 
                     try:
-                        self._scope.run_capture()
+                        self._scope.arm_capture()
+                        self._ser_write_newline_terminated(
+                            {"cmd": "go_to_point"}
+                        )
+                        self._scope.poll_capture()
+
                     except Exception as e:
                         status = self._poll_mcu_status()
 
@@ -483,7 +491,9 @@ class Profiler:
                     print(f"Point #{i}")
 
                     try:
-                        self._scope.run_capture()
+                        self._scope.arm_capture()
+                        self._scope.poll_capture()
+
                     except Exception as e:
                         status = self._poll_mcu_status()
 

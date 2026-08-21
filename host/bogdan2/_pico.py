@@ -402,8 +402,8 @@ class Scope:
         for _, channel in self._channels.items():
             channel.bulk_buffer_create(self._total_samples, self._num_captures)
 
-    def run_capture(self, *, timeout_s: float = 10.0) -> None:
-        """Capture waveforms on every trigger."""
+    def arm_capture(self) -> None:
+        """Arm the capture of waveforms on every trigger."""
         unavailable_ms = ct.c_int32()
 
         assert_pico_ok(
@@ -420,6 +420,8 @@ class Scope:
             )
         )
 
+    def poll_capture(self, *, timeout_s: float = 10.0) -> None:
+        """Poll for a successful capture."""
         start = time.time()
         ready = ct.c_int16(0)
 
