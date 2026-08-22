@@ -35,6 +35,12 @@ allowedUntypedLibraries = [
   "picosdk",
   "pythonnet",
 ]
+exclude = [
+  "**/__pycache__",
+  ".venv",
+  "build",
+  "dist",
+]
 include = [
   "bogdan2",
   "typings",
