@@ -335,7 +335,11 @@ class BeamProfile:
         _ = ax3d.set_zlabel("Intensity")
         _ = ax3d.set_title("Beam Profile — 3D")
 
-        ax3d.set_aspect("equal", adjustable="box")
+        ax3d.set_aspect(
+            # NOTE: "equalxy" is supported but Matplotlib types it incorrectly.
+            "equalxy",  # pyright: ignore[reportArgumentType]
+            adjustable="box",
+        )
 
         _ = fig.colorbar(
             surface,
