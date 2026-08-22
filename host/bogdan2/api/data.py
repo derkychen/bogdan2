@@ -302,18 +302,11 @@ class BeamProfile:
             cmap="inferno",
         )
 
-        _ = ax2d.scatter(
-            xs_mm,
-            ys_mm,
-            s=2,
-            c="black",
-            alpha=0.5,
-        )
-
         _ = ax2d.set_xlabel("x [mm]")
         _ = ax2d.set_ylabel("y [mm]")
         _ = ax2d.set_title("Beam Profile — 2D")
-        ax2d.set_aspect("equal")
+
+        ax2d.set_aspect("equal", adjustable="box")
 
         _ = fig.colorbar(
             heatmap,
@@ -337,20 +330,12 @@ class BeamProfile:
             antialiased=True,
         )
 
-        _ = ax3d.scatter(
-            xs_mm,
-            ys_mm,
-            # NOTE: Matplotlib incorrectly types `zs` as `int`.
-            intensities,  # pyright: ignore[reportArgumentType]
-            s=2,
-            c="black",
-            alpha=0.5,
-        )
-
         _ = ax3d.set_xlabel("x [mm]")
         _ = ax3d.set_ylabel("y [mm]")
         _ = ax3d.set_zlabel("Intensity")
         _ = ax3d.set_title("Beam Profile — 3D")
+
+        ax3d.set_aspect("equal", adjustable="box")
 
         _ = fig.colorbar(
             surface,
