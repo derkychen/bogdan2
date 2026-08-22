@@ -2,7 +2,7 @@
  * @file pin.c
  * @brief Implementation of general GPIO functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/pin.h"
