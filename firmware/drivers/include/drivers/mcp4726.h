@@ -5,10 +5,10 @@
  * This module provides functionality for DAC conversions via I2C for the
  * MCP4726 chips, which are responsible for analog outputs.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: If the range of analog outputs is not configured with using the PCA9555
+ * @note If the range of analog outputs is not configured with using the PCA9555
  *       drivers, analog functionality from this module alone will not work.
  */
 #ifndef DRIVERS_MCP4726_H

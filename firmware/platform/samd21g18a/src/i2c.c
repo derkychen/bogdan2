@@ -2,7 +2,7 @@
  * @file i2c.c
  * @brief Implementation of I2C functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/i2c.h"

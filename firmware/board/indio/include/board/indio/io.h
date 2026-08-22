@@ -5,10 +5,10 @@
  * This module exposes global handles for I/O through `extern` declarations that
  * can be passed into initialization functions.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: This module only exposes the handles for I/O used in this project.
+ * @note This module only exposes the handles for I/O used in this project.
  */
 #ifndef BOARD_INDIO_IO_H
 #define BOARD_INDIO_IO_H
@@ -61,7 +61,7 @@ void io_init(void);
  *
  * Currently only configures analog outputs to produce 0 to 10 volts.
  *
- * NOTE: This function must be called if the baseboard is power cycled, as the
+ * @note This function must be called if the baseboard is power cycled, as the
  *       voltage range configuration is lost each time. This can happen when the
  *       baseboard is unplugged while the processor is powered. Processor I/O do
  *       not need to be handled by this function since a power cycle of the

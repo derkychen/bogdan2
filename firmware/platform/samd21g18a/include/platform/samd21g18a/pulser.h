@@ -7,10 +7,10 @@
  * generic as possible, but currently only supports a pulser on MCU expansion
  * port D7.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: If the pulser output is HIGH when an event fires or a software
+ * @note If the pulser output is HIGH when an event fires or a software
  *       re-trigger is called, the pulse is restarted. If the pulser is used to
  *       trigger components with its rising edge, this restarting of the pulse
  *       will not have the intended effect.
@@ -29,7 +29,7 @@ typedef pin_t pulser_output_t;
 /**
  * @brief Enumerate one-shot pulse generating timers.
  *
- * NOTE: Each pulser must be an independent hardware counter. For example,
+ * @note Each pulser must be an independent hardware counter. For example,
  *       different waveform outputs from TCC0 are not independent.
  */
 typedef enum
@@ -49,14 +49,14 @@ typedef struct
 /**
  * @brief Configure a one-shot pulse generator.
  *
- * NOTE: GCLK0 must already be configured to 48 megahertz.
+ * @note GCLK0 must already be configured to 48 megahertz.
  */
 void pulser_configure(pulser_t const *pulser);
 
 /**
  * @brief Configure the pulse width.
  *
- * NOTE: This function must be called while the pulser is stopped.
+ * @note This function must be called while the pulser is stopped.
  */
 void pulser_width_set(pulser_t const *pulser, uint32_t width_ticks);
 

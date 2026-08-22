@@ -2,7 +2,7 @@
  * @file controller.h
  * @brief Controller I/O and state layer.
  *
- * NOTE: This module will only work as expected if the controllers are in the
+ * @note This module will only work as expected if the controllers are in the
  *       closed-loop control mode, with both output analog voltage ranging from
  *       0 to 10 volts.
  */

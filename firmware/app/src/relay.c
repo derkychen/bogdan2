@@ -2,7 +2,7 @@
  * @file relay.c
  * @brief Implementation of relay functionality.
  *
- * NOTE: The interrupt service routine is only required for counting, as the
+ * @note The interrupt service routine is only required for counting, as the
  *       event system does not go through `EIC_Handler`.
  */
 #include "app/relay.h"

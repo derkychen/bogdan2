@@ -6,7 +6,7 @@
  * `usb_task`, which must be called frequently in the application to avoid
  * starving the USB connection.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_USB_H

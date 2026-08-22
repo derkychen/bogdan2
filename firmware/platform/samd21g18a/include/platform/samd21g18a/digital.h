@@ -5,10 +5,10 @@
  * This module provides functionality to control SAMD21G18A GPIOs as digital
  * pins.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: The only actually accessible SAMD21G18A pins on the IND.I/O are located
+ * @note The only actually accessible SAMD21G18A pins on the IND.I/O are located
  *       on the MCU expansion port.
  */
 #ifndef PLATFORM_SAMD21G18A_DIGITAL_H
@@ -31,7 +31,7 @@ typedef pin_t digital_pin_t;
 /**
  * @brief Set the direction of a digital pin to be output.
  *
- * NOTE: This function sets the level of the digital pin to be low.
+ * @note This function sets the level of the digital pin to be low.
  */
 void digital_pin_cfg_set_output(digital_pin_t const *pin);
 

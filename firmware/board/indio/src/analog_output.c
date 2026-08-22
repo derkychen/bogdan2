@@ -4,10 +4,10 @@
  *
  * Enables the writing of raw 12-bit values to the IND.I/O baseboard DAC.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: The MCP4726 is the chip used to actually perform DAC conversions.
+ * @note The MCP4726 is the chip used to actually perform DAC conversions.
  *       However, the PCA9555 driver is still needed in the configuration of the
  *       output voltage range to 0 to 10 volts.
  */

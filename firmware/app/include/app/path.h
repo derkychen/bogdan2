@@ -44,7 +44,7 @@ typedef enum
  * A horizontal raster resembles the letter Z and a vertical raster resembles
  * the letter N.
  *
- * NOTE: This is important in the actual geometry of the path as well as the
+ * @note This is important in the actual geometry of the path as well as the
  *       balancing of continuous work between the two stages.
  */
 typedef enum
@@ -117,7 +117,7 @@ path_status_t path_init(path_t                  *path,
  *
  * Computes the next position and updates the state of the path.
  *
- * NOTE: The last point in the path returned by this function is the anchor,
+ * @note The last point in the path returned by this function is the anchor,
  *       even though capture ends at the point before the anchor (unless there
  *       is only one point). This ensures the detector starts and ends at the
  *       same point, eliminating unnecessary movement latency during the next

@@ -7,7 +7,7 @@
  * enabling those who register interrupts to pass context, allowing for
  * interrupts to access the data they are supposed to.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/eic.h"

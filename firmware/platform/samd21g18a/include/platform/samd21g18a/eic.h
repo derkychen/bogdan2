@@ -6,7 +6,7 @@
  * configure, enable, and disable interrupts as well as the EIC's event
  * generation.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_EIC_H

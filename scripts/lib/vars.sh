@@ -3,7 +3,7 @@
 # Set some variables used by other scripts.
 #
 # NOTE: This script should not be executed directly. It should only be sourced
-# by other scripts.
+#       by other scripts.
 
 set -euo pipefail
 

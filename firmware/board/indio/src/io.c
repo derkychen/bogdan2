@@ -2,10 +2,10 @@
  * @file io.c
  * @brief Implementation of I/O configurations.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: All MCU expansion port pins and analog output pins are defined. The
+ * @note All MCU expansion port pins and analog output pins are defined. The
  *       ones that are unused are commented out.
  */
 #include "board/indio/io.h"
@@ -22,7 +22,7 @@
 /**
  * @brief Internal handle for the IND.I/O expansion port pin D0/RX.
  *
- * WARNING: The current module for MCU digital I/O does not support this pin.
+ * @warning The current module for MCU digital I/O does not support this pin.
  */
 static pin_t const expansion_d0 = {
     .port_group = PIN_PORT_GROUP_A,
@@ -34,7 +34,7 @@ static pin_t const expansion_d0 = {
 /**
  * @brief Internal handle for the IND.I/O expansion port pin D1/TX.
  *
- * WARNING: The current module for MCU digital I/O does not support this pin.
+ * @warning The current module for MCU digital I/O does not support this pin.
  */
 static pin_t const expansion_d1 = {
     .port_group = PIN_PORT_GROUP_A,
@@ -86,7 +86,7 @@ static pin_t const expansion_d7 = {
 /**
  * @brief Internal handle for the IND.I/O expansion port pin D10/A10.
  *
- * WARNING: The current module for MCU digital I/O does not support this pin.
+ * @warning The current module for MCU digital I/O does not support this pin.
  */
 static pin_t const expansion_d10 = {
     .port_group = PIN_PORT_GROUP_A,
@@ -117,7 +117,7 @@ static pin_t const expansion_d16 = {
 /**
  * @brief Internal PA16 handle.
  *
- * NOTE: This is the same pin as D2/SDA on the expansion port.
+ * @note This is the same pin as D2/SDA on the expansion port.
  */
 static pin_t const pa16 = {
     .port_group = PIN_PORT_GROUP_A,
@@ -126,7 +126,7 @@ static pin_t const pa16 = {
 
 /** @brief Internal PA17 handle.
  *
- * NOTE: This is the same pin as D3/SCL on the expansion port.
+ * @note This is the same pin as D3/SCL on the expansion port.
  */
 static pin_t const pa17 = {
     .port_group = PIN_PORT_GROUP_A,

@@ -2,10 +2,10 @@
  * @file pulser.c
  * @brief Implementation of the one-shot pulse generating module.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: This implementation only supports TCC timers.
+ * @note This implementation only supports TCC timers.
  */
 #include "platform/samd21g18a/pulser.h"
 #include "platform/samd21g18a/assert.h"

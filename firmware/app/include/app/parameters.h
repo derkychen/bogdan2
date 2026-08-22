@@ -45,7 +45,7 @@ typedef enum
  * This structure defines the grid to profile as well as some parameters
  * relevant to waveform capture.
  *
- * NOTE: This structure only contains the parameters relevant to the
+ * @note This structure only contains the parameters relevant to the
  *       microcontroller. It is not necessarily the full set of parameters.
  *
  *       Depending on the mode, some of these are unnecessary.

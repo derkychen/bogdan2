@@ -2,7 +2,7 @@
  * @file pca9555.c
  * @brief Implementation of PCA9555 functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "drivers/pca9555.h"

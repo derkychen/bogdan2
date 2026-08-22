@@ -2,7 +2,7 @@
  * @file analog_output.h
  * @brief This module provides all analog output functionality for the IND.I/O.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #ifndef BOARD_INDIO_ANALOG_OUTPUT_H

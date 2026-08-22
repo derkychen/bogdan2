@@ -5,7 +5,7 @@
  * This module provides utilites for configuring and validating SAMD21G18A GPIO
  * pins.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_PIN_H

@@ -2,7 +2,7 @@
  * @file digital.c
  * @brief Implementation of digital pin functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "platform/samd21g18a/digital.h"

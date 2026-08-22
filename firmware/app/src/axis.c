@@ -2,7 +2,7 @@
  * @file axis.c
  * @brief Implementation of coordinate system abstraction.
  *
- * NOTE: If a different IND.I/O is used, The calibration done here should be
+ * @note If a different IND.I/O is used, The calibration done here should be
  *       redone. If it is found that the two analog output channels differ
  *       substantially, this file will need to be refactored to handle each
  *       channel separately.

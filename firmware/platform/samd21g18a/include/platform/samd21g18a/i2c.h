@@ -7,7 +7,7 @@
  * PA17, which is the bus required to communicate with the IND.I/O baseboard
  * I/O.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #ifndef PLATFORM_SAMD21G18A_I2C_H
@@ -73,7 +73,7 @@ void i2c_init(i2c_master_t     master,
 /**
  * @brief Configure an I2C master.
  *
- * NOTE: This function should only be called after `i2c_init` has been called on
+ * @note This function should only be called after `i2c_init` has been called on
  *       the same master.
  */
 void i2c_configure(i2c_master_t master);

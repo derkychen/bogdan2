@@ -2,10 +2,10 @@
  * @file usb.c
  * @brief Implementation of USB functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  *
- * NOTE: This overrides the vector table function `USB_Handler`.
+ * @note This overrides the vector table function `USB_Handler`.
  */
 #include "platform/samd21g18a/usb.h"
 #include "platform/samd21g18a/assert.h"

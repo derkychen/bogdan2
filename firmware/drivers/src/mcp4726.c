@@ -2,7 +2,7 @@
  * @file mcp4726.c
  * @brief Implementation of MCP4726 functionality.
  *
- * WARNING: Changes to this file should be made with caution, as it contains
+ * @warning Changes to this file should be made with caution, as it contains
  *          low-level logic that can be broken.
  */
 #include "drivers/mcp4726.h"

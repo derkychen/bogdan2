@@ -7,7 +7,7 @@
  * interrupts, but does pulse relaying through hardware timers and the event
  * system, which minimizes jitter for more timing-critical tasks.
  *
- * NOTE: The pulse width defined by this module is limits the frequency of the
+ * @note The pulse width defined by this module is limits the frequency of the
  *       laser that can be profiled by modes where the oscilloscope is triggered
  *       on every pulse.
  */
