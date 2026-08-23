@@ -120,6 +120,11 @@ controller_write_analog_in (controller_t *controller, uint16_t value)
     ASSERT(value <= ANALOG_OUTPUT_MAX_VALUE);
     ASSERT(!controller->stage_moving);
 
+    if (value == controller->target_analog_value)
+    {
+        return CONTROLLER_STATUS_OK;
+    }
+
     if (analog_output_write(controller->analog_in, value)
         != ANALOG_OUTPUT_STATUS_OK)
     {
