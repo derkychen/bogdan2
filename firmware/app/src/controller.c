@@ -3,8 +3,8 @@
  * @brief Implementation of the controller I/O and state layer.
  *
  * @note The usage of "in" and "out" when referring to the controller I/O is
- *       relative to the controller. For example, Trigger OUT is received by the
- *       microcontroller, while Analog IN outputted from the microcontroller.
+ *       relative to the controller. For example, Trigger Out is received by the
+ *       microcontroller, while Analog In outputted from the microcontroller.
  */
 #include "app/controller.h"
 #include "board/indio/analog_output.h"

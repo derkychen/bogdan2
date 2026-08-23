@@ -292,10 +292,10 @@ class Controller:
         print(
             f"Ensured PDXC2 (SN:{self._serial_num}) Analog Rising trigger "
             + "parameters.\n"
-            + f"\tAnalog IN gain:    {in_gain}\n"
-            + f"\tAnalog IN offset:  {in_offset}\n"
-            + f"\tAnalog OUT gain:   {out_gain}\n"
-            + f"\tAnalog OUT offset: {out_offset}\n"
+            + f"\tAnalog In gain:    {in_gain}\n"
+            + f"\tAnalog In offset:  {in_offset}\n"
+            + f"\tAnalog Out gain:   {out_gain}\n"
+            + f"\tAnalog Out offset: {out_offset}\n"
         )
 
     def ensure_trigger_mode(

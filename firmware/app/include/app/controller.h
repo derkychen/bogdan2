@@ -25,13 +25,13 @@ typedef enum
 /** @brief Interface with the controller I/O and Pico interrupts. */
 typedef struct
 {
-    pin_t const                   *trigger_in; /**< Connected to Trigger IN. */
-    analog_output_channel_t const *analog_in;  /**< Connected to Analog IN. */
-    eic_pin_t const *trigger_out;              /**< Connected to Trigger OUT. */
+    pin_t const                   *trigger_in; /**< Connected to Trigger In. */
+    analog_output_channel_t const *analog_in;  /**< Connected to Analog In. */
+    eic_pin_t const *trigger_out;              /**< Connected to Trigger Out. */
 
     volatile bool     stage_moving;         /**< Whether the stage is moving. */
-    volatile uint16_t target_analog_value;  /**< Target Analog IN value. */
-    volatile uint16_t current_analog_value; /**< Current Analog IN value. */
+    volatile uint16_t target_analog_value;  /**< Target Analog In value. */
+    volatile uint16_t current_analog_value; /**< Current Analog In value. */
 } controller_t;
 
 /** @brief Initialize and configure a controller. */
@@ -67,11 +67,11 @@ void controller_interrupt_enable(controller_t const *controller);
 
 /**
  * @brief Start the stage's movement to its target by pulsing HIGH the
- *        controller Trigger IN.
+ *        controller Trigger In.
  */
 void controller_pulse_trigger_in(controller_t const *controller);
 
-/** @brief Set the target of the stage through the controller Analog IN. */
+/** @brief Set the target of the stage through the controller Analog In. */
 controller_status_t controller_write_analog_in(controller_t *controller,
                                                uint16_t      dac_value);
 

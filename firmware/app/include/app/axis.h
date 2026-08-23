@@ -3,9 +3,9 @@
  * @brief Maps coordinate system to controllers.
  *
  * Each axis serves as an interface between application behaviour and controller
- * I/O. For example, starting stage movement maps to pulsing Trigger IN, and
+ * I/O. For example, starting stage movement maps to pulsing Trigger In, and
  * moving to a certain coordinate on an axis results in the writing of a
- * calculated analog voltage to Analog IN.
+ * calculated analog voltage to Analog In.
  */
 #ifndef APP_AXIS_H
 #define APP_AXIS_H

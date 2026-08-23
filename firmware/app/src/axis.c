@@ -17,7 +17,7 @@
 #define UNIT_MAX_NM (1000000u)
 
 // TODO: Extend stage range to +/- 6 mm if Thorlabs fixes the gain and offset
-//       bug. Analog IN gain and offset currently restrict stage range to these
+//       bug. Analog In gain and offset currently restrict stage range to these
 //       values.
 #define STAGE_RANGE_MIN_NM (-3000000)
 #define STAGE_RANGE_MAX_NM (3000000)
