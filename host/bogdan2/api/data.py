@@ -5,7 +5,7 @@ import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, cast
+from typing import Final, Self, cast
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
@@ -14,6 +14,11 @@ import numpy.typing as npt
 from mpl_toolkits.mplot3d import Axes3D
 
 MIN_TRIANGULATION_NUM_POINTS: Final[int] = 3
+MIN_BACKGROUND_POINTS_PER_CORNER: Final[int] = 4
+BACKGROUND_CORNER_FRACTION: Final[float] = 0.1
+ISO_THRESHOLD_SIGMA_MIN: Final[float] = 2.0
+ISO_THRESHOLD_SIGMA_MAX: Final[float] = 4.0
+ISO_THRESHOLD_SIGMA_DEFAULT: Final[float] = 4.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,30 +49,83 @@ def _triangulation(
     return mtri.Triangulation(xs, ys)
 
 
-def _process_intensities(
+# Named intermediates are for readability.
+def _process_intensities(  # noqa: PLR0914
+    xs_mm: npt.NDArray[np.float64],
+    ys_mm: npt.NDArray[np.float64],
     intensities: npt.NDArray[np.float64],
     *,
-    background: float,
-    noise_stddev: float | None,
     threshold_sigma: float,
 ) -> npt.NDArray[np.float64]:
-    """Subtract background and apply noise threshold."""
-    if not math.isfinite(background):
-        raise ValueError("Background must be finite.")
+    """Estimate background and apply an WinCamD-like noise threshold.
 
-    if threshold_sigma < 0.0 or not math.isfinite(threshold_sigma):
-        raise ValueError("Threshold sigma must be finite and non-negative.")
-
-    corrected = intensities - background
-
-    if noise_stddev is None:
-        return np.maximum(corrected, 0.0)
-
-    if noise_stddev < 0.0 or not math.isfinite(noise_stddev):
+    Background is estimated through sampling the four corners of the
+    rectangular grid, where readings are assumed to be background.
+    """
+    if not (
+        math.isfinite(threshold_sigma)
+        and ISO_THRESHOLD_SIGMA_MIN
+        <= threshold_sigma
+        <= ISO_THRESHOLD_SIGMA_MAX
+    ):
         raise ValueError(
-            "Noise standard deviation must be finite and non-negative."
+            "Threshold sigma must be between "
+            + f"{ISO_THRESHOLD_SIGMA_MIN} and "
+            + f"{ISO_THRESHOLD_SIGMA_MAX}."
         )
 
+    assert xs_mm.shape == ys_mm.shape == intensities.shape, (
+        "Arrays have incompatible shapes."
+    )
+    assert xs_mm.ndim == 1, "Axis arrays must be one-dimensional."
+    assert np.all(np.isfinite(xs_mm))
+    assert np.all(np.isfinite(ys_mm))
+
+    x_min = float(np.min(xs_mm))
+    x_max = float(np.max(xs_mm))
+    y_min = float(np.min(ys_mm))
+    y_max = float(np.max(ys_mm))
+
+    x_span = x_max - x_min
+    y_span = y_max - y_min
+
+    if x_span <= 0.0 or y_span <= 0.0:
+        raise ValueError("Beam profile must span both spatial dimensions.")
+
+    x_margin = BACKGROUND_CORNER_FRACTION * x_span
+    y_margin = BACKGROUND_CORNER_FRACTION * y_span
+
+    left = xs_mm <= x_min + x_margin
+    right = xs_mm >= x_max - x_margin
+    bottom = ys_mm <= y_min + y_margin
+    top = ys_mm >= y_max - y_margin
+
+    corner_masks = (
+        left & bottom,
+        left & top,
+        right & bottom,
+        right & top,
+    )
+
+    if any(
+        np.count_nonzero(mask) < MIN_BACKGROUND_POINTS_PER_CORNER
+        for mask in corner_masks
+    ):
+        raise ValueError(
+            "Beam profile contains too few samples in one or more "
+            + "background regions."
+        )
+
+    background_mask = (
+        corner_masks[0] | corner_masks[1] | corner_masks[2] | corner_masks[3]
+    )
+
+    background = intensities[background_mask]
+
+    baseline = float(np.mean(background))
+    noise_stddev = float(np.std(background))
+
+    corrected = intensities - baseline
     threshold = threshold_sigma * noise_stddev
 
     return np.where(
@@ -139,34 +197,19 @@ def _integrated_moments(
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Reading:
-    """Abstraction for raw readings captured from the oscilloscope."""
-
-    vals: npt.NDArray[np.float64]
-
-    @property
-    def mean(self) -> float:
-        """Mean of quantities."""
-        return float(np.mean(self.vals))
-
-    @property
-    def median(self) -> float:
-        """Median of quantities."""
-        return float(np.median(self.vals))
-
-    @property
-    def stddev(self) -> float:
-        """Standard deviation of quantities."""
-        return float(np.std(self.vals))
-
-    def integral(self, interval: float) -> float:
-        """Integral of a waveform by trapezoidal method."""
-        return float(np.trapezoid(self.vals, x=None, dx=interval, axis=-1))
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class BeamPoint:
-    """Point on a beam profile."""
+    """Point on a beam profile.
+
+    Attributes
+    ----------
+    x_mm : float
+        x-coordinate of the point on the profile.
+    y_mm : float
+        y-coordinate of the point on the profile.
+    intensity : float
+        Integral of the voltage waveform captured. The magnitude of this
+        quantity is not useful, it mainly serves as a relative metric.
+    """
 
     x_mm: float
     y_mm: float
@@ -175,7 +218,25 @@ class BeamPoint:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class BeamGeometry:
-    """ISO-style second-moment beam geometry."""
+    """ISO 11146 second-moment beam geometry.
+
+    Attributes
+    ----------
+    centroid_x_mm : float
+        Beam centroid x-coordinate of in millimetres relative to the stage
+        origin.
+    centroid_y_mm : float
+        Beam centroid y-coordinate of in millimetres relative to the stage
+        origin.
+    d4sigma_semimajor_mm : float
+        Semi-major axis length in millimetres.
+    d4sigma_semiminor_mm : float
+        Semi-minor axis length in millimetres.
+    orientation_rad : float
+        Angle of the semi-major axis from the positive x-axis in [0, pi).
+    ellipticity : float
+        Ellipticity of the beam.
+    """
 
     centroid_x_mm: float
     centroid_y_mm: float
@@ -188,12 +249,24 @@ class BeamGeometry:
 
     @property
     def d4sigma_major_diameter_mm(self) -> float:
-        """D4sigma major-axis diameter."""
+        """D4sigma major-axis diameter.
+
+        Returns
+        -------
+        float
+            Semi-major axis length multiplied by two.
+        """
         return 2.0 * self.d4sigma_semimajor_mm
 
     @property
     def d4sigma_minor_diameter_mm(self) -> float:
-        """D4sigma minor-axis diameter."""
+        """D4sigma minor-axis diameter.
+
+        Returns
+        -------
+        float
+            Semi-minor axis length multiplied by two.
+        """
         return 2.0 * self.d4sigma_semiminor_mm
 
 
@@ -201,22 +274,53 @@ class BeamProfile:
     """Data processing functionality for beam profiles."""
 
     def __init__(self, points: Iterable[BeamPoint]) -> None:
-        """Initialize a profile."""
+        """Initialize a profile.
+
+        Validates input and creates an immutable beam profile by storing the
+        provided `BeamPoint` objects in a tuple.
+
+        Parameters
+        ----------
+        points : iterable[BeamPoint]
+            An iterable object, usually a list of `BeamPoint` objects.
+
+        Raises
+        ------
+        ValueError
+            If the beam profile contains too few points or if the profile
+            contains data that is not finite.
+        """
         self._points: tuple[BeamPoint, ...] = tuple(points)
 
         if not self._points:
             raise ValueError("Beam profile must contain at least one point.")
 
         if any(
-            not np.isfinite(value)
+            not math.isfinite(value)
             for point in self._points
             for value in (point.x_mm, point.y_mm, point.intensity)
         ):
             raise ValueError("Beam profile values must be finite.")
 
     @classmethod
-    def from_csv(cls, path: str | Path) -> "BeamProfile":
-        """Load a beam profile from a CSV."""
+    def from_csv(cls, path: str | Path) -> Self:
+        """Load a beam profile from a CSV.
+
+        Parameters
+        ----------
+        path : str or Path
+            File path of the CSV.
+
+        Returns
+        -------
+        Self
+            A `BeamProfile` instance from the loaded data.
+
+        Raises
+        ------
+        ValueError
+            If the CSV does not contain only the required columns.
+        """
         points: list[BeamPoint] = []
 
         with Path(path).open(
@@ -248,8 +352,25 @@ class BeamProfile:
         return cls(points)
 
     @classmethod
-    def from_npz(cls, path: str | Path) -> "BeamProfile":
-        """Load a beam profile from a NumPy archive."""
+    def from_npz(cls, path: str | Path) -> Self:
+        """Load a beam profile from a NumPy archive.
+
+        Parameters
+        ----------
+        path : str or Path
+            File path of the NumPy archive.
+
+        Returns
+        -------
+        Self
+            A `BeamProfile` instance from the loaded data.
+
+        Raises
+        ------
+        ValueError
+            If the loaded data contains incompatible or non-one-dimensional
+            arrays.
+        """
         with cast(
             np.lib.npyio.NpzFile[np.float64],
             np.load(
@@ -286,8 +407,24 @@ class BeamProfile:
 
         return cls(points)
 
+    @property
+    def points(self) -> tuple[BeamPoint, ...]:
+        """Beam-profile points.
+
+        Returns
+        -------
+        tuple of BeamPoints
+            Points in the profile.
+        """
+        return self._points
+
     def plot(self) -> None:
-        """Visualize the beam profile in 2D and 3D."""
+        """Visualize the beam profile in 2D and 3D side-by-side.
+
+        Uses Delauney triangulation to interpolate between points. Equal
+        scaling of the x- and y-axes is enforced. The z-axis is not constrained
+        by scaling.
+        """
         xs_mm, ys_mm, intensities = self._arrays()
         triangulation = _triangulation(xs_mm, ys_mm)
 
@@ -352,7 +489,15 @@ class BeamProfile:
         plt.show()
 
     def save_csv(self, path: str | Path) -> None:
-        """Save the beam profile as a CSV."""
+        """Save the beam profile as a CSV.
+
+        Parameters
+        ----------
+        path: str | Path
+            The path to which to save the beam profile CSV. This path is
+            relative to the current working directory of the caller of the
+            function.
+        """
         with Path(path).open(
             "w",
             encoding="utf-8",
@@ -372,7 +517,15 @@ class BeamProfile:
             )
 
     def save_npz(self, path: str | Path) -> None:
-        """Save the beam profile to a NumPy archive."""
+        """Save the beam profile to a NumPy archive.
+
+        Parameters
+        ----------
+        path: str | Path
+            The path to which to save the beam profile NumPy archive. This path
+            is relative to the current working directory of the caller of the
+            function.
+        """
         xs_mm, ys_mm, intensities = self._arrays()
 
         np.savez_compressed(
@@ -382,19 +535,48 @@ class BeamProfile:
             intensity=intensities,
         )
 
-    def geometry(  # noqa: PLR0914  # Named intermediates are for readability.
+    # Named intermediates are for readability.
+    def geometry(  # noqa: PLR0914
         self,
-        background: float = 0.0,
-        noise_stddev: float | None = None,
-        threshold_sigma: float = 3.0,
+        *,
+        threshold_sigma: float = ISO_THRESHOLD_SIGMA_DEFAULT,
     ) -> BeamGeometry:
-        """Calculate ISO-style second-moment beam geometry."""
+        """Calculate ISO 11146 second-moment beam geometry.
+
+        Background thresholding is done similar to in the WinCamD, where four
+        corners are sampled and assumed to be background.
+
+        The intensities are linearly interpolated over a Delauney triangulation
+        before spatial moments are integrated. From these, all quantities in
+        the `BeamGeometry` object are derived.
+
+        It is important to note that, while this calculation follows ISO
+        second-moment definitions, it does not establish compliance with ISO
+        11146.
+
+        Parameters
+        ----------
+        threshold_sigma : float, default=4.0
+            Cutoff of the beam; as per ISO this must be between 2.0 and 4.0.
+
+        Returns
+        -------
+        BeamGeometry
+            ISO 11146 geometry of the beam.
+
+        Raises
+        ------
+        ValueError
+            If the beam has too few points, insufficient number of points in
+            background sampling regions, contains no positive signal, zero
+            spatial extent.
+        """
         xs_mm, ys_mm, intensities = self._arrays()
 
         processed = _process_intensities(
+            xs_mm,
+            ys_mm,
             intensities,
-            background=background,
-            noise_stddev=noise_stddev,
             threshold_sigma=threshold_sigma,
         )
 

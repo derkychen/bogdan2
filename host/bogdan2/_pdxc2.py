@@ -161,9 +161,9 @@ class Controller:
     ) -> None:
         """Get and (if necessary) set closed-loop motion parameters."""
         if not 0 <= refspeed <= UINT32_MAX:
-            raise ValueError("refspeed must fit `uint32`.")
+            raise ValueError("`refspeed` must fit `uint32`.")
         if not 0 <= acceleration <= UINT32_MAX:
-            raise ValueError("acceleration must fit `uint32`.")
+            raise ValueError("`acceleration` must fit `uint32`.")
 
         params = self._device.GetClosedLoopParameters()
 
