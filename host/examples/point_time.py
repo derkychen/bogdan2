@@ -35,7 +35,7 @@ capture = PointTimeCaptureParams(
 params = BeamProfilerParams(grid=grid, capture=capture)
 
 id = BeamProfilerID(
-    port="COM5",
+    port="COM10",
     picoscope_serial_num="10338/0127",
     x_pdxc2_serial_num="112547939",
     y_pdxc2_serial_num="112512664",
