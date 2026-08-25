@@ -36,13 +36,13 @@ This directory contains compile options for the SAMD21G18A processor, which is t
 
 This directory contains warning and feature-related compile options. The CMakeLists files in other locations use the features and warnings to ensure that errors/warnings are largely ignored for external dependencies (since this is code that is not written by us), and tightens checking on code in this repository so that any warning causes compilation to fail.
 
+#### `toolchains/`
+
+This directory contains CMake configurations that specify to use the `arm-none-eabi` toolchain.
+
 ### `drivers/`
 
 This directory contains drivers for chips on board the IND.I/O baseboard. These chips are used to control the I<sup>2</sup>C devices that are responsible for driving the analog outputs on the baseboard.
-
-### `external/`
-
-This directory houses the Git submodules that the firmware depends on.
 
 ### `platform/samd21g18a`
 
