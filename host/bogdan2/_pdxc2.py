@@ -26,7 +26,6 @@ import clr  # noqa: E402
 
 KINESIS_DIR: Final[Path] = Path(r"C:\Program Files\Thorlabs\Kinesis")
 
-# TODO: Remove, tighten, or replace these delays with polling loops.
 POLLING_INTERVAL_MS: Final[int] = 250
 SETTINGS_INITIALIZATION_TIMEOUT_MS: Final[int] = 10_000
 SETTINGS_SETTLING_TIME_S: Final[float] = 0.5

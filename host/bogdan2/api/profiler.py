@@ -570,10 +570,7 @@ class BeamProfiler:
         self._x_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
         self._y_controller.ensure_trigger_mode(TriggerModeID.MANUAL)
 
-        # Use fast settings.
-        #
-        # TODO: Set acceleration as 1000 mm/s^2 after confirming it is okay for
-        #       long-term usage.
+        # Use fast but relatively conservative settings.
         self._x_controller.ensure_closedloop_params(
             refspeed=15_000_000, acceleration=500_000_000
         )
