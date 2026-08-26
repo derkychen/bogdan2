@@ -1,5 +1,14 @@
 """Beam profiler API.
 
-This API provides functionality for calibration and profiling, as well as data-
-processing utilities.
+This API provides profiling functionality and data-processing utilties. It is
+intentionally minimal to retain flexibility.
+
+Callers of this API will interact with a number of abstractions, with which
+they should be familiar. These include:
+
+  - BeamProfilerParams
+  - BeamProfiler
+  - BeamProfile
+  - BeamPoint
+  - BeamGeometry
 """
