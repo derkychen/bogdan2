@@ -409,7 +409,7 @@ class BeamProfile:
 
     @property
     def points(self) -> tuple[BeamPoint, ...]:
-        """Beam-profile points.
+        """The points in the beam profile.
 
         Returns
         -------
