@@ -111,10 +111,10 @@ def _mm_to_nm(mm: float) -> int:
     return int(mm * 1e6)
 
 
-def _mv_capture_to_mm(
+def _reading_mv_to_mm(
     mv: npt.NDArray[np.float64] | list[npt.NDArray[np.float64]],
 ) -> float:
-    """Convert x and y millivolt readings into a position."""
+    """Convert millivolt readings into a position."""
     return (
         (float(np.mean(mv)) - MIN_MV)
         * (AXIS_STAGE_RANGE_MAX_MM - AXIS_STAGE_RANGE_MIN_MM)
@@ -668,8 +668,8 @@ class BeamProfiler:
         """Construct a beam point from a single capture."""
         interval_s = self._scope.get_sample_interval_ns() * 1e-9
 
-        x_mm = _mv_capture_to_mm(self._scope.channel_single_mv("x_mv"))
-        y_mm = _mv_capture_to_mm(self._scope.channel_single_mv("y_mv"))
+        x_mm = _reading_mv_to_mm(self._scope.channel_single_mv("x_mv"))
+        y_mm = _reading_mv_to_mm(self._scope.channel_single_mv("y_mv"))
 
         intensity_mv = self._scope.channel_single_mv("intensity_mv")
 
@@ -683,8 +683,8 @@ class BeamProfiler:
         """Construct a beam point from a single capture."""
         interval_s = self._scope.get_sample_interval_ns() * 1e-9
 
-        x_mm = _mv_capture_to_mm(self._scope.channel_bulk_mv("x_mv"))
-        y_mm = _mv_capture_to_mm(self._scope.channel_bulk_mv("y_mv"))
+        x_mm = _reading_mv_to_mm(self._scope.channel_bulk_mv("x_mv"))
+        y_mm = _reading_mv_to_mm(self._scope.channel_bulk_mv("y_mv"))
 
         intensity_captures = self._scope.channel_bulk_mv("intensity_mv")
         intensity = float(
