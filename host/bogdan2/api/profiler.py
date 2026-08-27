@@ -671,11 +671,13 @@ class BeamProfiler:
         x_mm = _reading_mv_to_mm(self._scope.channel_single_mv("x_mv"))
         y_mm = _reading_mv_to_mm(self._scope.channel_single_mv("y_mv"))
 
-        intensity_mv = self._scope.channel_single_mv("intensity_mv")
+        intensity_reading_mv = self._scope.channel_single_mv("intensity_mv")
 
-        print(intensity_mv)
+        # Prints precision to the millivolt, which is more than precise enough.
+        with np.printoptions(precision=0):
+            print(f"Intensity reading (mV): {intensity_reading_mv}")
 
-        intensity = float(np.trapezoid(intensity_mv, dx=interval_s))
+        intensity = float(np.trapezoid(intensity_reading_mv, dx=interval_s))
 
         return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
 
@@ -686,12 +688,17 @@ class BeamProfiler:
         x_mm = _reading_mv_to_mm(self._scope.channel_bulk_mv("x_mv"))
         y_mm = _reading_mv_to_mm(self._scope.channel_bulk_mv("y_mv"))
 
-        intensity_captures = self._scope.channel_bulk_mv("intensity_mv")
+        intensity_readings_mv = self._scope.channel_bulk_mv("intensity_mv")
+
+        # Prints precision to the millivolt, which is more than precise enough.
+        with np.printoptions(precision=0):
+            print(f"Intensity readings (mV): {intensity_readings_mv}")
+
         intensity = float(
             np.mean(
                 [
-                    np.trapezoid(capture, dx=interval_s)
-                    for capture in intensity_captures
+                    np.trapezoid(reading, dx=interval_s)
+                    for reading in intensity_readings_mv
                 ]
             )
         )
