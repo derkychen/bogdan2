@@ -12,7 +12,7 @@ The mandatory dependencies are:
 * `cmake`
 * `git`
 * `ninja`
-* `python`
+* `python >= 3.12`
 * `uv`
 
 ## Git and Git BASH
@@ -38,6 +38,14 @@ winget install -e --id Kitware.CMake # `cmake`
 winget install -e --id Ninja-build.Ninja # `ninja`
 winget install -e --id Python.Python.3.12 # `python` version 3.12
 winget install --id=astral-sh.uv  -e # `uv`
+```
+
+These dependencies can also be installed with `pip`, which is by default included with `python >= 3.4`, via:
+
+```bash
+pip install cmake
+pip install ninja
+pip install uv
 ```
 
 ## Other Dependencies
