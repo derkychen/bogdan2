@@ -53,6 +53,8 @@ CAPTURE_MAX_SAMPLES: Final[int] = 30_000_000
 POINTCOUNT_CAPTURE_NUM_PULSES_MAX: Final[int] = 100
 POINTTIME_CAPTURE_WAIT_TIME_MAX_US: Final[int] = 1_000_000_000
 
+PHOTODETECTOR_MAX_OUTPUT_MV: Final[float] = 10_000.0
+
 
 class MCUError(Exception):
     """When the host receives an error message from the microcontroller."""
@@ -677,6 +679,15 @@ class BeamProfiler:
         with np.printoptions(precision=0):
             print(f"Intensity reading (mV): {intensity_reading_mv}")
 
+            peak_mv = np.max(intensity_reading_mv)
+            print(f"Peak reading (mV): {peak_mv}")
+
+            if peak_mv >= PHOTODETECTOR_MAX_OUTPUT_MV:
+                print(
+                    "WARNING: Peak sample is at maximum photodector output. "
+                    + "Possible clipping/nonlinear behaviour."
+                )
+
         intensity = float(np.trapezoid(intensity_reading_mv, dx=interval_s))
 
         return BeamPoint(x_mm=x_mm, y_mm=y_mm, intensity=intensity)
@@ -693,6 +704,15 @@ class BeamProfiler:
         # Prints precision to the millivolt, which is more than precise enough.
         with np.printoptions(precision=0):
             print(f"Intensity readings (mV): {intensity_readings_mv}")
+
+            peak_mv = np.max(intensity_readings_mv)
+            print(f"Peak reading (mV): {peak_mv}")
+
+            if peak_mv >= PHOTODETECTOR_MAX_OUTPUT_MV:
+                print(
+                    "WARNING: Peak sample is at maximum photodector output. "
+                    + "Possible clipping/nonlinear behaviour."
+                )
 
         intensity = float(
             np.mean(
